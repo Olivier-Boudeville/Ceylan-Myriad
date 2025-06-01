@@ -57,7 +57,7 @@ possibly containing pairs and also single atoms (e.g. see
 
 
 % The standard table API:
--export([ new/0, new/1,
+-export([ new/0, new/1, check_proper/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
@@ -99,7 +99,7 @@ possibly containing pairs and also single atoms (e.g. see
 -doc """
 A list-based associative table.
 
-Not exactly as proplists:proplist/0 (here: a list only of pairs - not atoms or
+Not exactly as `proplists:proplist/0` (here: a list only of pairs - not atoms or
 other tuples).
 """.
 -type list_table() :: [ { key(), value() } ].
@@ -176,6 +176,70 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 	% duplication in our (then) inner list:
 	%
 	add_new_entries( InitialEntries, _InitTable=[] ).
+
+
+
+-doc """
+Checks that the specified term corresponds to a so-called "proper" table, i.e. a
+list_table with no duplicate key, i.e. whether:
+
+- its structure is legit, i.e. that it is a list of pairs, whose first value is
+  a atom; if not, throws an exception
+
+- all its keys are different, as no duplicates are accepted when defining a
+proper table; if not, returns a table (i.e. a map_hashtable) whose keys are the
+duplicated keys in the input table, and whose values are their associated
+duplicate values
+
+Return `ok` if the table is correct.
+
+For example `list_table:check_proper([{a, 11}, {b,7}, {a,10}, {c,2}])`
+shall return a table with a single entry: `{a, [10,11]}`.
+
+Typically useful to vet (user-specified) configuration settings; allows better /
+more flexible feedback for the caller than `new/1`.
+""".
+-spec check_proper( list_table() ) -> 'ok' | table().
+check_proper( Table ) ->
+    % So using a map_hashtable here for duplicates:
+    check_proper( Table, _DupTable=table:new() ).
+
+
+% (helper)
+check_proper( _CheckedTable=[], DupTable ) ->
+
+    CleanedDupTable = table:fold(
+        % Drop entry if there is no duplicate:
+        fun( _K, [ _SingleV ], RetMap ) ->
+             RetMap;
+           ( K, Dups, RetMap ) ->
+             table:add_entry( K, Dups, RetMap )
+        end,
+		_RetMap0=table:new(),
+		_FoldedTable=DupTable ),
+
+    case table:is_empty( CleanedDupTable ) of
+
+        true ->
+            ok;
+
+        false ->
+            CleanedDupTable
+
+     end;
+
+check_proper( _CheckedTable=[ { K, V } | T ], DupTable ) when is_atom( K ) ->
+    NewDupTable = table:append_to_entry( K, V, DupTable ),
+    check_proper( T, NewDupTable );
+
+check_proper( _CheckedTable=[ { K, _V } | _T ], _DupTable ) ->
+    throw( { non_atom_key, K } );
+
+check_proper( _CheckedTable=[ InvE | _T ], _DupTable ) ->
+    throw( { non_pair, InvE } );
+
+check_proper( NonList, _DupTable ) ->
+    throw( { non_list, NonList } ).
 
 
 
@@ -795,7 +859,7 @@ the specified key.
 An exception is thrown if the key does not exist.
 
 Note: no check is performed to ensure that the value is a list indeed, and the
-'[|]' operation will not complain if not.
+cons (`[|]`) operation will not complain if not.
 """.
 -spec append_to_existing_entry( key(), term(), list_table() ) -> list_table().
 append_to_existing_entry( Key, Element, Table ) ->
@@ -841,8 +905,8 @@ the specified key.
 If that key does not already exist, it will be created and associated to a list
 containing only the specified element.
 
-Note: no check is performed to ensure the value is a list indeed, and the '[|]'
-operation will not complain if not.
+Note: no check is performed to ensure the value is a list indeed, and the cons
+(`[|]`) operation will not complain if not.
 """.
 -spec append_to_entry( key(), term(), list_table() ) -> list_table().
 append_to_entry( Key, Element, Table ) ->
@@ -1004,7 +1068,6 @@ size( Table ) ->
 	length( Table ).
 
 
-
 -doc """
 Optimises the specified table.
 
@@ -1013,17 +1076,6 @@ Nothing to be done with this implementation.
 -spec optimise( list_table() ) -> list_table().
 optimise( Table ) ->
 	Table.
-
-
-
-% Checks the specified table for correctness: returns whether all its
-% top-level keys are different, as expected.
-%
-%-spec check( list_table() ) -> list_table().
-%check( Table ) ->
-%
-% TO-DO: use a map_hashtable, associating to each key found a *list* of values.
-% Any key with more than one value is a duplicated one.
 
 
 
