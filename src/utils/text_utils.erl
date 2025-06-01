@@ -230,7 +230,7 @@ in `<<"hello ~p!">>`.
 
 
 -doc """
-In a format string (e.g. "~n").
+In a format string (e.g. `"~n"`).
 """.
 -type control_sequence() :: ustring().
 
@@ -243,22 +243,22 @@ Lists of terms corresponding to values to be referenced from a format string.
 
 
 
--doc "A level of verbosity (typically for to_string/2 functions).".
+-doc "A level of verbosity (typically for the `to_string/2` functions).".
 -type verbosity_level() :: 'low' | 'high'.
 
 
 
 -doc """
 These strings are supposed to contain Regular Expressions, like in:
-"*-emitter-(first|second)-*".
+`"*-emitter-(first|second)-*"`.
 
 Patterns shall be expressed according to the "Perl Compatible Regular
 Expressions" conventions, or PCRE for short.
 
 For more information, see
-<https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions>.
+[https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions].
 
-See also <http://erlang.org/doc/man/re.html>.
+See also [http://erlang.org/doc/man/re.html].
 """.
 -type regex_string() :: ustring().
 
@@ -300,18 +300,18 @@ See also <http://erlang.org/doc/man/re.html>.
 
 
 -doc """
-Any kind of string (a.k.a chardata() :: charlist() | unicode_string()).
+Any kind of string (a.k.a `chardata() :: charlist() | unicode_string()`).
 """.
 -type any_string() :: ustring() | bin_string().
 
 
 
 -doc """
-A string containing hexadecimal values (possibly with a "0x" prefix).
+A string containing hexadecimal values (possibly with a `"0x"` prefix).
 
 We prefer hexadecimal (letter) characters to be in lower case.
 
-For example: "0x44e390a3" or "44e390a3".
+For example: `"0x44e390a3"` or `"44e390a3"`.
 """.
 -type hexastring() :: ustring().
 
@@ -319,7 +319,7 @@ For example: "0x44e390a3" or "44e390a3".
 
 -doc """
 A binary string containing hexadecimal values (possibly with a "0x" prefix).  We
-prefer hexadecimal (letter) characters to be uppercases.
+prefer hexadecimal (letter) characters to be in lower case.
 
 For example: `<<"0x44e390a3">>` or `<<"44e390a3">>`.
 """.
@@ -330,13 +330,13 @@ For example: `<<"0x44e390a3">>` or `<<"44e390a3">>`.
 -doc """
 A Unicode (plain) string.
 
-This is our new default, and corresponds to charlist() | unicode_binary(), so
+This is our new default, and corresponds to `charlist() | unicode_binary()`, so
 basically any non-nested string.
 
 We mostly mean by that [char()], where char() is an integer corresponding to an
-ASCII character or to a unicode codepoint, expected to be in [0..16#10ffff].
+ASCII character or to a unicode codepoint, expected to be in `[0..16#10ffff]`.
 
-See also <https://www.erlang.org/doc/man/unicode.html#type-charlist>.
+See also [https://www.erlang.org/doc/man/unicode.html#type-charlist].
 """.
 -type unicode_string() :: chardata().
 
@@ -351,8 +351,8 @@ See also <https://www.erlang.org/doc/man/unicode.html#type-charlist>.
 -doc """
 A Unicode codepoint for a character.
 
-(unfortunately we cannot define a text_utils:char/0 type, as "type char() is a
-builtin type; it cannot be redefined").
+(unfortunately we cannot define a `text_utils:char/0` type, as `"type char() is
+a builtin type; it cannot be redefined"`).
 """.
 -type uchar() :: integer().
 
@@ -379,14 +379,14 @@ not bytes).
 -doc """
 Now is our default type of (plain) string.
 
-(unfortunately we cannot define a text_utils:string/0 type, as "type string() is
-a builtin type; it cannot be redefined").
+(unfortunately we cannot define a `text_utils:string/0` type, as `"type string()
+is a builtin type; it cannot be redefined"`).
 """.
 -type ustring() :: unicode_string().
 
 
 -doc """
-A nested string, that is a possibly deep list containing only char() elements.
+A nested string, that is a possibly deep list containing only `char()` elements.
 """.
 -type chars() :: io_lib:chars(). % Thus [char() | chars()].
 
@@ -394,7 +394,7 @@ A nested string, that is a possibly deep list containing only char() elements.
 
 -doc """
 Any kind of terms that can be directly mapped to a string (typically accepted by
-~ts in format strings).
+`~ts` in format strings).
 """.
 -type string_like() :: ustring() | unicode_string() | bin_string() | atom().
 
@@ -409,20 +409,20 @@ Any kind of terms that can be directly mapped to a string (typically accepted by
 A list whose elements are either integers (characters), binaries or other
 iolists.
 
-Most Erlang standard functions, like file:write_file/2 and gen_tcp:send/2,
+Most Erlang standard functions, like `file:write_file/2` and `gen_tcp:send/2`,
 accept them, so converting an iolist to a binary is generally at least useless.
 
 For example the `["foo", $b, $a, $r, <<"baz">>]` iolist represents the
-"foobarbaz" string.
+`"foobarbaz"` string.
 
 Type redefined exactly as the standard one, almost verbatim (with a name
 including an underscore to avoid colliding with the builtin type) for easier
 reference.
 
-No such type as iostring() or io_string().
+No such type as `iostring()` or `io_string()`.
 
 See
-<https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax>
+[https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax]
 for more details.
 """.
 -type io_list() ::
@@ -438,7 +438,7 @@ including an underscore to avoid colliding with the builtin type) for easier
 reference.
 
 See
-<https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax>
+[https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax]
 for more details.
 """.
 -type io_data() :: iolist() | binary().
@@ -497,7 +497,7 @@ string into the other.
 
 
 -doc """
-See <https://erlang.org/doc/man/erlang.html#float_to_list-2> for more
+See [https://erlang.org/doc/man/erlang.html#float_to_list-2] for more
 information.
 """.
 -type float_option() ::
@@ -619,7 +619,7 @@ term_to_bounded_string( Term ) ->
 Returns a human-readable string describing the specified term, within the
 specified length.
 
-See also term_to_string/3.
+See also `term_to_string/3`.
 """.
 -spec term_to_bounded_string( term(), length() | 'unlimited' ) -> ustring().
 term_to_bounded_string( Term, _MaxLen=unlimited ) ->
@@ -685,11 +685,11 @@ term_to_string( Term, MaxDepthCount ) ->
 -doc """
 Returns a human-readable string describing the specified term, up to the
 specified nesting depth, and up to the specified string length (at least 3, so
-that the "..." marker can be inserted).
+that the `"..."` marker can be inserted).
 
-A plain string is returned (not an iolist/0 for example).
+A plain string is returned (not an `iolist/0` for example).
 
-See also term_to_bounded_string/{1,2}.
+See also `term_to_bounded_string/{1,2}`.
 """.
 -spec term_to_string( term(), depth(), count() )-> ustring().
 term_to_string( _Term=[], _MaxDepthCount, _MaxLength ) ->
@@ -729,8 +729,8 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 -doc """
 Converts the specified integer into a plain string.
 
-Avoids to have to use lists:flatten/1 when converting an integer to a
-string. Useless when using functions like io:format, that accept iolists as
+Avoids to have to use `lists:flatten/1` when converting an integer to a
+string. Useless when using functions like `io:format/2`, that accept iolists as
 parameters.
 """.
 -spec integer_to_string( integer() ) -> ustring().
@@ -744,8 +744,8 @@ integer_to_string( IntegerValue ) ->
 -doc """
 Converts the specified integer into a binary string.
 
-Avoids to have to use lists:flatten/1 when converting an integer to a
-string. Useless when using functions like io:format, that accept iolists as
+Avoids to have to use `lists:flatten/1` when converting an integer to a
+string. Useless when using functions like `io:format/2`, that accept iolists as
 parameters.
 """.
 -spec integer_to_binary( integer() ) -> bin_string().
@@ -774,12 +774,12 @@ integer_to_binary( IntegerValue ) ->
 
 -doc """
 Returns a plain string corresponding to the specified integer, in hexadecimal
-form (with no "0x" prefix).
+form (with no `"0x"` prefix).
 
 For example: `integer_to_hexastring(3432) = "d68"`.
 
-Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
-prefixing.
+Refer to the `Hexadecimal notes` section above, regarding zero-padding and
+`"0x"` prefixing.
 """.
 -spec integer_to_hexastring( integer() ) -> hexastring().
 integer_to_hexastring( IntegerValue ) ->
@@ -789,12 +789,12 @@ integer_to_hexastring( IntegerValue ) ->
 
 -doc """
 Returns a plain string corresponding to the specified integer, in hexadecimal
-form, with a "0x" prefix if requested.
+form, with a `"0x"` prefix if requested.
 
 For example: `integer_to_hexastring(3432, _AddPrefix=true) = "0xd68"`.
 
-Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
-prefixing.
+Refer to the `Hexadecimal notes` section above, regarding zero-padding and
+`"0x"` prefixing.
 """.
 -spec integer_to_hexastring( integer(), boolean() ) -> hexastring().
 integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
@@ -807,12 +807,12 @@ integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
 
 -doc """
 Returns a binary string corresponding to the specified integer, in hexadecimal
-form (with no "0x" prefix).
+form (with no `"0x"` prefix).
 
 For example: `integer_to_hexabinstring(3432) = <<"d68">>`.
 
-Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
-prefixing.
+Refer to the `Hexadecimal notes` section above, regarding zero-padding and
+`"0x"` prefixing.
 """.
 -spec integer_to_hexabinstring( integer() ) -> hexastring().
 integer_to_hexabinstring( IntegerValue ) ->
@@ -822,12 +822,12 @@ integer_to_hexabinstring( IntegerValue ) ->
 
 -doc """
 Returns a binary string corresponding to the specified integer, in hexadecimal
-form, with a "0x" prefix if requested.
+form, with a `"0x"` prefix if requested.
 
 For example: `integer_to_hexabinstring(3432, _AddPrefix=true) = <<"0xd68">>`.
 
-Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
-prefixing.
+Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+`"0x"` prefixing.
 """.
 -spec integer_to_hexabinstring( integer(), boolean() ) -> hexastring().
 integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
@@ -837,7 +837,7 @@ integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
 
 -doc """
 Returns an integer corresponding to the specified string containing a (single)
-hexadecimal number as a text (not expected to start with a "0x" prefix).
+hexadecimal number as a text (not expected to start with a `"0x"` prefix).
 
 Note: both uppercase and lowercase letters are supported.
 
@@ -851,7 +851,8 @@ hexastring_to_integer( HexaString ) ->
 
 -doc """
 Returns an integer corresponding to the specified string containing a (single)
-hexadecimal number as a text, expected to start with a "0x" prefix if specified.
+hexadecimal number as a text, expected to start with a `"0x"` prefix if
+specified.
 
 Note: both uppercase and lowercase letters are supported.
 
@@ -871,7 +872,7 @@ hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
 
 -doc """
 Returns a plain string corresponding to the specified binary, in hexadecimal
-form (with no "0x" prefix).
+form (with no `"0x"` prefix).
 
 For example: `binary_to_hexastring(<<"hello">>) = "68656c6c6f"`.
 """.
@@ -883,7 +884,7 @@ binary_to_hexastring( Bin ) ->
 
 -doc """
 Returns a plain string corresponding to the specified binary, in hexadecimal
-form, with a "0x" prefix if requested.
+form, with a `"0x"` prefix if requested.
 
 For example:
 `binary_to_hexastring(<<"hello">>, _AddPrefix=true) = "0x68656c6c6f"`.
@@ -913,7 +914,7 @@ binary_to_hexastring( Bin, _AddPrefix=false ) ->
 Returns the binary corresponding to the specified binary string that contains a
 series of hexadecimal values.
 
-No "0x" prefix is expected.
+No `"0x"` prefix is expected.
 
 For example: `hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>`.
 """.
@@ -927,7 +928,7 @@ hexabinstring_to_binary( HexaBinStr ) ->
 Returns the binary corresponding to the specified string that contains a series
 of hexadecimal values.
 
-No "0x" prefix is expected.
+No `"0x"` prefix is expected.
 
 For example: `hexastring_to_binary("ffac01") = <<255,172,1>>`.
 """.
@@ -1141,7 +1142,7 @@ pid_to_filename( Pid ) ->
 Returns a string describing the specified record.
 
 Hugely inspired from a Ulf Wiger's snippet described in
-<http://erlang.org/pipermail/erlang-questions/2006-September/023181.html>.
+[http://erlang.org/pipermail/erlang-questions/2006-September/023181.html].
 
 As records are compile-time structures only, there is no simple way of
 determining the name of their fields at runtime.
@@ -1206,7 +1207,7 @@ strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 
 % We do not want an extra newline at the end:
 strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
-		when is_list( LastString ); is_binary( LastString ) ->
+                when is_list( LastString ); is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
@@ -1215,7 +1216,7 @@ strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
 
 % We allow also for bin_string():
 strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
-		when is_list( H ); is_binary( H ) ->
+                when is_list( H ); is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
@@ -1325,7 +1326,7 @@ strings_to_string( Strings=[ SingleString ] )
 
 strings_to_string( Strings ) when is_list( Strings ) ->
 
-	%trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
+	trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts~n", [ strings_to_string_helper( Strings,
@@ -1338,8 +1339,8 @@ strings_to_string( ErrorTerm ) ->
 
 -doc """
 Returns a string that pretty-prints the specified list of strings (actually, any
-element that can be processed with ~ts will do; e.g. atoms) once reordered (and
-with default bullets).
+element that can be processed with `~ts` will do; e.g. atoms) once reordered
+(and with default bullets).
 """.
 -spec strings_to_sorted_string( [ string_like() ] ) -> ustring().
 strings_to_sorted_string( Strings ) when is_list( Strings ) ->
@@ -1356,7 +1357,7 @@ element that can be processed with ~ts will do; e.g. atoms), with user-specified
 bullets or indentation level.
 
 This can be a solution to nest bullet lists, by specifying a bullet with an
-offset, such as " * ".
+offset, such as `" * "`.
 """.
 -spec strings_to_string( [ string_like() ], indentation_level_or_bullet() ) ->
 								ustring().
@@ -1364,7 +1365,7 @@ strings_to_string( _Strings=[], _IndentationOrBullet ) ->
 	"(empty list)";
 
 strings_to_string( _Strings=[ SingleString ], _IndentationOrBullet )
-									when is_list( SingleString ) ->
+								when is_list( SingleString ) ->
 	% For a single string, no need for leading and trailing newlines, but it
 	% used to be separated (with single quotes) from the surrounding text
 	% (not done anymore, as this single element may be itself a bullet list)
@@ -1372,12 +1373,12 @@ strings_to_string( _Strings=[ SingleString ], _IndentationOrBullet )
 	SingleString;
 
 strings_to_string( Strings, IndentationLevel )
-									when is_integer( IndentationLevel ) ->
+								when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
 	strings_to_string( Strings, Bullet );
 
 strings_to_string( Strings, Bullet )
-			when is_list( Strings ), is_list( Bullet ) ->
+                                when is_list( Strings ), is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "strings_to_string/2 for '~p' : bullet is '~ts'.",
 	%                       [ Strings, Bullet ] ),
@@ -1450,7 +1451,7 @@ bullets or indentation level, and a blank line before each top-level entry in
 order to better space them, for an increased readability.
 
 This can be a solution to nest bullet lists, by specifying a bullet with an
-offset, such as " * ".
+offset, such as `" * "`.
 """.
 -spec strings_to_spaced_string( [ ustring() ],
 								indentation_level_or_bullet() ) -> ustring().
@@ -1493,8 +1494,8 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 
 -doc """
 Returns a string that pretty-prints the specified list of strings (actually, any
-element that can be processed with ~ts will do; e.g. atoms) once reordered, with
-user-specified indentation level or bullet.
+element that can be processed with `~ts` will do; e.g. atoms) once reordered,
+with user-specified indentation level or bullet.
 """.
 -spec strings_to_sorted_string( [ string_like() ],
 								indentation_level_or_bullet() ) -> ustring().
@@ -1542,7 +1543,7 @@ binaries_to_string( Binaries, IndentationLevel )
 	binaries_to_string( Binaries, Bullet );
 
 binaries_to_string( Binaries, Bullet )
-						when is_list( Binaries ), is_list( Bullet ) ->
+                                when is_list( Binaries ), is_list( Bullet ) ->
 	Pattern = "~n~ts~n",
 	% Actually no need for a dedicated binaries_to_string_helper/3:
 	io_lib:format( Pattern,
@@ -1713,8 +1714,8 @@ atoms_to_sorted_string( Atoms ) ->
 Returns a string that pretty-prints the specified list of atoms, listed directly
 (in an unquoted form) in the returned text.
 
-For example: `atoms_to_listed_string([red, blue, green])` returns "red, blue and
-green".
+For example: `atoms_to_listed_string([red, blue, green])` returns `"red, blue
+and green"`.
 """.
 -spec atoms_to_listed_string( [ atom() ] ) -> ustring().
 atoms_to_listed_string( Atoms ) ->
@@ -1727,8 +1728,8 @@ atoms_to_listed_string( Atoms ) ->
 Returns a string that pretty-prints the specified list of atoms, listed
 directly, in a quoted form, in the returned text.
 
-For example: `atoms_to_quoted_listed_string([red, blue, green])` returns "'red',
-'blue' and 'green'".
+For example: `atoms_to_quoted_listed_string([red, blue, green])` returns
+`"'red', 'blue' and 'green'"`.
 """.
 -spec atoms_to_quoted_listed_string( [ atom() ] ) -> ustring().
 atoms_to_quoted_listed_string( Atoms ) ->
@@ -1741,7 +1742,7 @@ atoms_to_quoted_listed_string( Atoms ) ->
 Returns a string that pretty-prints the specified list of integers, listed
 directly in the returned text.
 
-For example: `integers_to_listed_string([1, 13, 8])` returns "1, 13 and 8".
+For example: `integers_to_listed_string([1, 13, 8])` returns `"1, 13 and 8"`.
 """.
 -spec integers_to_listed_string( [ integer() ] ) -> ustring().
 integers_to_listed_string( ListOfIntegers ) ->
@@ -1754,8 +1755,8 @@ integers_to_listed_string( ListOfIntegers ) ->
 Returns a string that pretty-prints the specified list of integer identifiers,
 listed directly in the returned text.
 
-For example: `integer_ids_to_listed_string([1, 13, 8])` returns "#1, #13 and
-#8".
+For example: `integer_ids_to_listed_string([1, 13, 8])` returns `"#1, #13 and
+#8"`.
 """.
 -spec integer_ids_to_listed_string( [ integer_id() ] ) -> ustring().
 integer_ids_to_listed_string( IntegerIds ) ->
@@ -1768,8 +1769,8 @@ integer_ids_to_listed_string( IntegerIds ) ->
 Returns a string that pretty-prints the specified list of strings, listed
 directly along the text (not one item per line).
 
-For example: `strings_to_listed_string([ "red", "blue", "green"])` returns "red,
-blue and green".
+For example: `strings_to_listed_string([ "red", "blue", "green"])` returns
+`"red, blue and green"`.
 """.
 %strings_to_listed_string( _Strings=[] ) ->
 %   throw( empty_list_of_strings_to_list );
@@ -1785,8 +1786,8 @@ Returns a string that pretty-prints the specified list of strings, listed
 directly along the text (not one item per line), according to the specified
 (human) language.
 
-For example: `strings_to_listed_string(["red", "blue", "green"])` returns "red,
-blue and green".
+For example: `strings_to_listed_string(["red", "blue", "green"])` returns `"red,
+blue and green"`.
 """.
 %strings_to_listed_string( _Strings=[] ) ->
 %   throw( empty_list_of_strings_to_list );
@@ -1836,7 +1837,7 @@ Returns a string that pretty-prints the specified list of maybe-strings
 line).
 
 For example: `maybe_strings_to_listed_string(["red", "blue", undefined, "green",
-undefined])` returns "red, blue and green".
+undefined])` returns `"red, blue and green"`.
 """.
 -spec maybe_strings_to_listed_string( [ option( ustring() ) ] ) -> ustring().
 maybe_strings_to_listed_string( Strings ) ->
@@ -1912,7 +1913,7 @@ percent_to_string( Value ) ->
 
 -doc """
 Returns a textual description of the specified percentage, expected to be a
-float in [0,1], with the specified number of digits after the decimal point.
+float in `[0,1]`, with the specified number of digits after the decimal point.
 """.
 -spec percent_to_string( math_utils:percent(), integer() ) -> ustring().
 percent_to_string( Value, Precision ) ->
@@ -1962,10 +1963,10 @@ Returns an exact rounded textual description of the specified distance, expected
 to be expressed as a floating-point number of millimeters, which will be first
 rounded to the nearest integer.
 
-For example: for a distance of 1001.5 millimeters, returns "1 m and 2 mm"; for 1
-000 001 millimeters, returns "1 km and 1 mm".
+For example: for a distance of 1001.5 millimeters, returns `"1 m and 2 mm"`; for
+1 000 001 millimeters, returns `"1 km and 1 mm"`.
 
-See also unit_utils:meters_to_string/1 for larger lengths/distances.
+See also `unit_utils:meters_to_string/1` for larger lengths/distances.
 """.
 -spec distance_to_string( any_millimeters() ) -> ustring().
 distance_to_string( Millimeters ) when is_float( Millimeters ) ->
@@ -2054,7 +2055,7 @@ rounded to nearest integer.
 Only one unit, the most appropriate one, will be used, with up to 1 figure after
 the comma.
 
-For example: for a distance of 1000.5 millimeters, returns "1.0m".
+For example: for a distance of 1000.5 millimeters, returns `"1.0m"`.
 """.
 -spec distance_to_short_string( any_millimeters() ) -> ustring().
 distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
@@ -2137,11 +2138,11 @@ repetition_to_string( RepetitionCount ) ->
 
 
 -doc """
-Returns a synthetic textual description of the specified table, holding the
+Returns a very synthetic textual description of the specified table, holding the
 specified type of described entries.
 
-For example: `table_to_string(MyPathTable, _EntryType="path")` may return "no
-path", "a single path", or - for example - "3 paths".
+For example: `table_to_string(MyPathTable, _EntryType="path")` may return `"no
+path"`, `"a single path"`, or - for example - `"3 paths"`.
 """.
 -spec table_to_string( ?table(), ustring() ) -> ustring().
 table_to_string( Table, EntryDesc ) ->
@@ -2187,11 +2188,11 @@ string_like_to_bin_string( BinStr ) when is_binary( BinStr ) ->
 
 
 -doc """
-Formats the specified string as io_lib:format/2 would do, except it returns a
+Formats the specified string as `io_lib:format/2` would do, except it returns a
 flattened version of it and cannot fail (so that for example a badly formatted
 log cannot crash anymore its emitter process).
 
-Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected Unicode
+Note: rely preferably on `~ts` rather than on `~s`, to avoid unexpected Unicode
 inputs resulting on crashes afterwards.
 """.
 -spec format( format_string(), format_values() ) -> ustring().
@@ -2314,13 +2315,13 @@ format( FormatString, Values ) ->
 -endif. % exec_target_is_production
 
 
--doc "Module-local version of (io_lib/text_utils):format/2.".
+-doc "Module-local version of `(io_lib/text_utils):format/2`.".
 -spec local_format( format_string(), format_values() ) -> ustring().
 local_format( FormatString, Values ) ->
 	lists:flatten( io_lib:format( FormatString, Values ) ).
 
 
--doc "Module-local version of io:format/1.".
+-doc "Module-local version of `io:format/1`.".
 -spec local_display( ustring() ) -> void().
 local_display( S ) ->
 	% To avoid a wrong number of arguments being detected due to ~:
@@ -2330,7 +2331,7 @@ local_display( S ) ->
 	io:format( "~ts~n", [ EscapedS ] ).
 
 
--doc "Module-local version of io:format/2.".
+-doc "Module-local version of `io:format/2`.".
 -spec local_display( format_string(), format_values() ) -> void().
 local_display( FormatString, Values ) ->
 	local_display( local_format( FormatString, Values ) ).
@@ -2507,7 +2508,7 @@ scan_format_string( FormatStr, ValueDescs ) ->
 
 
 -doc """
-Locates the C part (control sequence), in "xx~F.P.PadModCyy".
+Locates the C part (control sequence), in `"xx~F.P.PadModCyy"`.
 """.
 -spec locate_control_seq( format_string() ) ->
 	'not_found' | { char(), [ char() ], ustring() } | format_parsing_error() .
@@ -2651,8 +2652,8 @@ parse_to_control_seq( CtrlSeqChar, PrevChars ) ->
 
 
 -doc """
-Returns the value descriptions implied by the specified control sequence ($n and
-$~ already managed).
+Returns the value descriptions implied by the specified control sequence (`$n`
+and `$~` already managed).
 """.
 -spec integrate_control_sequence( char() ) -> scan_format_outcome().
 integrate_control_sequence( _CtrlSeqChar=$c ) ->
@@ -2708,7 +2709,7 @@ integrate_control_sequence( _CtrlSeqChar=$i ) ->
 
 
 -doc """
-Integrates any field width (the F field) for the specified control sequence.
+Integrates any field width (the `F` field) for the specified control sequence.
 """.
 -spec integrate_width_field( [ char() ], char(), [ value_description() ] ) ->
 									scan_format_outcome().
@@ -2747,10 +2748,10 @@ integrate_width_field( FStr, CtrlSeqChar, ValueDescs ) ->
 
 
 -doc """
-Integrates any precision (the P field) for the specified control sequence.
+Integrates any precision (the `P` field) for the specified control sequence.
 """.
--spec integrate_precision_field( [ char() ], char(), [ value_description() ] ) ->
-									scan_format_outcome().
+-spec integrate_precision_field( [ char() ], char(),
+            [ value_description() ] ) -> scan_format_outcome().
 % Meaning of 'within' unclear; so we expect a non-negative integer, or $*, or
 % nothing.
 %
@@ -2785,7 +2786,7 @@ integrate_precision_field( PStr, CtrlSeqChar, ValueDescs ) ->
 
 
 -doc """
-Integrates any padding character and/or modifiers (the PadMod field) for the
+Integrates any padding character and/or modifiers (the `PadMod` field) for the
 specified control sequence.
 """.
 -spec integrate_padmod_field( [ char() ], char(), [ value_description() ] ) ->
@@ -2827,7 +2828,7 @@ integrate_padmod_field( _PadModStr=[ _Pad | Mods ], CtrlSeqChar, ValueDescs ) ->
 
 
 -doc """
-Takes into account the modifiers ("Mod").
+Takes into account the modifiers (`"Mod"`).
 """.
 -spec integrate_modifiers( [ char() ], char(), [ value_description() ] ) ->
 									scan_format_outcome().
@@ -2903,7 +2904,7 @@ interpret_as_modifier( Mod, CtrlSeqChar ) ->
 -doc """
 Skips a non-negative integer.
 
-For example "31xx", returning then "xx".
+For example `"31xx"`, returning then `"xx"`.
 """.
 -spec skip_non_negative_integer( [ char() ] ) ->
 									[ char() ] | format_parsing_error().
@@ -2929,7 +2930,7 @@ skip_all_numbers( NextStr ) ->
 -doc """
 Skips a (signed) integer.
 
-For example "31xx" or "-144xx", returning then, in both cases, "xx".
+For example `"31xx"` or `"-144xx"`, returning then, in both cases, `"xx"`.
 """.
 -spec skip_signed_integer( [ char() ] ) -> [ char() ] | format_parsing_error().
 % At least one number expected, possibly after a $-:
@@ -2950,11 +2951,11 @@ skip_signed_integer( Other ) ->
 -doc """
 Formats the specified values in a fail-safe manner; returns a string meant to
 correspond as much as possible to these values (rather than diagnosing any
-problem detected as format/2); cannot fail (so that for example a badly
+problem detected as `format/2`); cannot fail (so that for example a badly
 formatted log cannot crash anymore its emitter process).
 
 Typically useful as a failsafe solution, should a previous format string be
-detected as faulty (e.g. containing '~s' where '~ts' should have been used).
+detected as faulty (e.g. containing `~s` where `~ts` should have been used).
 """.
 -spec format_failsafe( format_values() ) -> ustring().
 format_failsafe( Values ) ->
@@ -2981,13 +2982,13 @@ format_failsafe( _Vs=[ V | T ], Values, AccFmtStr ) ->
 
 
 -doc """
-Formats the specified string as io_lib:format/2 would do, except it returns a
+Formats the specified string as `io_lib:format/2` would do, except it returns a
 flattened, ellipsed version of it and cannot fail (so that for example a badly
 formatted log cannot crash anymore its emitter process).
 
 Tries to never crash.
 
-Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected Unicode
+Note: rely preferably on `~ts` rather than on `~s`, to avoid unexpected Unicode
 inputs resulting on crashes afterwards.
 """.
 -spec format_ellipsed( format_string(), format_values() ) -> ustring().
@@ -2997,14 +2998,14 @@ format_ellipsed( FormatString, Values ) ->
 
 
 -doc """
-Formats the specified string as io_lib:format/2 would do, except it returns a
+Formats the specified string as `io_lib:format/2` would do, except it returns a
 flattened, ellipsed (based on the specified length) version of it, and cannot
 fail (so that for example a badly formatted log cannot crash anymore its emitter
 process).
 
 Tries to never crash.
 
-Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected Unicode
+Note: rely preferably on `~ts` rather than on `~s`, to avoid unexpected Unicode
 inputs resulting on crashes afterwards.
 """.
 -spec format_ellipsed( format_string(), format_values(), length() ) ->
@@ -3019,10 +3020,10 @@ Compares the value types (typically emanating from a format string based on
 control sequences) to the types of the specified, numbered values (expected to
 correspond), and detects mismatches.
 
-Note: beware to the output error messages comprising ~XXX not being afterwards
-interpreted as control sequences; we finally gave up including a ~ character in
-the output sequence, as it has to be escaped a number of times that depended on
-how many io*:format/* it was to go through (fragile at best).
+Note: beware to the output error messages comprising `~XXX` not being afterwards
+interpreted as control sequences; we finally gave up including a `~` character
+in the output sequence, as it has to be escaped a number of times that depended
+on how many `io*:format/*` it was to go through (fragile at best).
 """.
 -spec match_types( [ value_description() ], format_values(), count() ) ->
 													ustring().
@@ -3036,8 +3037,8 @@ match_types( _TypeDescs=[ TypeDesc | Ts ], _Values=[ V | Tv ], VCount ) ->
 		true ->
 			% No: trace_utils:debug_fmt
 			%io:format( "[debug] The type of value #~B (i.e. '~ts'), which "
-			% "may be described as ~ts, matches the one specified by the control "
-			% "sequence, ~ts.~n",
+			% "may be described as ~ts, matches the one specified by the "
+			% "control sequence, ~ts.~n",
 			% [ VCount, basic_utils:describe_term( V ),
 			%   type_utils:get_type_of( V ), TypeDesc ] ),
 			match_types( Ts, Tv, VCount+1 );
@@ -3055,7 +3056,7 @@ match_types( _TypeDescs=[ TypeDesc | Ts ], _Values=[ V | Tv ], VCount ) ->
 
 -doc """
 Formats the specified text as a comment, based on the default character denoting
-comments (namely "%"), and for a line width of 80 characters.
+comments (namely `%`), and for a line width of 80 characters.
 """.
 -spec format_as_comment( ustring() ) -> ustring().
 format_as_comment( Text ) ->
@@ -3065,7 +3066,7 @@ format_as_comment( Text ) ->
 
 -doc """
 Formats the specified format string with values as a comment, based on the
-default character denoting comments (namely "%"), and for a line width of 80
+default character denoting comments (namely `%`), and for a line width of 80
 characters.
 """.
 -spec format_as_comment( format_string(), format_values() ) -> ustring();
@@ -3154,11 +3155,11 @@ get_formatted_line( CommentChar, Line ) ->
 
 
 -doc """
-Formats the specified string as a (flattened) binary, as io_lib:format/2 would
+Formats the specified string as a (flattened) binary, as `io_lib:format/2` would
 do, except it cannot fail (so that for example a badly formatted log cannot
 crash anymore its emitter process).
 
-Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected Unicode
+Note: rely preferably on `~ts` rather than on `~s`, to avoid unexpected Unicode
 inputs resulting on crashes afterwards.
 """.
 -spec bin_format( format_string(), format_values() ) -> bin_string().
@@ -3176,7 +3177,7 @@ bin_format( FormatString, Values ) ->
 Formats the specified string as an atom; cannot fail (so that for example a
 badly formatted log cannot crash anymore its emitter process).
 
-Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected Unicode
+Note: rely preferably on `~ts` rather than on `~s`, to avoid unexpected Unicode
 inputs resulting on crashes afterwards.
 """.
 -spec atom_format( format_string(), format_values() ) -> atom().
@@ -3281,8 +3282,8 @@ ensure_strings( Elems ) ->
 Returns a list of (plain) string versions of the string-like elements of the
 specified list.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 
 Note: using such functions may be a bad practice, as it may lead to losing the
 awareness of the types of the variables that are handled. We now output warning
@@ -3317,8 +3318,8 @@ ensure_binary( AnyString ) ->
 Returns a binary string version of the specified text-like parameter (binary or
 plain string).
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 
 Note: using such functions may be a bad practice, as it may lead to losing the
 awareness of the types of the variables that are handled. It is however
@@ -3340,7 +3341,7 @@ ensure_binary( String, _CanFailDueToTranscoding ) ->
 
 -doc """
 Returns a binary string version of the specified text-like parameter (binary or
-plain string), if any (otherwise leave it to 'undefined').
+plain string), if any (otherwise leave it to `undefined`).
 """.
 -spec ensure_maybe_binary( option( any_string() ) ) -> option( bin_string() ).
 ensure_maybe_binary( undefined ) ->
@@ -3372,8 +3373,8 @@ ensure_binaries( Elems ) ->
 Returns a list of binary string versions of the string-like elements of the
 specified list.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 
 Note: using such functions may be a bad practice, as it may lead to losing the
 awareness of the types of the variables that are handled. It is however
@@ -3394,8 +3395,8 @@ into the other one.
 The strings are equal iff returns zero.
 
 Directly inspired from
-<https://rosettacode.org/wiki/Levenshtein_distance#Erlang> and
-<https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Erlang>.
+[https://rosettacode.org/wiki/Levenshtein_distance#Erlang] and
+[https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Erlang].
 
 See also: <https://en.wikipedia.org/wiki/Levenshtein_distance
 """.
@@ -3470,7 +3471,7 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 Returns the longest prefix that is common to all of the specified strings, and a
 list of the specified strings with this prefix removed, in the same order.
 
-See also: file_utils:get_longest_common_path/1.
+See also `file_utils:get_longest_common_path/1`.
 """.
 -spec get_longest_common_prefix( [ ustring() ] ) ->
 										{ ustring(), [ ustring() ] }.
@@ -3529,7 +3530,7 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 Returns a string, based on the specified one and guaranteed to be different from
 all the other specified ones.
 
-For example: useful to generate non-clashing names, like in:
+For example useful to generate non-clashing names, like in:
 ```
 "Hello" = text_utils:get_unique_string( "Hello", [] ),
 "Hello2" = text_utils:get_unique_string( "Hello", ["Hello","Goodbye"] )
@@ -3595,11 +3596,11 @@ suffix_uniq_helper( Prefix, Count, Strs ) ->
 
 -doc """
 Returns, if possible, the length of the specified string-like argument,
-otherwise returns 'undefined'.
+otherwise returns `undefined`.
 
-Never fails, but thus may report only indicative lengths (where string:length/1
-would have thrown a badarg exception, typically because of an inconsistent
-encoding).
+Never fails, but thus may report only indicative lengths (where
+`string:length/1` would have thrown a `badarg` exception, typically because of
+an inconsistent encoding).
 """.
 -spec safe_length( unicode_data() ) -> option( length() ).
 safe_length( PseudoStr ) ->
@@ -3639,8 +3640,8 @@ string_to_binary( String ) ->
 -doc """
 Converts a plain (list-based) string into a binary.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 """.
 -spec string_to_binary( ustring(), boolean() ) -> bin_string().
 string_to_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
@@ -3674,11 +3675,11 @@ string_to_binary( Other, _CanFailDueToTranscoding ) ->
 
 
 -doc """
-Converts a plain (list-based) maybe-string into a binary. Returns undefined if
+Converts a plain (list-based) maybe-string into a binary. Returns `undefined` if
 the argument string is itself undefined.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 """.
 -spec maybe_string_to_binary( option( ustring() ) ) -> option( bin_string() ).
 maybe_string_to_binary( _MaybeString=undefined ) ->
@@ -3692,7 +3693,7 @@ maybe_string_to_binary( MaybeString ) ->
 -doc """
 Converts a Unicode binary into a plain (list-based) string.
 
-Use binary_to_list/1 for other encodings like ISO-8859.
+Use `binary_to_list/1` for other encodings like ISO-8859.
 
 Never fails because of any transcoding involved.
 """.
@@ -3705,10 +3706,10 @@ binary_to_string( Binary ) when is_binary( Binary ) ->
 -doc """
 Converts a Unicode binary into a plain (list-based) string.
 
-Use binary_to_list/1 for other encodings like ISO-8859.
+Use `binary_to_list/1` for other encodings like ISO-8859.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 """.
 binary_to_string( Binary, CanFailDueToTranscoding ) when is_binary( Binary ) ->
 	%erlang:binary_to_list( Binary );
@@ -3785,8 +3786,7 @@ string_to_integer( String ) ->
 Returns an integer that corresponds to the specified text (expected to rely on
 our usual base 10).
 
-Returns the 'undefined' atom if the conversion failed.
-
+Returns the `undefined` atom if the conversion failed.
 """.
 -spec try_string_to_integer( ustring() ) -> option( integer() ).
 try_string_to_integer( String ) ->
@@ -3798,7 +3798,7 @@ try_string_to_integer( String ) ->
 Returns an integer that corresponds to the specified text, expected to rely on
 the specified base.
 
-Returns the 'undefined' atom if the conversion failed.
+Returns the `undefined` atom if the conversion failed.
 """.
 -spec try_string_to_integer( ustring(), 2..36 ) -> option( integer() ).
 try_string_to_integer( String, Base ) when is_list( String ) ->
@@ -3844,7 +3844,7 @@ string_to_float( String ) ->
 Returns a float that corresponds to the specified text, not depending on its
 being defined as an integer or as a float.
 
-Returns the 'undefined' atom if the conversion failed.
+Returns the `undefined` atom if the conversion failed.
 """.
 -spec try_string_to_float( ustring() ) -> option( float() ).
 try_string_to_float( String ) when is_list( String ) ->
@@ -3953,7 +3953,7 @@ string_to_atom( String ) ->
 
 -doc """
 Returns a textual representation of the specified terms, as a list of their
-user-friendly (that is based on ~p) default representation.
+user-friendly (that is based on `~p`) default representation.
 """.
 -spec terms_to_string( [ term() ] ) -> ustring().
 terms_to_string( Terms ) ->
@@ -3963,7 +3963,7 @@ terms_to_string( Terms ) ->
 
 -doc """
 Returns a textual representation of the specified terms, as a list of their
-user-friendly (that is based on ~p) default representation, for the specified
+user-friendly (that is based on `~p`) default representation, for the specified
 indentation.
 """.
 -spec terms_to_string( [ term() ], indentation_level_or_bullet()  ) ->
@@ -3976,7 +3976,7 @@ terms_to_string( Terms, IndentationOrBullet ) ->
 
 -doc """
 Returns a textual representation of the specified terms, as an enumerated list
-of their user-friendly (that is based on ~p) default representation.
+of their user-friendly (that is based on `~p`) default representation.
 """.
 -spec terms_to_enumerated_string( [ term() ] ) -> ustring().
 terms_to_enumerated_string( Terms ) ->
@@ -3986,7 +3986,7 @@ terms_to_enumerated_string( Terms ) ->
 
 -doc """
 Returns a textual representation of the specified terms, as a listed
-representation of their user-friendly (that is based on ~p) default
+representation of their user-friendly (that is based on `~p`) default
 representation.
 """.
 -spec terms_to_listed_string( [ term() ] ) -> ustring().
@@ -4081,7 +4081,7 @@ flatten( IOList ) ->
 
 -doc """
 Returns a binary string corresponding to the specified io_data (i.e. already a
-binary, or an iolist()).
+binary, or an `iolist()`).
 """.
 -spec io_to_binary( io_data() ) -> bin_string().
 io_to_binary( IOData ) ->
@@ -4094,20 +4094,20 @@ io_to_binary( IOData ) ->
 Joins, with the specified separator, the specified (plain) strings, and
 returns another plain string.
 
-`join(Separator, StringsToJoin)`, to be used like in: `join($-, ["Barbara",
+So `join(Separator, StringsToJoin)` is to be used like in: `join($-, ["Barbara",
 "Ann"]) = "Barbara-Ann"`.
 
-Separator can be a character, like $a, or a string, like ", ".
+Separator can be a character, like `$a`, or a string, like `", "`.
 
-Python-like 'join', combines items in a list into a string using a separator
+Python-like `join`, combines items in a list into a string using a separator
 between each item representation.
 
-Inspired from <http://www.trapexit.org/String_join_with>.
+Inspired from [http://www.trapexit.org/String_join_with].
 
-For file-related paths, you are expected to use the file_utils:join/{1,2}
-functions instead.
+For file-related paths, the `file_utils:join/{1,2}` functions should be used
+instead.
 
-Note: conversely, use split/2 to split the string.
+Note: conversely, use `split/2` to split the string.
 """.
 -spec join( ustring() | uchar(), [ ustring() ] ) -> ustring().
 join( _Separator, _ListToJoin=[] ) ->
@@ -4128,18 +4128,18 @@ join( Separator, ListToJoin ) ->
 Joins, with the specified separator, the specified strings (of any type), and
 returns a corresponding binary string.
 
-`bin_join(Separator, BinStringsToJoin)`, to be used like in: `join($-,
+So `bin_join(Separator, BinStringsToJoin)` is to be used like in: `join($-,
 [<<"Barbara">>, <<"Ann">>]) = <<"Barbara-Ann">>`.
 
-Separator can be a character, like $a, or any string, like ", " or
+Separator can be a character, like `$a`, or any string, like `", "` or
 `<<"hello">>`.
 
-For file-related paths, you are expected to use the file_utils:bin_join/{1,2}
-functions instead.
+For file-related paths, the file_utils:bin_join/{1,2} functions should be used
+instead..
 
-Note: conversely, use split/2 to split the string.
+Note: conversely, use `split/2` to split the string.
 
-See also bin_concatenate/2.
+See also `bin_concatenate/2`.
 """.
 -spec bin_join( any_string() | uchar(), [ any_string() ] ) -> bin_string().
 bin_join( Separator, ListToJoin ) ->
@@ -4157,14 +4157,14 @@ input one), based on the single specified character to be interpreted as a
 separator, or on the list thereof.
 
 Note that a series of contiguous separators (e.g. two spaces in a row) will
-result in inserting empty strings (i.e. []) in the returned list. Use
-split_per_element/2 if wanting to handle series of delimeters as if there was
+result in inserting empty strings (i.e. `[]`) in the returned list. Use
+`split_per_element/2` if wanting to handle series of delimeters as if there was
 only one of them (i.e. if not wanting the returned list to include empty
 strings).
 
-Defined here not to chase anymore after string:tokens/2 and friends.
+Defined here not to chase anymore after `string:tokens/2` and friends.
 
-See also: split_at_whitespaces/0.
+See also: `split_at_whitespaces/0`.
 """.
 -spec split( ustring(), [ uchar() ] | uchar() ) -> [ ustring() ];
 		   ( bin_string(), [ uchar() ] | uchar() ) -> [ bin_string() ].
@@ -4213,7 +4213,7 @@ split_helper( _Separators=[ D | T ], Acc ) ->
 
 
 
--doc "Splits a string according to the newlines (~n) that it contains.".
+-doc "Splits a string according to the newlines (`~n`) that it contains.".
 -spec split_lines( ustring() ) -> [ ustring() ];
 				 ( bin_string() ) -> [ bin_string() ].
 split_lines( AnyString ) ->
@@ -4250,7 +4250,7 @@ Note that a series of contiguous separators (e.g. two spaces in a row) will be
 handled as if there was only one of them (i.e. if the returned list should not
 include empty strings).
 
-See also: split/2.
+See also: `split/2`.
 """.
 -spec split_per_element( ustring(), [ uchar() ] ) -> [ ustring() ].
 split_per_element( String, Separators ) ->
@@ -4260,7 +4260,7 @@ split_per_element( String, Separators ) ->
 
 
 -doc """
-Splits the specified parse string (typically returned by parse_quoted/{1,3})
+Splits the specified parse string (typically returned by `parse_quoted/{1,3}`)
 into a list of plain strings, based on the list of specified characters to be
 interpreted as separators.
 
@@ -4269,7 +4269,7 @@ input character stream is properly handled (i.e. not searched for any
 separator).
 
 In this example, parsing is needed so that the comma just after the first
-"Bond" is not considered as a separator (since it is in a quoted context):
+`"Bond"` is not considered as a separator (since it is in a quoted context):
 ```
 ParsedString = text_utils:parse_quoted( "Hello,'Mr Bond,James Bond',MI6",
 	_QuotingChars=[ $' ], _EscapingChars=[] ),
@@ -4283,7 +4283,7 @@ text_utils:split_parsed(ParsedString, [ $, ]) =
 This allows extracting here three comma-separated fields, while taking into
 account any quoting involved.
 
-See also: split/2, split_per_element/2.
+See also: `split/2`, `split_per_element/2`.
 """.
 -spec split_parsed( parse_string(), [ uchar() ] ) -> [ ustring() ].
 split_parsed( ParseString, Separators ) ->
@@ -4300,8 +4300,8 @@ split_parsed( ParseString, Separators ) ->
 
 
 -doc """
-Collecting chars in elements (AccElem), then elements in the overall accumulator
-(AccStrs).
+Collects chars in elements (`AccElem`), then elements in the overall accumulator
+(`AccStrs`).
 
 We used to avoid adding any empty element, yet this may happen (typically in CSV
 files), hence re-enabled (previous version left commented).
@@ -4364,7 +4364,7 @@ split_at_whitespaces( String ) ->
 Splits the specified string according to the first occurrence (if any) of the
 specified character, then returns a pair of two strings, containing respectively
 all characters strictly before and strictly after the first occurrence of the
-marker (which is thus not kept); otherwise returns 'none_found'.
+marker (which is thus not kept); otherwise returns `none_found`.
 
 For example: `split_at_first($x, " aaaxbbbxccc")` shall return `{" aaa",
 "bbbxccc"}`.
@@ -4447,9 +4447,9 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 
 -doc """
 Splits the specified string into a list of strings, based on the list of
-separating characters provided in SeparatorsList, then turns these resulting
-strings in the Capitalized Case (all lower-case except for the first letter) and
-finally joins them to get a long CamelCased string.
+separating characters provided in `SeparatorsList`, then turns these resulting
+strings in the "Capitalized Case" (all lower-case except for the first letter)
+and finally joins them to get a long CamelCased string.
 
 For example: `tokenizable_to_camel_case("industrial_WASTE_sOuRCe", "_")` shall
 return `"IndustrialWasteSource"`, while `tokenizable_to_camel_case("ME HAZ READ
@@ -4488,11 +4488,11 @@ split_every( Count, Str ) ->
 
 -doc """
 Duplicates the specified string as many times as specified; returns a plain
-(flattened-once) string, not an iolist.
+(flattened-once) string, not an `iolist`.
 
 For example: `duplicate(3, "abc") = "abcabcabc"`.
 
-Use directly lists:duplicate/2 if wanting for example `["abc", "abc", "abc"]`.
+Use directly `lists:duplicate/2` if wanting for example `["abc", "abc", "abc"]`.
 """.
 -spec duplicate( count(), ustring() ) -> ustring().
 duplicate( Count, Str ) ->
@@ -4505,7 +4505,7 @@ Concatenates all elements (string-like ones or numbers) in the specified list
 into a single (plain) string.
 
 More general and convenient defined here rather than only in
-list_utils:flatten_once/1.
+`list_utils:flatten_once/1`.
 """.
 -spec concatenate( [ string() | atom() | number() ] ) -> ustring().
 concatenate( Elements ) ->
@@ -4566,7 +4566,7 @@ as the specified one.
 
 Note: simpler and probably more efficient than a regular expression.
 
-Use string:replace/3 for string-based substitutions, like for example:
+Use `string:replace/3` for string-based substitutions, like for example:
 ```
 EscapedArgStr = string:replace(_In=ArgStr, _SearchPattern="~",
 							   _Replacement="\~", _Where=all)
@@ -4596,7 +4596,7 @@ substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
 Returns the index, in terms of grapheme clusters, of the first occurrence of the
 specified pattern substring (if any) in the specified string.
 
-An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
+An (attempt of) Unicode-aware replacement of `string:str/2` and `string:rstr/2`.
 """.
 -spec find_substring_index( chardata(), chardata() ) -> gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern ) ->
@@ -4609,7 +4609,7 @@ Returns the index, in terms of grapheme clusters, of the first or last
 occurrence (depending on the specified direction) of the specified pattern
 substring (if any) in the specified string.
 
-An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
+An (attempt of) Unicode-aware replacement of `string:str/2` and `string:rstr/2`.
 """.
 -spec find_substring_index( chardata(), chardata(), direction() ) ->
 									gc_index() | 'nomatch'.
@@ -4712,7 +4712,7 @@ corresponding to that key).
 For example: `text_utils:update_with_keywords("Hello word!", table:new([{"foo",
 "bar"}, {"ord", "orld"}]))`.
 
-See also: file_utils:update_with_keywords/3.
+See also: `file_utils:update_with_keywords/3`.
 """.
 -spec update_with_keywords( any_string(), translation_table() ) ->
 											[ string_like() ].
@@ -4779,8 +4779,7 @@ double_quote_strings( AnyStrs ) ->
 
 -doc """
 Returns the specified text, in which single quotes have been escaped (that is:
-all "'" characters have been replaced with "\'" ones - ignore the double quotes
-in this example).
+all `'` characters have been replaced with `\'` ones).
 """.
 -spec escape_single_quotes( ustring() ) -> ustring().
 escape_single_quotes( Text ) ->
@@ -4801,8 +4800,7 @@ escape_single_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 -doc """
 Returns the specified text, in which double quotes have been escaped (that is:
-all '"' characters have been replaced with '\"' ones - ignore the single quotes
-in this example).
+all `"` characters have been replaced with `\"` ones).
 """.
 -spec escape_double_quotes( ustring() ) -> ustring().
 escape_double_quotes( Text ) ->
@@ -4823,7 +4821,7 @@ escape_double_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 -doc """
 Returns the specified text, in which all quotes have been escaped (that is
-characters ' and " have been replaced respectively with \' and \").
+characters `'` and `"` have been replaced respectively with `\'` and `\"`).
 """.
 -spec escape_all_quotes( ustring() ) -> ustring().
 escape_all_quotes( Text ) ->
@@ -4889,31 +4887,29 @@ remove_newlines( String ) ->
 
 
 -doc """
-Parses the specified plain (non-iolist) string (that is a mere list of
+Parses the specified plain (non-`iolist`) string (that is a mere list of
 characters), based on two quoting characters (single and double quotes) and one
 escaping character (backslash), returning a specific kind of iolist containing
 either characters or plain strings, the latter corresponding to the found quoted
 texts, provided that they were not escaped.
 
-For example, let's consider an input string such as (using, from now, '§' to
+For example, let's consider an input string such as (using, from now, `§` to
 delimit strings):
 
-§This is an "example \" 'convoluted" string' with various 'quoting elements'.§
+`§This is an "example \" 'convoluted" string' with various 'quoting elements'.§`
 
 Once parsed with this function, it shall be translated to a list containing the
 following series of characters:
 
-§This is an §, then: §example " 'convoluted§, then the series of characters
-corresponding to: § string' with various 'quoting elements'.§
-
-i.e.: ``"This is an " ++ ["example \" 'convoluted" | "string' with
-various 'quoting elements']``.
+`§This is an §`, then: `§example " 'convoluted§`, then the series of characters
+corresponding to: `§ string' with various 'quoting elements'.§`, i.e.: `"This is
+an " ++ ["example \" 'convoluted" | "string' with various 'quoting elements']`.
 
 Note: any escaping character is to escape any of the quoting characters, and
 only them, if being in an unquoted context (i.e. otherwise both will be added
 verbatim in the resulting string).
 
-See text_utils_test.erl for a full example with additional explanations.
+See `text_utils_test.erl` for a full example with additional explanations.
 """.
 -spec parse_quoted( plain_string() ) -> parse_string().
 parse_quoted( InputStr ) ->
@@ -4922,16 +4918,14 @@ parse_quoted( InputStr ) ->
 
 
 -doc """
-Parses the specified plain (non-iolist) string (that is a mere list of
+Parses the specified plain (non-`iolist`) string (that is a mere list of
 characters), based on the specified quoting characters and escaping characters,
 returning a specific kind of iolist containing either individual characters or
 plain strings, the latter corresponding to the found quoted texts, provided that
 they were not escaped.
 
-See parse_quoted/1 regarding parsing/escaping rules, and text_utils_test.erl for
-a full example with additional explanations.
-
-See parse_quoted/1
+See `parse_quoted/1` regarding parsing/escaping rules, and `text_utils_test.erl`
+for a full example with additional explanations.
 """.
 -spec parse_quoted( plain_string(), [ uchar() ], [ uchar() ] ) ->
 														parse_string().
@@ -5216,7 +5210,7 @@ is_uppercase( Char ) ->
 
 
 
--doc "Tells whether the specified character is a figure (in 0..9).".
+-doc "Tells whether the specified character is a figure (in `0..9`).".
 -spec is_figure( char() ) -> boolean().
 is_figure( Char ) when is_integer( Char ), Char >= $0, Char =< $9 ->
 	true;
@@ -5227,7 +5221,7 @@ is_figure( Char ) when is_integer( Char ) ->
 
 
 -doc """
-Removes any ending "\n" character(s) - zero or more thereof - from the specified
+Removes any ending `\n` character(s) - zero or more thereof - from the specified
 string.
 """.
 -spec remove_ending_carriage_return( ustring() ) -> ustring().
@@ -5241,7 +5235,7 @@ remove_ending_carriage_return( String ) when is_list( String ) ->
 
 
 -doc """
-Removes the last Count characters from the specified string, and returns the
+Removes the last `Count` characters from the specified string, and returns the
 result.
 """.
 -spec remove_last_characters( ustring(), count() ) -> ustring().
@@ -5308,12 +5302,12 @@ trim_trailing_whitespaces( String ) ->
 
 -doc """
 Ellipses (shortens by removing the end of) the specified string, so that its
-total length remains up to the default (maximum length) threshold (including a
-final " [...]" if it was shortened).
+total length remains up to the default (maximum length) threshold (including an
+additional final `" [...]"` part if it was shortened).
 
 Returns a string of the same type.
 
-See also: tail/1.
+See also: `tail/1`.
 """.
 -spec ellipse( any_string() ) -> any_string().
 ellipse( String ) ->
@@ -5323,12 +5317,12 @@ ellipse( String ) ->
 
 -doc """
 Ellipses (shortens by removing the end of) the specified string, so that its
-total length remains up to the specified (maximum length) threshold (including a
-final " [...]" if it was shortened).
+total length remains up to the specified (maximum length) threshold (including
+an additional final `" [...]"` if it was shortened).
 
 Returns a string of the same type.
 
-See also: tail/2.
+See also: `tail/2`.
 """.
 -spec ellipse( any_string(), length() | 'unlimited' ) -> any_string().
 ellipse( String, _MaxLen=unlimited ) ->
@@ -5366,8 +5360,8 @@ ellipse( String, MaxLen ) ->
 
 -doc """
 Ellipses (shortens) the specified string to format, so that its total length
-remains up to the default (maximum length) threshold (including a final " [...]"
-if it was shortened).
+remains up to the default (maximum length) threshold (including an additional
+final `" [...]"` if it was shortened).
 """.
 -spec ellipse_fmt( format_string(), format_values() ) -> ustring().
 ellipse_fmt( FormatString, Values ) ->
@@ -5377,8 +5371,8 @@ ellipse_fmt( FormatString, Values ) ->
 
 -doc """
 Ellipses (shortens) the specified string to format, so that its total length
-remains up to the default (maximum length) threshold (including a final " [...]"
-if it was shortened).
+remains up to the default (maximum length) threshold (including an additional
+final `" [...]"` if it was shortened).
 """.
 -spec ellipse_fmt( format_string(), format_values(),
 				   length() | 'unlimited' ) -> ustring().
@@ -5390,9 +5384,9 @@ ellipse_fmt( FormatString, Values, MaxLen ) ->
 -doc """
 Tails (shortens by removing the beginning of) the specified string, so that its
 total length remains up to the default (maximum length) threshold (including an
-initial " [...]"  if it was shortened).
+additional initial `" [...]"` if it was shortened).
 
-See also: ellipse/1.
+See also: `ellipse/1`.
 """.
 -spec tail( ustring() ) -> ustring().
 tail( String ) ->
@@ -5406,7 +5400,7 @@ total length remains up to the specified threshold.
 
 Note: the specified threshold is expected to be equal at least to 6.
 
-See also: ellipse/2.
+See also: `ellipse/2`.
 """.
 -spec tail( ustring(), length() | 'unlimited' ) -> ustring().
 tail( String, _MaxLen=unlimited ) ->
@@ -5464,7 +5458,7 @@ Formats (word-wraps) the specified text according to the specified line width,
 expressed in characters, by maximising the number of words in each line and
 afterwards padding it with spaces.
 
-Returns a list of strings, each of which having exactly Width characters.
+Returns a list of strings, each of which having exactly `Width` characters.
 """.
 -spec format_text_for_width( ustring(), width(), boolean() ) -> [ ustring() ].
 format_text_for_width( Text, Width, DoPad ) ->
@@ -5784,7 +5778,7 @@ center_string( String, Width, PaddingChar ) ->
 
 -doc """
 Tells whether the specified term is a (possibly Unicode, UTF-8) character,
-i.e. char().
+i.e. `char()`.
 """.
 -spec is_char( term() ) -> boolean().
 is_char( I ) when is_integer( I ), I >= 0, I =< 16#10ffff ->
@@ -5799,7 +5793,7 @@ is_char( _Other ) ->
 Returns true iff the parameter is a (non-nested) plain string (actually a list
 of characters).
 
-Improved from <http://lethain.com#distinguishing-strings-from-lists-in-erlang>.
+Improved from [http://lethain.com#distinguishing-strings-from-lists-in-erlang].
 
 Note: so something like `[$e, 1, 2, $r]` is deemed to be a string.
 """.
@@ -6016,7 +6010,6 @@ Tries to convert the specified Unicode-related datastructure into a flat, plain
 Unicode string.
 
 (exported helper, for re-use)
-
 """.
 -spec try_convert_to_unicode_list( unicode_data() ) -> option( ustring() ).
 try_convert_to_unicode_list( Data ) ->
@@ -6150,7 +6143,6 @@ binary string.
 Never fails yet can return a bogus string.
 
 (exported helper, for re-use)
-
 """.
 -spec to_unicode_binary( unicode_data() ) -> bin_string().
 to_unicode_binary( Data ) ->
@@ -6247,7 +6239,7 @@ generate_title( Title, Level ) ->
 -doc """
 Returns how a title with the specified level can be rendered.
 
-See demo-for-css-testing.rst for the convention.
+See `demo-for-css-testing.rst` for the convention.
 """.
 get_title_rendering_for( 1 ) ->
 	{ $=, below_and_on_top };
@@ -6279,7 +6271,7 @@ get_title_rendering_for( 9 ) ->
 
 
 -doc """
-Returns a line made of Length characters "Character".
+Returns a line made of Length characters `Character`.
 
 For example: `get_line_of($+, 5) = "+++++"`.
 """.
@@ -6297,7 +6289,7 @@ get_line_of( Character, Length ) ->
 Tries to return a string adequate to form a simple name (mostly alphanumerical
 with underscores) from the specified term.
 
-See also: file_utils:convert_to_filename/1.
+See also: `file_utils:convert_to_filename/1`.
 """.
 -spec generate_text_name_from( term() ) -> ustring().
 generate_text_name_from( Term ) ->

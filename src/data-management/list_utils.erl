@@ -31,12 +31,12 @@
 Gathering of various facilities about **lists**: addition of general-purpose
 functions operating on lists.
 
-See list_utils_test.erl for the corresponding test.
+See the `list_utils_test` module for the corresponding test.
 
 For the support of (possibly strict) tagged lists (i.e. lists of pairs, with
-atoms as keys), refer to tagged_list.erl.
+atoms as keys), refer to the `tagged_list` module.
 
-See also: set_utils.erl and list_table.erl.
+See also the `set_utils` and `list_table` modules.
 """.
 
 
@@ -114,7 +114,7 @@ See also: set_utils.erl and list_table.erl.
 -doc """
 Either a list of terms, or a term by itself.
 
-Note: therefore different from option(list()).
+Note: therefore different from `option(list())`.
 """.
 -type maybe_list( T ) :: [ T ] | T.
 
@@ -383,7 +383,7 @@ extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 Returns, as a list, the specified number of first elements from the specified
 list, and the remainder of that list.
 
-For example {[a,b,c], [d,e]} = extract_first_elements([a,b,c,d,e], 3).
+For example `{[a,b,c], [d,e]} = extract_first_elements([a,b,c,d,e], 3)`.
 
 Throws an exception if there are not enough elements to do so.
 """.
@@ -408,7 +408,7 @@ extract_first_elements( _RemainderList=[ H | T ], Count, Acc ) ->
 Returns, as a list, the specified number of last elements from the specified
 list, and the remainder of that list.
 
-For example {[c,d,e],[a,b]} = extract_last_elements([a,b,c,d,e], 3).
+For example `{[c,d,e],[a,b]} = extract_last_elements([a,b,c,d,e], 3)`.
 
 Throws an exception if there are not enough elements to do so.
 """.
@@ -427,7 +427,7 @@ extract_last_elements( List, Count ) ->
 -doc """
 Removes the specified number of heads (first elements).
 
-For example: `[c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2)`
+For example: `[c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2)`.
 """.
 -spec remove_first_elements( list(), count() ) -> list().
 remove_first_elements( List, _Count=0 ) ->
@@ -448,8 +448,8 @@ remove_element_at, ...}]` is triggered.
 Note: usually these kinds of functions should not be used, recursive algorithms
 are a lot more effective, when applicable.
 
-Curiously lists:nth/1 exists, but no function to remove an element specified by
-its index seems to be available in the lists module.
+Curiously `lists:nth/1` exists, but no function to remove an element specified
+by its index seems to be available in the `lists` module.
 """.
 % Not tail recursive version:
 %remove_element_at( [ _H | T ], _LastIndex=1 ) ->
@@ -475,7 +475,7 @@ remove_element_at( [ H | RemainingList ], Index, Result ) ->
 -doc """
 Removes the last element of the specified list.
 
-Crashes (with 'no function clause') if the input list is empty.
+Crashes (with `no function clause`) if the input list is empty.
 
 Note: not computationnally efficient, usually removing the last element suggests
 a bad code design.
@@ -503,9 +503,9 @@ specified list.
 
 For example: `heads([a,b,c,d,e], _N=3) = {[a,b,c],[d,e]}`.
 
-Like list:sublist/1 yet returning the tail (list:nthtail/1) as well.
+Like `list:sublist/1` yet returning the tail (`list:nthtail/1`) as well.
 
-See split_heads_tails/1 to extract a single element yet from multiple lists.
+See `split_heads_tails/1` to extract a single element from multiple lists.
 """.
 -spec heads( list(), count() ) -> { list(), list() }.
 heads( List, N ) ->
@@ -528,7 +528,7 @@ Returns the last element of the specified list.
 Note: not computationnally efficient, usually having to retrieve the last
 element suggests a bad code design.
 
-Crashes (with 'no function clause') if the input list is empty.
+Crashes (with `no function clause`) if the input list is empty.
 """.
 -spec get_last_element( list() ) -> element().
 get_last_element( _List=[ SingleElement ] ) ->
@@ -659,7 +659,7 @@ get_index_of( Element, List ) ->
 
 -doc """
 Returns the index, in `[1..length(List)]`, of the (first occurrence of the)
-specified element in the specified list, or 'undefined' if the element is not
+specified element in the specified list, or `undefined` if the element is not
 found.
 
 For example:
@@ -762,7 +762,7 @@ Returns a list whose elements are the ones of the specified list, except that
 they are unique (all their duplicates have been removed), while the order in the
 kept elements is preserved.
 
-Expected to be a bit slower than uniquify/1.
+Expected to be a bit slower than `uniquify/1`.
 
 For example: if `L = [1,3,2,3,2,2,4,5,5,4,6,6,5]`, then `uniquify_ordered(L)`
 is: `[1,3,2,4,5,6]`.
@@ -811,10 +811,10 @@ ensure_is_once_in( Elem, List ) ->
 
 
 -doc """
-Returns a list made of the specified number of occurrences of the specified
+Returns the list made of the specified number of occurrences of the specified
 element.
 
-See also repeat_elements/2.
+See also `repeat_elements/2`.
 """.
 -spec duplicate( element(), count() ) -> [ element() ].
 duplicate( Elem, Count ) ->
@@ -824,7 +824,7 @@ duplicate( Elem, Count ) ->
 
 
 -doc """
-Tells whether there are in the specified list elements that are present more
+Tells whether there are, in the specified list, elements that are present more
 than once.
 """.
 has_duplicates( List ) ->
@@ -834,8 +834,8 @@ has_duplicates( List ) ->
 
 -doc """
 Counts the number of occurences of all elements in the specified list: returns
-an (unordered) list of {Term,Count} pairs, where each term is associated to the
-total number of its occurrences (1 or above) in the specified list.
+an (unordered) list of `{Term,Count}` pairs, where each term is associated to
+the total number of its occurrences (1 or above) in the specified list.
 """.
 -spec count_occurrences( list() ) -> [ { element(), count() } ].
 count_occurrences( List ) ->
@@ -872,13 +872,13 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 
 -doc """
 Returns the duplicates found in the specified list: returns an (unordered) list
-of {DuplicatedTerm,DuplicationCount} pairs, where each duplicated term (that is
-a term present more than once) is specified, alongside the total number of
+of `{DuplicatedTerm,DuplicationCount}` pairs, where each duplicated term (that
+is a term present more than once) is specified, alongside the total number of
 occurrences of that term in the specified list.
 
 Note: as a consequence, a term that is not in the specified list, or that is
 present there only once, will not be referenced in the returned list; use
-count_occurrences/1 if wanting to include the terms that are listed only once
+`count_occurrences/1` if wanting to include the terms that are listed only once
 each.
 
 For example:
@@ -887,8 +887,8 @@ For example:
 			[{b,3},{d,2},{a,2}] = list_utils:get_duplicates(L)
 ```
 
-Use lists:keysort(2, list_utils:get_duplicates(L)) to sort duplicates by
-increasing number of occurrences (e.g. [{d,2},{a,2},{b,3}] here).
+Use `lists:keysort(2, list_utils:get_duplicates(L))` to sort duplicates by
+increasing number of occurrences (e.g. `[{d,2},{a,2},{b,3}]` here).
 """.
 -spec get_duplicates( list() ) -> duplicate_info().
 get_duplicates( List ) ->
@@ -964,7 +964,7 @@ union( L1, L2 ) ->
 Returns the intersection of the two specified lists, that is the list of all
 elements that are in both lists.
 
-See also: subtract_all_duplicates/2.
+See also: `subtract_all_duplicates/2`.
 """.
 -spec intersection( list(), list() ) -> list().
 intersection( L1, L2 ) ->
@@ -1024,14 +1024,13 @@ cartesian_product( [ List | OtherLists ] ) ->
 Returns a list equal to L1 except that all elements found in L2 have been
 removed, even if in L1 they were duplicated.
 
-Note: like lists:subtract/2, except that *all* occurences from L2 in L1 (not
-only the first one) are removed. See also: the '--' operator.
+Note: like `lists:subtract/2`, except that *all* occurences from L2 in L1 (not
+only the first one) are removed. See also: the `--` operator.
 
-Example: `[1,4] = list_utils:subtract_all_duplicates( [1,2,3,4,2], [2,3] )`
+For example: `[1,4] = list_utils:subtract_all_duplicates( [1,2,3,4,2], [2,3] )`.
 
 Taken from
-<http://www.trapexit.org/Finding_Elements_in_One_Array_but_Not_Another>.
-
+[http://www.trapexit.org/Finding_Elements_in_One_Array_but_Not_Another].
 """.
 -spec subtract_all_duplicates( list(), list() ) -> list().
 subtract_all_duplicates( L1, L2 ) ->
@@ -1042,8 +1041,9 @@ subtract_all_duplicates( L1, L2 ) ->
 -doc """
 Returns a list of all the permutations of the specified list.
 
+For example:
 ```
-For example: get_all_permutations([a,b,c]) =
+get_all_permutations([a,b,c]) =
 	[ [c,b,a], [c,a,b], [a,c,b], [b,c,a], [b,a,c], [a,b,c] ]
 ```
 """.
@@ -1063,7 +1063,6 @@ Returns all the lists obtained from the specified one L, when inserting the
 specified element at each possible place in L (including before and after).
 
 For example:
-
 ```
 insert_at_all_places(a, [b,c,d]) =
 				[ [b,c,d,a], [b,c,a,d], [b,a,c,d], [a,b,c,d] ]
@@ -1089,9 +1088,9 @@ insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
 Returns a list in which each element of the specified list is repeated the
 specified (total - not additional) number of times (at least 1), in a row.
 
-For example, repeat_elements([a,b,c], _Count=2) = [a,a,b,b,c,c].
+For example, `repeat_elements([a,b,c], _Count=2) = [a,a,b,b,c,c]`.
 
-See also duplicate/2.
+See also `duplicate/2`.
 """.
 -spec repeat_elements( list(), count() ) -> list().
 repeat_elements( List, RepeatCount ) ->
@@ -1113,7 +1112,7 @@ repeat_elements( _Elements=[ E | T ], RepeatCount, Acc ) ->
 -doc """
 Returns a copy of the specified list where the first element matching Elem is
 deleted, ensuring that at least one of these elements exists (as opposed to
-lists:delete/2). The order of the specified list is preserved.
+`lists:delete/2`). The order of the specified list is preserved.
 """.
 -spec delete_existing( element(), list() ) -> list().
 delete_existing( Elem, List ) ->
@@ -1140,7 +1139,7 @@ delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
 -doc """
 Returns a copy of the specified list where the first element matching each of
 the specified elements is deleted, ensuring that at least one of these elements
-exists (as opposed to lists:delete/2). The order of the specified list is
+exists (as opposed to `lists:delete/2`). The order of the specified list is
 preserved.
 """.
 -spec delete_existing_elements( [ element() ], list() ) -> list().
@@ -1179,13 +1178,13 @@ remove_first_occurrences( _ElementsToRemove=[ E | T ], List ) ->
 
 -doc """
 Deletes the first matching of the specified element from the specified list,
-returning whether an element has been removed, that is either the 'not_found'
+returning whether an element has been removed, that is either the `not_found`
 atom (in which case the list remained the same) or the corresponding new list
 (same order and content, except that the first occurrence of the specified
 element was removed).
 
 Note: allows to perform only one traversal of the list (compared for example to
-a lists:member/2 then a lists:delete/2).
+a `lists:member/2` then a `lists:delete/2`).
 """.
 -spec delete_if_existing( element(), list() ) -> 'not_found' | list().
 delete_if_existing( Elem, List ) ->
@@ -1260,7 +1259,7 @@ deleted, whether or not there is any.
 
 The element order of the specified list is preserved.
 
-Note: kept only for backward compatibility; prefer remove_element_from/2.
+Note: kept only for backward compatibility; prefer `remove_element_from/2`.
 """.
 -spec delete_all_in( element(), list() ) -> list().
 delete_all_in( Elem, List ) ->
@@ -1300,7 +1299,7 @@ intercalate( Elem, _TargetList=[ H | T ], Acc ) ->
 Appends the specified element at the end of the specified list, without changing
 the order of the list.
 
-For example: append_at_end(d, [a,b,c]) returns [a,b,c,d].
+For example: `append_at_end(d, [a,b,c])` returns `[a,b,c,d]`.
 
 Note: usually adding elements at the end of a list should be avoided, as it is
 costlier than adding them at head.
@@ -1387,8 +1386,8 @@ Checks that the terms in the specified list are in strict (no duplicates)
 ascending (Erlang) term order.
 
 In many cases, the actual type of these elements shall be checked beforehand
-(e.g. see type_utils:check_{integers,floats}/1) to ensure that comparisons make
-sense (e.g. float versus atom).
+(e.g. see `type_utils:check_{integers,floats}/1`) to ensure that comparisons
+make sense (e.g. float versus atom).
 """.
 -spec check_strictly_ascending( list() ) -> boolean().
 check_strictly_ascending( _List=[] ) ->
@@ -1464,7 +1463,7 @@ unordered_compare( L1, L2 ) ->
 
 -doc """
 Flattens specified list of lists only once (that is on a single level), as
-opposed to indefinitively (as done recursively by lists:flatten/1); provides
+opposed to indefinitively (as done recursively by `lists:flatten/1`); provides
 more control than a recursive counterpart.
 
 Element order is preserved.
@@ -1472,7 +1471,7 @@ Element order is preserved.
 For example: if `L=[[1], [2,[3,4]]]`, `lists:flatten(L)` yields `[1,2,3,4]`
 whereas `list_utils:flatten_once(L)` should yield `[1,2,[3,4]]`.
 
-See text_utils:concatenate/1 for string-related operations.
+See `text_utils:concatenate/1` for string-related operations.
 """.
 
 -spec flatten_once( [ list() ] ) -> list().
@@ -1497,7 +1496,7 @@ flatten_once( [ Unexpected | _T ], _Acc ) ->
 
 
 -doc """
-Removes (filters out) all elements equal to 'undefined'; preserves order.
+Removes (filters out) all elements equal to `undefined`; preserves order.
 """.
 -spec filter_out_undefined( list() ) -> list().
 filter_out_undefined( L ) ->
@@ -1546,9 +1545,9 @@ split_heads_tails([[a,b,c], [1,2], [true]]) =
   {[a,1,true], [[b,c], [2], []]}.
 ```
 
-May be paired with add_as_heads/2.
+May be paired with `add_as_heads/2`.
 
-See heads/2 instead to operate on a single list yet extract multiple elements.
+See `heads/2` instead to operate on a single list yet extract multiple elements.
 """.
 
 -spec split_heads_tails( [ list() ] ) -> { list(), [ list() ] }.
@@ -1573,9 +1572,9 @@ For example: `add_as_heads([a,b,c], [[u,v], [], [w]]) = [[a,u,v], [b], [c,w]]`.
 
 Of course the two lists shall have the same length.
 
-May be paired with split_heads_tails/1.
+May be paired with `split_heads_tails/1`.
 
-See concatenate_per_rank/2 to add whole lists, instead of head elements.
+See `concatenate_per_rank/2` to add whole lists, instead of head elements.
 """.
 -spec add_as_heads( list(), [ list() ] ) -> [ list() ].
 add_as_heads( Heads, Lists ) ->
@@ -1603,7 +1602,7 @@ For example:
 split_multi_heads_tails([[a,b,c,d], [1,2,3,4,5], [true,false]],
 _HeadsLen=2) = {[[a,b], [1,2], [true,false]], [[c,d], [3,4,5], []]}
 ```
-May be paired with concatenate_per_rank/2.
+May be paired with `concatenate_per_rank/2`.
 """.
 -spec split_multi_heads_tails( [ list() ], count() ) ->
 										{ [ list() ], [ list() ] }.
@@ -1628,7 +1627,7 @@ Concatenates the specified lists to the specified lists: returns the
 concatenation of the two lists found at the same rank in both input lists, and
 returns the (in-order) list of these concatenated lists.
 
-Like add_as_heads/2, but for whole lists instead of just head elements.
+Like `add_as_heads/2`, but for whole lists instead of just head elements.
 
 For example:
 ```
@@ -1639,8 +1638,8 @@ or:
 concatenate_per_rank([[a,b], [], [1,2,3]], [[c], [], [4,5,6,7]]) =
 		  [[a,b,c], [], [1,2,3,4,5,6,7]]
 ```
-May be paired with split_multi_heads_tails/2; could have been named
-add_as_multi_heads/2.
+May be paired with `split_multi_heads_tails/2`; could have been named
+`add_as_multi_heads/2`.
 
 Of course the two lists shall be of the same length.
 """.
@@ -1675,7 +1674,8 @@ concatenate_per_rank( _HeadLists=[ HL | THL ], _Lists=[ L | TL ], Acc ) ->
 
 -doc """
 Determines tuple-related information about specified datastructure: returns
-{TupleCount, TupleSize}, supposing the list is made of tuples of uniform sizes.
+`{TupleCount, TupleSize}`, supposing the list is made of tuples of uniform
+sizes.
 """.
 -spec determine_tuple_info( [ tuple() ] ) -> { count(), count() }.
 determine_tuple_info( _TupleList=[] ) ->
@@ -1711,7 +1711,7 @@ check_tuple_length( _TupleList=[ Tuple | T ], TupleSize, AccCount ) ->
 Flattens a list of tuples into a simple list of their elements, without tuples
 and in the same order.
 
-For example: flatten_tuples([{1, 2, 3}, {4, 5, 6}]) = [1, 2, 3, 4, 5, 6])
+For example: `flatten_tuples([{1, 2, 3}, {4, 5, 6}]) = [1, 2, 3, 4, 5, 6])`.
 """.
 -spec flatten_tuples( [ tuple() ] ) -> list().
 flatten_tuples( List ) ->
@@ -1758,16 +1758,16 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 -doc """
 Performs a generalization of zip2, zip3: takes one element at a time of each of
 the input lists, and adds it to a corresponding list; returns thus a list of
-fixed-size lists (not tuples; like the zip{2,3}). Order is preserved (between
+fixed-size lists (not tuples; like the `zip{2,3}`). Order is preserved (between
 and inside each of the input lists).
 
-For example, list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
-_L3=[true,false,undefined]]) will return a list containing lists of 3 elements
+For example, `list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
+_L3=[true,false,undefined]])` will return a list containing lists of 3 elements
 (as there are 3 input lists), whose elements are taken from each of the input
-lists, in order: [[a,1,true],[b,2,false],[c,3,undefined]].
+lists, in order: `[[a,1,true],[b,2,false],[c,3,undefined]]`.
 
-If the myriad_check_lists token is not set, no error will be triggered if the
-input lists are not all of the same length (see check_same_length/1).
+If the `myriad_check_lists` token is not set, no error will be triggered if the
+input lists are not all of the same length (see `check_same_length/1`).
 """.
 -spec zipn( [ list() ] ) -> list( tuple() ).
 zipn( ListOfLists ) ->
@@ -1845,12 +1845,12 @@ check_same_length( Lists ) ->
 -doc """
 Returns a random uniform permutation of the specified list.
 
-Inspired from http://paste.lisp.org/display/74804.
+Inspired from [http://paste.lisp.org/display/74804].
 
 All these algorithms would need random access to a list, which is not readily
 possible here, hence must be emulated.
 
-See also the 'Speedy unsort:shuffle/1,2' thread in the erlang-questions mailing
+See also the `Speedy unsort:shuffle/1,2` thread in the erlang-questions mailing
 list for counterparts.
 """.
 -spec random_permute( list() ) -> list().
@@ -1885,8 +1885,8 @@ Returns a reciprocal random uniform permutation of the specified list, compared
 to random_permute/1.
 
 Consists on the reciprocal operation, so that, if starting from a random state S
-(see set_random_state/1) and if L2 = random_permute( L1 ), then, if starting
-again from S, L1 = random_permute_reciprocal( L2 ).
+(see `set_random_state/1`) and if `L2 = random_permute(L1)`, then, if starting
+again from S, `L1 = random_permute_reciprocal( L2 )`.
 """.
 -spec random_permute_reciprocal( list() ) -> list().
 random_permute_reciprocal( List ) ->
@@ -1897,7 +1897,7 @@ random_permute_reciprocal( List ) ->
 	% taking into account that the range is decremented at each draw:
 	%
 	ReciprocalIndex = lists:reverse( [ random_utils:get_uniform_value( L )
-			|| L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
+		|| L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
 
 	%io:format( "Reciprocal index = ~p~n", [ ReciprocalIndex ] ),
 
@@ -1961,13 +1961,13 @@ floating-point values) defined relatively to each other (they do not have to sum
 up to 1.0).
 
 For example: `ElementList = [{first,1}, {second,2}, {third,1}]` is expected to
-return on average 'second' twice as frequently as 'first' or 'third'.
+return on average `second` twice as frequently as `first` or `third`.
 
-Using [{first,1}, {second,0}, {third,1}] instead would mean that 'second' would
-never be drawn.
+Using `[{first,1}, {second,0}, {third,1}]` instead would mean that `second`
+would never be drawn.
 
-See also random_utils:generate_random_state_from/1 and
-random_utils:get_sample[s]_from/1.
+See also `random_utils:generate_random_state_from/1` and
+`random_utils:get_sample[s]_from/1`.
 """.
 -spec draw_element_weighted( [ { element(), number() } ] ) -> element().
 draw_element_weighted( ElementList ) ->

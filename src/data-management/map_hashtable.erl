@@ -168,7 +168,7 @@ new() ->
 -doc """
 Returns a map-based hashtable comprising only the specified entry.
 
-More elegant than map_hashtable:new([{K,V}], map_hashtable:new()).
+More elegant than `map_hashtable:new([{K,V}], map_hashtable:new())`.
 """.
 -spec singleton( key(), value() ) -> map_hashtable().
 singleton( Key, Value ) ->
@@ -187,7 +187,7 @@ the other table modules.
 If the same key appears more than once, the latter (right-most) value is used
 and the previous values are ignored.
 
-Throws bad argument (bad_arg) if a non-pair term is found in this list.
+Throws bad argument (`bad_arg`) if a non-pair term is found in this list.
 """.
 -spec new( entries() | entry_count() ) -> map_hashtable().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
@@ -425,7 +425,7 @@ the specified new value.
 Returns the value previously associated to that key and an updated table.
 
 The entry designated by the specified key is expected to exist already,
-otherwise a {bad_key,Key} exception is triggered.
+otherwise a `{bad_key,Key}` exception is triggered.
 """.
 -spec swap_value( key(), value(), map_hashtable() ) ->
 							{ value(), map_hashtable() }.
@@ -511,9 +511,8 @@ remove_existing_entries( Keys, MapHashtable ) ->
 -doc """
 Looks-up the specified entry (designated by its key) in the specified map table.
 
-Returns either 'key_not_found' if no such key is registered in the table, or
-{value, Value}, with Value being the value associated to the specified key.
-
+Returns either `key_not_found` if no such key is registered in the table, or
+`{value, Value}`, with Value being the value associated to the specified key.
 """.
 -spec lookup_entry( key(), map_hashtable() ) ->
 						'key_not_found' | { 'value', value() }.
@@ -619,10 +618,10 @@ associated value; otherwise returns the specified default value.
 
 Allows to perform in a single operation a look-up followed by a fetch.
 
-A popular default value is 'undefined', so that this function can be considered
-a returning a option(value()); no get_maybe_value/2 function was introduced, as
-it could be ambiguous, since in the general case a legit value could be
-'undefined'.
+A popular default value is `undefined`, so that this function can be considered
+a returning a `option(value())`; no `get_maybe_value/2` function was introduced,
+as it could be ambiguous, since in the general case a legit value could be
+`undefined`.
 """.
 -spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
 get_value_with_default( Key, DefaultValue, MapHashtable ) ->
@@ -726,7 +725,6 @@ Otherwise, that is if that entry does not exist, returns false.
 
 Typically useful to iterate over options stored as a table and extracting them
 in turn, then to check that the resulting final table is empty as expected.
-
 """.
 -spec extract_entry_if_existing( key(), map_hashtable() ) ->
 										'false' | { value(), map_hashtable() }.
@@ -750,10 +748,10 @@ Extracts the specified entries from the specified table, that is returns their
 associated values (in-order) and removes these entries from the returned table.
 
 Each key/value pair is expected to exist already, otherwise an exception is
-raised (typically {badkey, KeyNotFound}).
+raised (typically `{badkey, KeyNotFound}`).
 
-For example {[RedValue, GreenValue, BlueValue], ShrunkTable} =
-   map_hashtable:extract_entries([red, green, blue], MyTable)
+For example: `{[RedValue, GreenValue, BlueValue], ShrunkTable} =
+   map_hashtable:extract_entries([red, green, blue], MyTable)`.
 """.
 -spec extract_entries( [ key() ], map_hashtable() ) ->
 							{ [ value() ], map_hashtable() }.
@@ -776,7 +774,7 @@ returns them (in-order), and removes them from the returned table.
 
 If a key is not present in the table, it is skipped.
 
-For example, if no 'green' key exists in MyTable:
+For example, if no `green` key exists in MyTable:
 ```
 {[{red,RedValue}, {blue,BlueValue}], ShrunkTable} =
    map_hashtable:extract_entries_if_existing([red, green, blue], MyTable)
@@ -818,7 +816,7 @@ Allows to apply "in-place" an operation on all values without having to
 enumerate the content of the hashtable and iterate on it (hence without having
 to duplicate the whole content in memory).
 
-See also: map_on_values/2.
+See also: `map_on_values/2`.
 """.
 -spec map( fun( ( key(), value() ) -> value() ), map_hashtable() ) ->
 						map_hashtable().
@@ -835,10 +833,10 @@ Allows to apply "in-place" an operation on all entries without having to
 enumerate the content of the hashtable and iterate on it (hence without having
 to duplicate the whole content in memory).
 
-Note: same as map/2 above, except that the lambda takes one argument (the entry,
-as a pair) instead of two (the key and then the value), and returns an entry,
-not a mere value to associate the same key (and thus may change the structure,
-number of entries because of collisions, etc. of the table).
+Note: same as `map/2` above, except that the lambda takes one argument (the
+entry, as a pair) instead of two (the key and then the value), and returns an
+entry, not a mere value to associate the same key (and thus may change the
+structure , number of entries because of collisions, etc. of the table).
 """.
 -spec map_on_entries( fun( ( entry() ) -> entry() ), map_hashtable() ) ->
 							map_hashtable().
@@ -865,7 +863,8 @@ to duplicate the whole content in memory), and to recreate the table.
 Note: the keys are left as are, hence the structure of the hashtable does not
 change.
 
-Note: same as map/2 above, except that the lambda does not know about the keys.
+Note: same as `map/2` above, except that the lambda does not know about the
+keys.
 """.
 -spec map_on_values( fun( ( value() ) -> value() ), map_hashtable() ) ->
 							map_hashtable().
@@ -902,7 +901,7 @@ The order of transformation for entries is not specified.
 
 Returns the final accumulator.
 
-fold/3 may be preferred (being more efficient) to this version.
+`fold/3` may be preferred (being more efficient) to this version.
 """.
 -spec fold_on_entries( fun( ( entry(), accumulator() ) -> accumulator() ),
 					   accumulator(), map_hashtable() ) -> accumulator().
@@ -955,7 +954,7 @@ add_to_entry( Key, Value, MapHashtable ) ->
 Subtracts the specified value to the value, supposed to be numerical, associated
 to the specified key.
 
-An exception is thrown if the key does not exist, a bad arithm is triggered if
+An exception is thrown if the key does not exist, a `bad arithm` is triggered if
 no subtraction can be performed on the associated value.
 """.
 -spec subtract_from_entry( key(), number(), map_hashtable() ) ->
@@ -1000,14 +999,14 @@ toggle_entry( Key, MapHashtable )->
 
 
 -doc """
-Returns a new map hashtable, which started from MapHashtableRef and was enriched
-with the entries from MapHashtableOnlyForAdditions whose keys were *not* already
-in MapHashtableRef (if a key is in both tables, the one from MapHashtableRef is
-the one kept).
+Returns a new map hashtable, which started from `MapHashtableRef` and was
+enriched with the entries from `MapHashtableOnlyForAdditions` whose keys were
+*not* already in `MapHashtableRef` (if a key is in both tables, the one from
+`MapHashtableRef` is the one kept).
 
 Said differently: if a key exists in both tables, the value in
-MapHashtableOnlyForAdditions will be dropped (will *not* supersede the value in
-MapHashtableRef, which is the "prioritary" one).
+`MapHashtableOnlyForAdditions` will be dropped (will *not* supersede the value
+in `MapHashtableRef`, which is the "prioritary" one).
 
 Note: not the standard merge that one would expect, should values be lists.
 """.
@@ -1090,7 +1089,7 @@ the specified key, which must already exist in that table.
 An exception is thrown if the key does not exist.
 
 Note: no check is performed to ensure that the value is already a list indeed,
-and the  `[|]` operation will not complain if not.
+and the cons (`[|]`) operation will not complain if not.
 """.
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
 									map_hashtable().
@@ -1202,7 +1201,7 @@ specified list (as if beforehand the key was associated to an empty list)
 
 For example:
 ```
-concat_list_to_entries( [{hello, [1, 2]}, {world, [4]}], MyTable ).
+concat_list_to_entries( [{hello, [1, 2]}, {world, [4]}], MyTable )
 ```
 """.
 -spec concat_list_to_entries( list_table:list_table(), map_hashtable() ) ->
@@ -1279,7 +1278,7 @@ pop_from_entry( Key, MapHashtable ) ->
 Returns a flat list whose elements are all the key/value pairs of the hashtable,
 in no particular order.
 
-For example [{K1,V1}, {K2,V2}, ...].
+For example `[{K1,V1}, {K2,V2}, ...]`.
 """.
 -spec enumerate( map_hashtable() ) -> entries().
 enumerate( MapHashtable ) ->
@@ -1289,7 +1288,7 @@ enumerate( MapHashtable ) ->
 
 -doc """
 Returns a list of key/value pairs corresponding to the list of specified keys,
-or throws a badmatch is at least one key is not found.
+or throws a `badmatch` exception if at least one key is not found.
 """.
 -spec select_entries( [ key() ], map_hashtable() ) -> entries().
 select_entries( Keys, MapHashtable ) ->
@@ -1357,8 +1356,8 @@ size( MapHashtable ) ->
 -doc """
 Returns a textual description of the specified map hashtable.
 
-See also text_utils:table_to_string/2 for a synthetic description of a table and
-its entries.
+See also `text_utils:table_to_string/2` for a synthetic description of a table
+and its entries.
 """.
 -spec to_string( map_hashtable() ) -> ustring().
 to_string( MapHashtable ) ->
@@ -1371,11 +1370,11 @@ to_string( MapHashtable ) ->
 Returns a textual description of the specified hashtable.
 
 Either a bullet is specified, or the returned string is ellipsed if needed (if
-using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or even
-completly raw ('internal').
+using `user_friendly`), or quite raw and non-ellipsed (if using `full`), or even
+completly raw (`internal`).
 
-See also text_utils:table_to_string/2 for a synthetic description of a table and
-its entries.
+See also `text_utils:table_to_string/2` for a synthetic description of a table
+and its entries.
 """.
 -spec to_string( map_hashtable(), hashtable:description_type() ) -> ustring().
 to_string( MapHashtable, DescriptionType ) ->
