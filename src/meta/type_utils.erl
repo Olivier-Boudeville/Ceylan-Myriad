@@ -950,7 +950,9 @@ Transient terms are the opposite of permanent ones.
 
 
 % Specials for datatypes:
--export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2,
+-export([ get_record_tag/1,
+          get_last_tuple_element/1, set_last_tuple_element/2,
+          augment_tuploid/2,
 		  array_to_string/1 ]).
 
 
@@ -2556,8 +2558,13 @@ add_to_counter( ToAdd, CounterIndex, Counters ) ->
 -doc "Returns the last element of the specified tuple.".
 -spec get_last_tuple_element( tuple() ) -> term().
 get_last_tuple_element( Tuple ) ->
-	element( size( Tuple ), Tuple ).
+	element( _PosIndex=size( Tuple ), Tuple ).
 
+
+-doc "Sets the last element of the specified tuple.".
+-spec set_last_tuple_element( tuple(), term() ) -> tuple().
+set_last_tuple_element( Tuple, NewElement ) ->
+	setelement( _PosIndex=size( Tuple ), Tuple, NewElement ).
 
 
 -doc """
