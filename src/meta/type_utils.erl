@@ -233,7 +233,7 @@ parse-transforms, etc.
 % it may be).
 %
 % One can note that the foo type can also be replaced by its actual definition
-% in order to fully resolve my_type (ie to go from form F2 to form F3)
+% in order to fully resolve my_type (i.e. to go from form F2 to form F3)
 %
 % We can see here that the boolean type is nothing but the 'true'|'false' union
 % and is not in an irreducible form (yet it is still considered as being fully
@@ -282,7 +282,7 @@ parse-transforms, etc.
 Describes the name of a type (without the names of the types it depends on, for
 polymorphic ones).
 
-For example 'my_count'.
+For example `my_count`.
 """.
 -type type_name() :: atom().
 
@@ -296,32 +296,32 @@ plain types).
 
 
 
--doc "Analoguous to function_id/0.".
+-doc "Analoguous to `function_id/0`.".
 -type type_id() :: { type_name(), type_arity() }.
 
 
 
 -doc """
 The "most precise" description of a in-memory primitive, in which:
-- simple types (e.g. 'boolean' and 'atom') coexist (despite overlapping)
-- 'number' and 'bitstring' are not used (as they derive respectively from
-float()|integer() and binary())
+- simple types (e.g. `boolean` and `atom`) coexist (despite overlapping)
+- `number` and `bitstring` are not used (as they derive respectively from
+`float()|integer()` and `binary()`)
 
 A note about Erlang floats: they are actually IEEE 754 double-precision
 floating-point numbers, a format that occupies 8 bytes (64 bits) per float in
 memory.
 
-More precisely, as one can see in erts/emulator/beam/erl_term.h, a float_def is
-an union able to contain a ieee754_8 datatype, aliased to the 'double' C
+More precisely, as one can see in `erts/emulator/beam/erl_term.h`, a float_def
+is an union able to contain a ieee754_8 datatype, aliased to the `double` C
 datatype.
 
 Polymorphic types (e.g. lists) are described with no mention of the types they
-may depend on (e.g. 'list' can be specified, not 'list(float())' or anything
+may depend on (e.g. `list` can be specified, not `list(float())` or anything
 like that).
 
-The description of any given type is based on primitive_type_description/0) and
-can be done in two complementary forms: the textual one, and the internal one,
-which are relatively different.
+The description of any given type is based on `primitive_type_description/0`)
+and can be done in two complementary forms: the textual one, and the internal
+one, which are relatively different.
 """.
 -type primitive_type_description() :: 'atom'
 									| 'binary'
@@ -341,11 +341,11 @@ which are relatively different.
 -doc """
 The "most precise" description of a value.
 
-Choices overlap intentionally (e.g. 'integer' and 'pos_integer'), to express
+Choices overlap intentionally (e.g. `integer` and `pos_integer`), to express
 finer types; as a result, the main purpose of this type is to tell whether a
-given value matches one of these types (see is_value_matching/2).
+given value matches one of these types (see `is_value_matching/2`).
 
-See also get_ast_simple_builtin_types/0.
+See also `get_ast_simple_builtin_types/0`.
 """.
 -type value_description() :: 'atom'
 						   | 'binary'
@@ -387,10 +387,10 @@ See also get_ast_simple_builtin_types/0.
 Textual type description: type-as-a-string, inspired from the syntax used for
 type specifications ([http://erlang.org/doc/reference_manual/typespec.html]),
 yet different. Notably, monomorphic types do not end with empty parentheses
-(e.g. "integer", not "integer()") and atoms are always surrounded by simple
-quotes (e.g. "'an_atom'|'another_one'").
+(e.g. `"integer"`, not `"integer()"`) and atoms are always surrounded by simple
+quotes (e.g. `"'an_atom'|'another_one'"`).
 
-For example: "[{float, boolean}]".
+For example: `"[{float, boolean}]"`.
 """.
 -type type_description() :: ustring().
 
@@ -399,9 +399,9 @@ For example: "[{float, boolean}]".
 -doc """
 Description of a nesting depth reached when parsing a type description.
 
-It is in pratice a {P,B} pair, where P is the parenthesis depth (that is the
-number of the parentheses that have been opened and not closed yet) and B is the
-bracket depth (ie the same principle, for "[]" instead of for "()").
+It is in pratice a `{P,B}` pair, where `P` is the parenthesis depth (that is the
+number of the parentheses that have been opened and not closed yet) and `B` is
+the bracket depth (i.e. the same principle, for `"[]"` instead of for `"()"`).
 """.
 -type nesting_depth() :: { count(), count() }.
 
@@ -411,7 +411,7 @@ bracket depth (ie the same principle, for "[]" instead of for "()").
 Internal, "formal", actual programmatic description of a type according to our
 conventions: type-as-a-term (either contextual or explicit, F2 or F3), relying
 on a translated version of the textual type (which is for example:
-"[{float,boolean}]").
+`"[{float,boolean}]"`).
 
 This "internal type language of the Myriad layer" is largely inspired from the
 forms that can be found in actual ASTs.
@@ -429,29 +429,29 @@ opposed to in the textual counterpart), parentheses cannot be used to express
 these polymorphic types (not only they denote function calls, but also are not
 legit components of a term); therefore the convention chosen here is to specify
 types as pairs, the first element being the name of the type, the second one
-being the (ordered) list of the types it depends on; then the textual type "a(
-T1, T2 )" is translated to the {a,[T1,T2]} type term; most types being
-"monomorphic", they are represented as {my_simple_type,[]} (which cannot be
-abbreviated by only the 'my_simple_type' atom, as it would lead to ambiguous
+being the (ordered) list of the types it depends on; then the textual type `"a(
+T1, T2 )"` is translated to the `{a,[T1,T2]}` type term; most types being
+"monomorphic", they are represented as `{my_simple_type,[]}` (which cannot be
+abbreviated by only the `my_simple_type` atom, as it would lead to ambiguous
 forms)
 
-So, as an example, the type-as-a-term corresponding to "[{float,boolean}]" is:
+So, as an example, the type-as-a-term corresponding to `"[{float,boolean}]"` is:
 `{list, [{tuple, [{float,[]}, {boolean,[]} ]}]}`;
 
 Note that an alternate type language (sticking more closely to its textual
-counterpart) could have been a more direct [{float,boolean}] term (hence getting
+counterpart) could have been a more direct `[{float,boolean}]` term (hence getting
 rid of the parentheses and the pair with an empty list in second position);
 reason for not doing so: then no possible support of the polymorphic types that
 happen to be often needed.
 
 The origin of this term-as-a-type notation is clearly the standard (Erlang) type
-specifications; for example 'meta_utils:string_to_form("-type a() ::
-[{float(),boolean()}].").' returns following AST form:
+specifications; for example `meta_utils:string_to_form("-type a() ::
+[{float(),boolean()}].").` returns following AST form:
 ```
 {attribute,1,type, {a,{type,1,list, [{type,1,tuple,[{type,1,float,[]},
  {type,1,boolean,[]}]}]}
 ```
-As a result, the counterpart to the aforementioned "[{float(), boolean()}]"
+As a result, the counterpart to the aforementioned `"[{float(), boolean()}]"`
 type string is translated in ASTs as:
 ```
 {type, 1, list, [{type, 1, tuple, [{type, 1, float, []}, {type, 1, boolean,
@@ -460,11 +460,11 @@ type string is translated in ASTs as:
 
 Then one can remove:
 
-- the 'type' (and 'user_type') atoms (not making then a specific distinction
+- the `type` (and `user_type`) atoms (not making then a specific distinction
 between the origin of a type); a list of built-in types - names and arities -
 is maintained, other types being then user ones
 
-- the line numbers (the '1's here), not useful in that context, hence stripped
+- the line numbers (the `1`s here), not useful in that context, hence stripped
 
 Then we obtain our aforementioned term-as-a-type:
 `{list, [{tuple, [{float,[]}, {boolean,[]}]}]}`.
@@ -479,19 +479,19 @@ boolean, integer, float, atoms - and constructs - like list, map, tuple, union)
 - support it, notably define functions to tell whether a given term is an
 instance of a specified type
 
-Experiment with ast_utils:string_to_form/1 and have fun!
+Experiment with `ast_utils:string_to_form/1` and have fun!
 
 For example `"-type a() :: [foobar()]."` yields:
 ```
 {attribute, 1, type, {a,{type,1, list,
   [{user_type, 1, foobar, []}]}, []}}
 ```
-See also <http://erlang.org/doc/apps/erts/absform.html>.
+See also [http://erlang.org/doc/apps/erts/absform.html].
 
-Finally, a direct string representation can be converted into a type(); maybe
-writing a parser may not mandatory, as "{float(), atom()}" may be a string
+Finally, a direct string representation can be converted into a `type()`; maybe
+writing a parser may not mandatory, as `"{float(), atom()}"` may be a string
 expression evaluated with functions that we can bind to obtain a closer term,
-such as: float() -> {float, []}.
+such as: `float() -> {float, []}`.
 
 Of course, on a related note, if `TextualType = "{list, [{tuple, [float,
 boolean]}]}"`, then `ast_utils:string_to_value(TextualType)` will return the
@@ -499,7 +499,7 @@ expected: `{list, [{tuple, [{float, []}, {boolean, []}]}]}`.
 
 Note that such a type may not be fully explicit, as it may contain unresolved
 references to other types; for example: `{list, [{count, []}]}` does not specify
-what the count() type is.
+what the `count()` type is.
 """.
 -type type() :: term().
 
@@ -519,8 +519,8 @@ To tell that a returned value is not of interest to the caller.
 
 Could have been: `-type void() :: 'myriad_void'` for example.
 
-Nevertheless, should, for any reason, a value of the void/0 type have to be
-specified, the 'void' atom shall be preferred, knowing that any value can be
+Nevertheless, should, for any reason, a value of the `void/0` type have to be
+specified, the `void` atom shall be preferred, knowing that any value can be
 returned and complies with this type.
 """.
 -type void() :: any() | 'void'.
@@ -539,7 +539,7 @@ Following prefixes are defined:
 - u for unsigned
 - s for signed
 
-Datatypes are 'int' (for integer) and 'float' (for standard IEEE signed,
+Datatypes are `int` (for integer) and `float` (for standard IEEE signed,
 floating-point values).
 """.
 -type low_level_type() :: 'uint8'  | 'sint8'
@@ -554,11 +554,11 @@ floating-point values).
 Denotes an optional value, that is a value that may be set to one in T, or that
 may not be set at all.
 
-Note that the type T should not include the 'undefined' atom, otherwise one
-cannot discriminate between a value that happens to be set to 'undefined' versus
+Note that the type T should not include the `undefined` atom, otherwise one
+cannot discriminate between a value that happens to be set to `undefined` versus
 a value not defined at all.
 
-Quite often, variables (e.g. record fields) are set to 'undefined' before being
+Quite often, variables (e.g. record fields) are set to `undefined` before being
 set later.
 """.
 -type option( T ) :: T | 'undefined'.
@@ -566,10 +566,10 @@ set later.
 
 -doc """
 Denotes a value that may be set to one of type T (with no restriction on T -
-unlike option/1 where T should not include the 'undefined' value), or that may
+unlike `option/1` where T should not include the `undefined` value), or that may
 not be set at all.
 
-A bit safer and more expensive than option/1.
+A bit safer and more expensive than `option/1`.
 
 Obviously a nod to Haskell.
 """.
@@ -667,14 +667,14 @@ included).
 -doc """
 A single-precision, IEEE 754 32-bit base-2 floating-point value.
 
-Exact for all integers with up to 7 decimal digits, and for any 2^N for an
-integer number N in [-149,127].
+Exact for all integers with up to 7 decimal digits, and for any `2^N` for an
+integer number N in `[-149,127]`.
 
-See <https://en.wikipedia.org/wiki/Single-precision_floating-point_format> for
+See [https://en.wikipedia.org/wiki/Single-precision_floating-point_format] for
 more information.
 
 Note that in Erlang this datatype does not exist as such, only floars are
-float64() ones.
+`float64()` ones.
 """.
 -type float32() :: float().
 
@@ -707,9 +707,10 @@ Designates a record instance, to discriminate from a mere tuple.
 
 
 -doc """
-The first (atom) element of the tuple corresponding to a record instance.  For
-example #my_point{ x=1, y=2 } is actually {my_point, 1, 2} and thus my_point is
-the corresponding record tag.
+The first (atom) element of the tuple corresponding to a record instance.
+
+For example `#my_point{x=1, y=2}` is actually `{my_point, 1, 2}` and thus
+`my_point` is the corresponding record tag.
 """.
 -type record_tag() :: atom().
 
@@ -723,7 +724,7 @@ We name tuploid a pseudo-tuple, that is a value that is either an actual tuple
 or a single, standalone term, designated as a "basic tuploid".
 
 That is, a tuploid is a tuple of any size, except that the tuploid of size 1 is
-MyTerm, not {MyTerm}.
+`MyTerm`, not `{MyTerm}`.
 """.
 -type tuploid() :: tuploid( term() ).
 
@@ -762,7 +763,9 @@ elements are all of the type T.
 %-type map() :: map( any(), any() ).
 
 
--doc "As (maps:)map/2 does not even exist apparently, at least not since 18.0.".
+-doc """
+As `(maps:)map/2 `does not even exist apparently, at least not since 18.0.
+""".
 -type map( _K, _V ) :: map().
 
 
@@ -947,7 +950,9 @@ Transient terms are the opposite of permanent ones.
 
 
 % Specials for datatypes:
--export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2,
+-export([ get_record_tag/1,
+          get_last_tuple_element/1, set_last_tuple_element/2,
+          augment_tuploid/2,
 		  array_to_string/1 ]).
 
 
@@ -1048,7 +1053,7 @@ Returns the type description (in canonical form, notably without whitespaces)
 corresponding to specified type.
 
 Note: currently does not return a really relevant type description; basically
-meant to be the function reciprocal to scan_type/1.
+meant to be the function reciprocal to `scan_type/1`.
 """.
 -spec type_to_description( type() ) -> type_description().
 % First, simple types, in alphabetical order:
@@ -1121,17 +1126,17 @@ type_to_string( Type ) ->
 Returns an atom describing, as precisely as possible, the overall type of the
 specified primitive term.
 
-Note: limited to primitive types, not compounded ones (like [float()]).
+Note: limited to primitive types, not compounded ones (like `[float()]`).
 
-is_number/1, is_record/1, etc. not usable here.
+`is_number/1`, `is_record/1`, etc. not usable here.
 
 Note: often we do not want to retrieve the actual type of a term but need
 instead to determine whether the term can be considered as an instance of a
 specific type (this is not strictly the same need, as a given term in general
-may be seen of being of multiple types); for that see is_value_matching/2.
+may be seen of being of multiple types); for that see `is_value_matching/2`.
 
 The lowest-level/most precise typing can be obtained with the (undocumented)
-erts_internal:term_type/1 function.
+`erts_internal:term_type/1` function.
 """.
 -spec get_type_of( term() ) -> primitive_type_description().
 get_type_of( Term ) when is_boolean( Term ) ->
@@ -1356,11 +1361,12 @@ get_immediate_types() ->
 
 -doc """
 Returns a list of the possible types for immediate values (typically found in an
-AST like, like 'undefined' in: {atom,42,undefined}).
+AST like, like `undefined` in: `{atom,42,undefined}`).
 
-From <http://erlang.org/doc/apps/erts/absform.html>:
+From [http://erlang.org/doc/apps/erts/absform.html]:
 
-"There are five kinds of atomic literals, which are represented in the same
+```
+There are five kinds of atomic literals, which are represented in the same
 way in patterns, expressions, and guards:
 
 - If L is an atom literal, then Rep(L) = {atom,LINE,L}.
@@ -1373,6 +1379,7 @@ way in patterns, expressions, and guards:
 
 - If L is a string literal consisting of the characters C_1, ..., C_k, then
 Rep(L) = {string,LINE,[C_1, ..., C_k]}."
+```
 
 Actually additional types can be found in ASTs.
 """.
@@ -1413,7 +1420,7 @@ get_simple_builtin_types() ->
 
 
 -doc """
-Tells whether specified term designates a type (ie a type() instance).
+Tells whether the specified term designates a type (i.e. a `type()` instance).
 
 (only the elementary types are currently recognised)
 """.
@@ -1431,7 +1438,7 @@ is_type( _T ) ->
 
 
 -doc """
-Tells whether specified term is of specified type (predicate).
+Tells whether the specified term is of the specified type (predicate).
 
 Note: currently only a very partial checking is made, based on top-level
 primitive types; later the type will be recursed into, in order to check whether
@@ -1534,8 +1541,8 @@ is_homogeneous_helper( Elems, Type ) ->
 
 
 -doc """
-Tells whether the two specified types are the same (ie designate the same actual
-type, are aliases).
+Tells whether the two specified types are the same (i.e. designate the same
+actual type / are aliases).
 """.
 -spec are_types_identical( type(), type() ) -> boolean().
 are_types_identical( Type, Type ) ->
@@ -1778,7 +1785,7 @@ Ensures that the specified term is a float, and returns it.
 
 If it is an integer, will return a floating-point version of it.
 
-Yet float/1 mostly suffices (as it can can operate on floats).
+Yet `float/1` mostly suffices (as it can can operate on floats).
 """.
 -spec ensure_float( number() ) -> float().
 ensure_float( N ) when is_float( N ) ->
@@ -1841,7 +1848,7 @@ Such a deduplication may happen typically on homogeneous tuples (e.g. vectors),
 when received as messages for example, or when read from any external source
 (e.g. from file).
 
-Directly inspired from wings_utils:share/*.
+Directly inspired from `wings_utils:share/*`.
 """.
 -spec share( term() ) -> term().
 % Pair:
@@ -1923,7 +1930,7 @@ of the subterms (e.g. an Erlang float, i.e. a double), when some subterms may be
 equal (by value), yet are duplicated (not defined once and pointed to multiple
 times).
 
-Directly inspired from wings_utils:share/*.
+Directly inspired from `wings_utils:share/*`.
 """.
 -spec share( term(), term() ) -> pair().
 share( X, X ) ->
@@ -1943,7 +1950,7 @@ of the subterms (e.g. an Erlang float, i.e. a double), when some subterms may be
 equal (by value), yet are duplicated (not defined once and pointed to multiple
 times).
 
-Directly inspired from wings_utils:share/*.
+Directly inspired from `wings_utils:share/*`.
 """.
 -spec share( term(), term(), term() ) -> triplet().
 share( X, X, X ) ->
@@ -2130,7 +2137,7 @@ check_pid( Other ) ->
 
 
 -doc """
-Checks that the specified term is a PID indeed or the 'undefined' atom, and
+Checks that the specified term is a PID indeed or the `undefined` atom, and
 returns it.
 """.
 -spec check_maybe_pid( term() ) -> option( pid() ).
@@ -2290,7 +2297,7 @@ check_strictly_positive_integer( Other ) ->
 
 
 -doc """
-Checks that the specified term is a positive or null integer or the 'undefined'
+Checks that the specified term is a positive or null integer or the `undefined`
 atom, and returns it.
 """.
 -spec check_maybe_positive_integer( term() ) -> option( pos_integer() ).
@@ -2397,8 +2404,7 @@ it.
 check_maybe_positive_float( undefined ) ->
 	undefined;
 
-check_maybe_positive_float( Float )
-			when is_float( Float ), Float >= 0.0 ->
+check_maybe_positive_float( Float ) when is_float( Float ), Float >= 0.0 ->
 	Float;
 
 check_maybe_positive_float( Other ) ->
@@ -2425,7 +2431,7 @@ it.
 """.
 -spec check_strictly_positive_float( term() ) -> float().
 check_strictly_positive_float( Float )
-			when is_float( Float ) andalso Float > 0.0 ->
+                                when is_float( Float ) andalso Float > 0.0 ->
 	Float;
 
 check_strictly_positive_float( Other ) ->
@@ -2442,7 +2448,7 @@ check_maybe_strictly_positive_float( undefined ) ->
 	undefined;
 
 check_maybe_strictly_positive_float( Float )
-			when is_float( Float ), Float > 0.0 ->
+                                when is_float( Float ), Float > 0.0 ->
 	Float;
 
 check_maybe_strictly_positive_float( Other ) ->
@@ -2552,8 +2558,13 @@ add_to_counter( ToAdd, CounterIndex, Counters ) ->
 -doc "Returns the last element of the specified tuple.".
 -spec get_last_tuple_element( tuple() ) -> term().
 get_last_tuple_element( Tuple ) ->
-	element( size( Tuple ), Tuple ).
+	element( _PosIndex=size( Tuple ), Tuple ).
 
+
+-doc "Sets the last element of the specified tuple.".
+-spec set_last_tuple_element( tuple(), term() ) -> tuple().
+set_last_tuple_element( Tuple, NewElement ) ->
+	setelement( _PosIndex=size( Tuple ), Tuple, NewElement ).
 
 
 -doc """
@@ -2567,7 +2578,7 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}
 ```
 
 Useful typically to augment returned error tuploids (either a single error term
-such as 'invalid_name', or a tuple like '{invalid_name,"Arnold"}') with
+such as `invalid_name`, or a tuple like `{invalid_name,"Arnold"}`) with
 caller-local information, to obtain in all cases a tuploid (a tuple here) with
 this extra information.
 """.

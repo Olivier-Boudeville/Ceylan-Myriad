@@ -1326,7 +1326,7 @@ strings_to_string( Strings=[ SingleString ] )
 
 strings_to_string( Strings ) when is_list( Strings ) ->
 
-	trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
+	%trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts~n", [ strings_to_string_helper( Strings,
