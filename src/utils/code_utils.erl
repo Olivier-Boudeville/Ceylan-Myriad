@@ -31,7 +31,7 @@
 Gathering of various facilities regarding the management of **Erlang code**
 (typically BEAM files).
 
-See code_utils_test.erl for the corresponding test.
+See `code_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -180,8 +180,8 @@ Defined as #{pos_integer() => unicode:chardata()} by the erl_erts_errors module.
 
 -doc """
 Returns, by searching the code path, the in-file object code for specified
-module, ie a {ModuleBinary, ModuleFilename} pair for the module specified as an
-atom, or throws an exception.
+module, ie a `{ModuleBinary, ModuleFilename}` pair for the module specified as
+an atom, or throws an exception.
 """.
 -spec get_code_for( module_name() ) -> { binary(), file_path() }.
 get_code_for( ModuleName ) ->
@@ -216,7 +216,7 @@ get_code_for( ModuleName ) ->
 -doc """
 Returns the MD5 for the specified loaded (in-memory, used by the VM) module.
 
-Otherwise returns a undefined function exception (ModuleName:module_info/1).
+Otherwise returns a undefined function exception (`ModuleName:module_info/1`).
 """.
 -spec get_md5_for_loaded_module( module_name() ) -> md5_sum().
 get_md5_for_loaded_module( ModuleName ) ->
