@@ -52,7 +52,7 @@
   (kill-emacs))
 
 
-;; Save previous minibuffer prompts:
+;; Never save previous minibuffer prompts:
 ;;(setq history-length 25)
 ;;(savehist-mode 1)
 (savehist-mode nil)
