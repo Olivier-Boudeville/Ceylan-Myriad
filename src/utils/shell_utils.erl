@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2025 Olivier Boudeville
+% Copyright (C) 2020-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -28,7 +28,7 @@
 -module(shell_utils).
 
 -moduledoc """
-Provides our own version of an Erlang shell process, typically in order to
+Provides our own version of an **Erlang shell** process, typically in order to
 integrate it in a REPL-like interpreter.
 
 This shell supports (possibly timestamped) logging, (possibly bounded) command
@@ -37,8 +37,8 @@ can be overridden/enriched based on callback modules.
 
 It can be of course local to the current node, or remote.
 
-See shell_utils_test.erl for its testing, and gui_shell_test.erl for an
-example of use thereof.
+See `shell_utils_test` for its testing, and `gui_shell_test` for an example of
+use thereof.
 """.
 
 
@@ -116,7 +116,7 @@ atom.
 -doc """
 A command to submit to a shell, corresponding to a sequence of expressions.
 
-For example: <<"A=1, B=2, A+B.">>.
+For example: `<<"A=1, B=2, A+B.">>`.
 """.
 -type command() :: entry().
 
@@ -125,7 +125,7 @@ For example: <<"A=1, B=2, A+B.">>.
 A command to submit to a shell, corresponding to a sequence of
 expressions, as a string.
 
-For example: "A=1, B=2, A+B.".
+For example: `"A=1, B=2, A+B."`.
 """.
 -type command_str() :: entry_str().
 
@@ -144,7 +144,7 @@ identifier thereof.
 -doc """
 The result of a command, as evaluated by a shell.
 
-More precise than text_edit:process_result/0.
+More precise than `text_edit:process_result/0`.
 """.
 -type command_result() :: variable_value().
 
@@ -156,7 +156,7 @@ More precise than text_edit:process_result/0.
 -doc """
 The information returned once a command is processed.
 
-A specialisation of text_edit:process_outcome/0.
+A specialisation of `text_edit:process_outcome/0`.
 """.
 -type command_outcome() ::
 
@@ -181,7 +181,7 @@ A result history of a shell, that is a list of the results of previously
 submitted commands (here in antichronological order).
 
 Note that this may allow huge terms to be kept around longer than expected (see
-the flushResultHistory request message to avoid that).
+the `flushResultHistory` request message to avoid that).
 """.
 -type result_history() :: queue( command_result() ).
 
@@ -204,24 +204,25 @@ interest.
 -doc """
 Options that can be specified when creating a shell:
 
-- 'timestamp': keep track also of the timestamp of the start of a command
+- `timestamp`: keep track also of the timestamp of the start of a command
 
-- 'log': logs the commands and their results, in a file whose default name is
+- `log`: logs the commands and their results, in a file whose default name is
   `myriad-shell-for-CREATOR_PID-on-CREATION_TIMESTAMP.log`, where CREATOR_PID
   corresponds to the PID of the shell creator, and CREATION_TIMESTAMP is the
   timestamp of the creation of that shell, like in
   `myriad-shell-for-0.93.0-on-2024-11-17-at-14h-31m-19s.log` (then written in
   the current directory)
 
-- {'log', LogPath :: any_file_path()}: logs the commands and their results in a
-  file whose path is specified
+- `{'log', LogPath :: any_file_path()}`: logs the commands and their results in
+  a file whose path is specified
 
-- {'histories', MaxCmdDepth :: option(count()), MaxResDepth :: option(count())}:
- records a command and result histories of the specified maximum depths,
- 'undefined' meaning unlimited depth (beware to memory footprint)
+- `{'histories', MaxCmdDepth :: option(count()), MaxResDepth ::
+ option(count())}`: records a command and result histories of the specified
+ maximum depths, 'undefined' meaning unlimited depth (beware to memory
+ footprint)
 
 - no_histories: does not record any command or result history (synonym of
-  {histories,0,0})
+  `{histories,0,0}`)
 
 - persistent_command_history: the command history is stored in the filesystem
   for convenience, so that it can be reloaded when launching new shell instances
@@ -233,10 +234,10 @@ Options that can be specified when creating a shell:
   both its reading and its writing)
 
 - callback_module: to specify the name of any implementation for the shell
-  callback module (see 'shell_default_callbacks' for the default one)
+  callback module (see `shell_default_callbacks` for the default one)
 
 - reference_module: to specify the name of any implementation for the shell
-  reference module (e.g. 'gui_shell'), when information (e.g. help text) may
+  reference module (e.g. `gui_shell`), when information (e.g. help text) may
   have to be obtained from it
 """.
 -type shell_option() ::
@@ -252,7 +253,7 @@ Options that can be specified when creating a shell:
 
 
 -doc """
-The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
+The PID of a group leader process for user IO (see `lib/kernel/src/group.erl`).
 """.
 -type group_pid() :: pid().
 
@@ -532,7 +533,7 @@ returns its PID.
 
 If logs are enabled, any corresponding file will be deleted first.
 
-See start_shell/0 for defaults.
+See `start_shell/0` for defaults.
 """.
 -spec start_shell( maybe_list( shell_option() ) ) -> shell_pid().
 start_shell( Opts ) ->
@@ -560,7 +561,7 @@ start_shell( Opts ) ->
 -doc """
 Starts a linked Myriad shell process with default options, and returns its PID.
 
-See start_shell/0 for defaults.
+See `start_shell/0` for defaults.
 """.
 -spec start_link_shell() -> shell_pid().
 start_link_shell() ->
@@ -572,7 +573,7 @@ start_link_shell() ->
 Starts a linked Myriad shell process with the specified options, and returns its
 PID.
 
-See start_shell/0 for defaults.
+See `start_shell/0` for defaults.
 """.
 -spec start_link_shell( maybe_list( shell_option() ) ) -> shell_pid().
 start_link_shell( Opts ) ->
@@ -924,12 +925,13 @@ check_history_depth( InvMaxDepth ) ->
 	throw( { invalid_history_depth, InvMaxDepth } ).
 
 
+
 -doc """
 Executes the specified command on the specified shell, and returns its result.
 
 Throws an exception on error.
 
-Defined for convenience, see shell_utils_test for example.
+Defined for convenience, see `shell_utils_test` for example.
 """.
 -spec execute_command( any_string(), shell_pid() ) -> command_outcome().
 execute_command( CmdAnyStr, ShellPid ) ->
@@ -1606,7 +1608,7 @@ command_history_to_string_with_ids( #shell_state{
 
 -doc """
 Returns a textual description of the result history from the specified shell
-state, with result identifiers specified (useful to featch past results).
+state, with result identifiers specified (useful to fetch past results).
 """.
 -spec result_history_to_string_with_ids( shell_state() ) -> ustring().
 result_history_to_string_with_ids( #shell_state{ submission_count=SubCount,
