@@ -439,10 +439,10 @@ So, as an example, the type-as-a-term corresponding to `"[{float,boolean}]"` is:
 `{list, [{tuple, [{float,[]}, {boolean,[]} ]}]}`;
 
 Note that an alternate type language (sticking more closely to its textual
-counterpart) could have been a more direct `[{float,boolean}]` term (hence getting
-rid of the parentheses and the pair with an empty list in second position);
-reason for not doing so: then no possible support of the polymorphic types that
-happen to be often needed.
+counterpart) could have been a more direct `[{float,boolean}]` term (hence
+getting rid of the parentheses and the pair with an empty list in second
+position); reason for not doing so: then no possible support of the polymorphic
+types that happen to be often needed.
 
 The origin of this term-as-a-type notation is clearly the standard (Erlang) type
 specifications; for example `meta_utils:string_to_form("-type a() ::
