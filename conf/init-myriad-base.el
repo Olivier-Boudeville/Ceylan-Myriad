@@ -53,7 +53,7 @@
 
 
 ;; Save previous minibuffer prompts:
-(setq history-length 25)
+(setq history-length 50)
 (savehist-mode 1)
 
 ;; Remember and restore the last cursor location of opened files:

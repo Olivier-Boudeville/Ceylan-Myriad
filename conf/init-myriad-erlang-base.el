@@ -23,6 +23,7 @@
 ;;  - or directly in the system tree (in /usr/local/)
 
 
+(message "Entering init-myriad-erlang-base.el")
 
 ;; Auto-detect location, priority being the user account:
 (setq user-erlang-base-path '"~/Software/Erlang/Erlang-current-install")
@@ -37,7 +38,8 @@
 (if (file-directory-p user-erlang-base-path)
 	(progn (message "Using user-level Erlang install.")
 		   (setq erlang-root-dir user-erlang-base-path)
-		   (setq erlang-emacs-dir (concat erlang-root-dir "/emacs")))
+		   ;;(setq erlang-emacs-dir (concat erlang-root-dir "/emacs")))
+		   (setq erlang-emacs-dir (concat erlang-root-dir "/lib/erlang/emacs")))
     (if (file-directory-p system-erlang-base-path)
 		(progn (message "Using system-level Erlang install.")
 			   (setq erlang-root-dir system-erlang-base-path)
@@ -90,8 +92,10 @@
 ;; headers generally pasted from first):
 ;;
 ;;(setq erlang-electric-commands '(erlang-electric-comma
-;;								 erlang-electric-g))
+;;                                 erlang-electric-g))
 
 
 ;; So that it can be loaded with 'require':
 (provide 'init-myriad-erlang-base)
+
+(message "Leaving init-myriad-erlang-base.el")
