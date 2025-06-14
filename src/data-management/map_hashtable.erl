@@ -51,7 +51,8 @@ only them)
 All these types of tables are to provide the same API (signatures and
 contracts), yet one should note that this module is the one that tends to
 supersede all others, and that over time features have been added that may not
-have been back-ported to the other table types.
+have been back-ported to the other table types. The second most useful is
+list_table, to read user-specified settings.
 """.
 
 
@@ -928,7 +929,6 @@ the specified key.
 An exception is thrown if the key does not exist, a bad arithm is triggered if
 no addition can be performed on the associated value.
 """.
-
 -spec add_to_entry( key(), number(), map_hashtable() ) -> map_hashtable().
 % add_to_entry( Key, Value, MapHashtable=#{ Key => BaseValue } ) ->
 %   MapHashtable#{ Key => BaseValue + Value };
@@ -1311,7 +1311,6 @@ hashtable.
 For example useful if the key was used as an index to generate this table first
 (no information loss).
 """.
-
 -spec values( map_hashtable() ) -> [ value() ].
 values( MapHashtable ) ->
 	maps:values( MapHashtable ).
