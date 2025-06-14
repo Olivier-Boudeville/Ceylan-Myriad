@@ -31,7 +31,7 @@
 Gathering of various facilities regarding the management of **Erlang code**
 (typically BEAM files).
 
-See code_utils_test.erl for the corresponding test.
+See `code_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -67,8 +67,8 @@ See code_utils_test.erl for the corresponding test.
 
 -doc """
 The code path used by a language, i.e. a list of directories (as plain strings)
-to scan for runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH,
-Java classpath, etc.).
+to scan for runtime elements (Erlang `-pa`/`-pz`, Python `sys.path` with
+`PYTHONPATH`, Java classpath, etc.).
 """.
 -type code_path() :: [ directory_path() ].
 
@@ -106,10 +106,11 @@ For example `[{file,file_path()}, {line, meta_utils:line()}]`.
 
 
 -doc """
-Argument-level error information in a stacktrace, typicially associated to the
-`error_info` key in an error_info() term.
+Argument-level error information in a stacktrace, typically associated to the
+`error_info` key in an `error_info/0` term.
 
-Defined as #{pos_integer() => unicode:chardata()} by the erl_erts_errors module.
+Defined as `#{pos_integer() => unicode:chardata()}` by the `erl_erts_errors`
+module.
 """.
 -type error_map() :: map_hashtable:map_hashtable( count(), ustring() ).
 
@@ -180,8 +181,8 @@ Defined as #{pos_integer() => unicode:chardata()} by the erl_erts_errors module.
 
 -doc """
 Returns, by searching the code path, the in-file object code for specified
-module, ie a {ModuleBinary, ModuleFilename} pair for the module specified as an
-atom, or throws an exception.
+module, i.e. a `{ModuleBinary, ModuleFilename}` pair for the module specified as
+an atom, or throws an exception.
 """.
 -spec get_code_for( module_name() ) -> { binary(), file_path() }.
 get_code_for( ModuleName ) ->
@@ -216,7 +217,7 @@ get_code_for( ModuleName ) ->
 -doc """
 Returns the MD5 for the specified loaded (in-memory, used by the VM) module.
 
-Otherwise returns a undefined function exception (ModuleName:module_info/1).
+Otherwise returns a undefined function exception (`ModuleName:module_info/1`).
 """.
 -spec get_md5_for_loaded_module( module_name() ) -> md5_sum().
 get_md5_for_loaded_module( ModuleName ) ->
@@ -271,7 +272,7 @@ Deploys the specified list of modules on the specified list of nodes (specified
 as atoms): sends them these modules (as a binary), and loads them so that they
 are ready for future use, using a default time-out.
 
-If an exception is thrown with 'badfile' being reported as the error, this may
+If an exception is thrown with `badfile` being reported as the error, this may
 be caused by a version mistmatch between the Erlang environments in the source
 and at least one of the remote target hosts (e.g. ERTS 5.5.2 vs 5.8.2).
 """.
@@ -289,7 +290,7 @@ are ready for future use.
 Timeout is the time-out duration, either an integer number of milliseconds, or
 the 'infinity' atom.
 
-If an exception is thrown with 'badfile' being reported as the error, this may
+If an exception is thrown with `badfile` being reported as the error, this may
 be caused by a version mistmatch between the Erlang environments in the source
 and at least one of the remote target hosts (e.g. ERTS 5.5.2 vs 5.8.2).
 """.
@@ -423,7 +424,6 @@ first
 
 Throws an exception if the directory does not exist.
 """.
-
 -spec declare_beam_directory( any_directory_path(), code_path_position() ) ->
 									void().
 declare_beam_directory( Dir, first_position ) ->
@@ -503,11 +503,7 @@ declare_beam_directories( Dirs, last_position ) ->
 
 
 
--doc """
-Checks that the specified directories exists.
-
-(helper)
-""".
+-doc "Checks that the specified directories exists.".
 check_beam_dirs( _Dirs=[] ) ->
 	ok;
 
@@ -600,7 +596,7 @@ copied or simply symlinked from any directory, and will be usable (regarding the
 get_beam_dirs_for* functions) from there as such (i.e. with no specific extra
 prerequisite to take into account).
 
-For example get_beam_dirs_for( "CEYLAN_MYRIAD" ).
+For example `get_beam_dirs_for("CEYLAN_MYRIAD")`.
 """.
 -spec get_beam_dirs_for( env_variable_name() ) -> code_path().
 get_beam_dirs_for( VariableName ) ->
@@ -640,7 +636,7 @@ get_beam_dirs_for( VariableName ) ->
 
 -doc """
 Returns the (ordered) list of (absolute) runtime BEAM directories corresponding
-to this layer (ie the Ceylan-Myriad one).
+to this layer (i.e. the Ceylan-Myriad one).
 
 Allows to obtain the code path that shall be declared to the VM so that all the
 corresponding BEAMs become available.
@@ -648,7 +644,7 @@ corresponding BEAMs become available.
 The CEYLAN_MYRIAD environment variable must be defined and must point to the
 corresponding root directory.
 
-The layer top-level 'ebin' directory could be used for that now that OTP
+The layer top-level `ebin` directory could be used for that now that OTP
 conventions are used.
 
 Note: all code run from that function shall rely on plain Erlang, so that Myriad
@@ -681,12 +677,11 @@ Ceylan-Myriad can be fully usable from then on.
 
 Note:
 
-- the CEYLAN_MYRIAD environment variable must be defined and must point to the
+- the `CEYLAN_MYRIAD` environment variable must be defined and must point to the
 corresponding root directory
 
 - the determined directories are not specifically checked for existence, and are
 added at the end of the code path
-
 """.
 -spec declare_beam_dirs_for_myriad() -> void().
 declare_beam_dirs_for_myriad() ->
@@ -763,7 +758,7 @@ based on the BEAM files found.
 Note that the sorting is more convenient for inspection yet implies that, should
 a BEAM file be listed more than once (then being available in multiple paths),
 the actual version that would be selected by the VM cannot be determined. See
-is_beam_in_path/1 for that.
+`is_beam_in_path/1` for that.
 """.
 -spec list_beams_in_path() -> [ module_name() ].
 list_beams_in_path() ->
@@ -793,7 +788,7 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 Tells whether the specified module has its BEAM file in the current code path.
 
 Returns either a list of its absolute, canonicalised, unordered paths that
-include this BEAM file (if being available at least once), or 'not_found'.
+include this BEAM file (if being available at least once), or `not_found`.
 
 Note:
  - hence this function does not return a boolean
@@ -801,7 +796,7 @@ Note:
  result, its first element corresponds to the path of the BEAM file that would
  be loaded for the specified module
 
-See also interpret_undef_exception/3 for a direct feedback about the
+See also `interpret_undef_exception/3` for a direct feedback about the
 availability of a given MFA.
 """.
 -spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_path() ].
@@ -918,7 +913,6 @@ specified directory.
 
 Will compile the specified module in that directory (with no specific defines)
 iff the build system considers it should.
-
 """.
 -spec ensure_compiled( module_name(), directory_path() ) -> base_status().
 ensure_compiled( ModuleName, BaseDir ) ->
@@ -1076,20 +1070,19 @@ recompile( ModuleName, BaseDir, ForceRecompilation, Defines ) ->
 
 
 
-% Returns a list of arguments corresponding to any specified preprocessor
-% defines; if none is specified, the defaults will be applied (as opposed to
-% resetting to no option).
-%
-% Other compilation options may be supported in the future.
-%
-% Returning a list allows no argument to be returned, whereas an empty one ("")
-% would still be seen by make afterwards (e.g. "make: *** empty string invalid
-% as file name.  Stop.").
-%
-% Returning for example [ "ERLANG_COMPILER_EXTRA_OPTS='-Dfoo -Dbar=1'" ].
-%
-% (helper)
-%
+-doc """
+Returns a list of arguments corresponding to any specified preprocessor defines;
+if none is specified, the defaults will be applied (as opposed to resetting to
+no option).
+
+Other compilation options may be supported in the future.
+
+Returning a list allows no argument to be returned, whereas an empty one (`""`)
+would still be seen by make afterwards (e.g. `"make: *** empty string invalid as
+file name.  Stop."`).
+
+Returning for example `["ERLANG_COMPILER_EXTRA_OPTS='-Dfoo -Dbar=1'"]`.
+""".
 -spec make_options_for( [ define() ] ) -> [ ustring() ].
 make_options_for( _Defines=[] ) ->
 	% Let defaults apply, rather than discarding them with
@@ -1133,7 +1126,7 @@ get_erlang_root_path() ->
 -doc """
 Returns (without crashing the program) the current stack trace.
 
-A replacement for deprecated erlang:get_stacktrace/0.
+A replacement for the deprecated `erlang:get_stacktrace/0`.
 """.
 -spec get_stacktrace() -> stack_trace().
 get_stacktrace() ->
@@ -1143,7 +1136,7 @@ get_stacktrace() ->
 
 -doc """
 Returns (without crashing the program) the current stack trace, whose
-SkipLastElemCount first elements have been dropped (to output a cleaner, more
+`SkipLastElemCount` first elements have been dropped (to output a cleaner, more
 relevant stacktrace).
 """.
 -spec get_stacktrace( count() ) -> stack_trace().
@@ -1287,10 +1280,9 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 
 
 -doc """
-Returns a textual description of the location (if any) found from specified
+Returns a textual description of the location (if any) found from the specified
 error information.
 """.
-
 -spec get_location_from( stack_info(), boolean() ) -> ustring().
 get_location_from( StackInfo, FullPathsWanted )
 									when is_map( StackInfo ) ->
@@ -1406,7 +1398,7 @@ interpret_error( ErrorTerm, Stacktrace=[
 
 
 
--doc "Returns a textual description of specified stack information.".
+-doc "Returns a textual description of the specified stack information.".
 -spec stack_info_to_string( stack_info() ) -> ustring().
 stack_info_to_string( [ { file, Filename }, { line, Line } ] ) ->
 	text_utils:format( "in file ~ts, at line ~B", [ Filename, Line ] );
@@ -1463,7 +1455,7 @@ error_reason_to_string( Reason ) ->
 
 
 
--doc "Interprets an undef exception, typically after it has been raised.".
+-doc "Interprets an `undef` exception, typically after it has been raised.".
 -spec interpret_undef_exception( module_name(), function_name(), arity() ) ->
 										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
