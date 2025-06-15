@@ -87,8 +87,10 @@
       (lambda () (if (company-in-string-or-comment) nil 0.2)))
 
 (custom-set-faces
- ;; Purple / rather white:
- '(company-tooltip ((t (:background "#111144" :foreground "#eeeeee")))))
+ ;; Rather light grey to be readable / rather blue:
+ '(company-tooltip ((t (:background "#dddddd" :foreground "#050566")))))
+
+
 
 
 ;; Not working properly either ('No such file or directory, company-box'):
@@ -101,7 +103,8 @@
 (add-hook 'company-mode-hook 'company-box-mode)
 
 
-;; lsp-ui: for fancy sideline, popup documentation, VScode-like peek UI, etc.
+
+;; lsp-ui: for fancy sideline, popup documentation, VS Code-like peek UI, etc.
 ;;
 ;; With a dark theme, preferring a lightgrey background color for lsp-ui-doc
 ;; windows (and, for a light theme, a darkgrey background):
