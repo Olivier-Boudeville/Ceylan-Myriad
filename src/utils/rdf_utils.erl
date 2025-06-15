@@ -32,10 +32,10 @@ Gathering of various facilities in relation with **RDF**, namely *Resource
 Description Framework*.
 
 See also:
-- <https://en.wikipedia.org/wiki/Resource_Description_Framework>
-- <https://www.w3.org/TR/rdf11-primer/>
+- [https://en.wikipedia.org/wiki/Resource_Description_Framework]
+- [https://www.w3.org/TR/rdf11-primer/]
 
-See rdf_utils_test.erl for the corresponding test.
+See `rdf_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -53,11 +53,11 @@ See rdf_utils_test.erl for the corresponding test.
 
 
 -doc """
-International Resource Identifier, in charge of, well, identifying a resource.
+*International Resource Identifier*, in charge of, well, identifying a resource.
 
 This is a generalization of the URIs (Uniform Resource Identifier), allowing
 non-ASCII characters to be used; specified in RFC 3987 (see
-<http://www.ietf.org/rfc/rfc3987.txt>).
+[http://www.ietf.org/rfc/rfc3987.txt]).
 
 (note: type to be used internally, for efficiency)
 """.
@@ -80,10 +80,10 @@ Version of an IRI specified (typically by the user) as a plain (Unicode) string.
 -doc """
 Designates all basic values that are not IRIs, often in a textual version.
 
-Examples of literals include strings such as "La Joconde", dates such as "the
-4th of July, 1990" and numbers such as "3.14159".
+Examples of literals include strings such as `"La Joconde"`, dates such as `"the
+4th of July, 1990"` and numbers such as `"3.14159"`.
 
-See <https://www.w3.org/TR/2014/REC-rdf11-concepts-20140225/#section-Datatypes>.
+See [https://www.w3.org/TR/2014/REC-rdf11-concepts-20140225/#section-Datatypes].
 """.
 -type literal() :: any().
 

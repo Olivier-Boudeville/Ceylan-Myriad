@@ -33,8 +33,8 @@ Module in charge of **transforming AST elements**, typically by operating on a
 
 Note that the transform relies on a rather complex and complete traversal of the
 abstract syntax of the AST, inspired from the spec (in
-<http://erlang.org/doc/apps/erts/absform.html>) and also checked against the
-Erlang 'id' parse transformation (see lib/stdlib/examples/erl_id_trans.erl).
+[http://erlang.org/doc/apps/erts/absform.html]) and also checked against the
+Erlang `id` parse transformation (see `lib/stdlib/examples/erl_id_trans.erl`).
 """.
 
 
@@ -233,7 +233,7 @@ especially difficult.
 
 
 
--doc " User-supplied function to define how AST clauses shall be transformed.".
+-doc "User-supplied function to define how AST clauses shall be transformed.".
 -type clause_transform_function() ::
 		fun( ( ast_clause(), ast_transforms() ) ->
 					{ ast_clause(), ast_transforms() } ).
@@ -271,7 +271,7 @@ Table defining replacements of parts of an input AST.
 Note: a full ast_transforms record (not a mere transformation state) is used as
 input (and output) of these transformation functions so that they can trigger in
 turn recursive transformation calls (e.g. to
-ast_expression:transform_expressions/2) by themselves.
+`ast_expression:transform_expressions/2`) by themselves.
 """.
 -type ast_transform_table() ::
 		?table:?table( transform_trigger(), ast_transform_function() ).
@@ -289,7 +289,7 @@ inner mode of operation and possibly for the caller's sake as well).
 
 -doc """
 Designates a function able to properly format typically the output of expression
-transformation (e.g. when exiting an ast_expression:transform_expression/2
+transformation (e.g. when exiting an `ast_expression:transform_expression/2`
 clause).
 """.
 -type transform_formatter() :: fun( ( format_string(), format_values() ) ->
@@ -411,14 +411,14 @@ For example:
 			   end }]
 ```
 will return a description of the transformation of:
- - void() into type_utils:void(), as the same type name is implied there; it
+ - `void()` into `type_utils:void()`, as the same type name is implied there; it
  is just the addition (prefix) of a module, as a remote type
 
- - my_option(T) into option(T)
+ - `my_option(T)` into `option(T)`
 
- - other_void() into other_utils:other_void()
+ - `other_void()` into `other_utils:other_void()`
 
- - any type depending on three others by foo_utils:some_type/3
+ - any type depending on three others by `foo_utils:some_type/3`
 """.
 -spec get_local_type_transform_table(
 		[ { local_type_id_match(), type_replacement() } ] ) ->
@@ -478,12 +478,12 @@ For example:
 					end}]
 ```
 will return a description of the transformation of:
- - a_module:void() into type_utils:void(), as the same type name is implied
+ - `a_module:void()` into `type_utils:void()`, as the same type name is implied
  there; it is just the modification of the module used by a remote type
- - a_module:my_option(T) into option(T)
- - M:other_void() into M:other_utils()
+ - `a_module:my_option(T)` into `option(T)`
+ - `M:other_void()` into `M:other_utils()`
  - any type of any module depending on three other types by
- foo_utils:some_type/3
+ `foo_utils:some_type/3`
 """.
 -spec get_remote_type_transform_table(
 		[ { remote_type_id_match(), type_replacement() } ] ) ->
@@ -550,14 +550,14 @@ For example:
 ```
 will return a description of the transformation of:
 
- - halt/0 into basic_utils:halt/0, as the same function name is implied there;
- it is just the addition (prefix) of a module, as a remote call
+ - `halt/0` into `basic_utils:halt/0`, as the same function name is implied
+ there; it is just the addition (prefix) of a module, as a remote call
 
- - setAttributes/1 into some_utils:set_attr/1
+ - `setAttributes/1` into `some_utils:set_attr/1`
 
- - my_fun/0 into other_utils:my_fun/0
+ - `my_fun/0` into `other_utils:my_fun/0`
 
- - any call to a function of arity 3 by foo_utils:some_fun/3
+ - any call to a function of arity 3 by `foo_utils:some_fun/3`
 """.
 -spec get_local_call_transform_table(
 		[ { local_call_match(), call_replacement() } ] ) ->
@@ -620,12 +620,12 @@ For example:
 					end}]
 ```
 will return a description of the transformation of:
- - a_module:void() into type_utils:void(), as the same type name is implied
+ - `a_module:void()` into `type_utils:void()`, as the same type name is implied
  there; it is just the modification of the module used by a remote type
- - a_module:my_option(T) into option(T)
- - M:other_void() into M:other_utils()
+ - `a_module:my_option(T)` into `option(T)`
+ - `M:other_void()` into `M:other_utils()`
  - any type of any module depending on three other types by
- foo_utils:some_type/3
+ `foo_utils:some_type/3`
 """.
 -spec get_remote_call_transform_table(
 		[ { remote_call_match(), call_replacement() } ] ) ->
@@ -777,7 +777,7 @@ ast_transforms_to_string( #ast_transforms{
 
 
 
--doc "The default transform_formatter() to be used.".
+-doc "The default `transform_formatter()` to be used.".
 -spec default_formatter( format_string(), format_values() ) ->
 								option( ustring() ).
 default_formatter( _FormatString, _FormatValue ) ->
