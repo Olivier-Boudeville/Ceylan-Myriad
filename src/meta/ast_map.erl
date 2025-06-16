@@ -30,7 +30,7 @@
 -moduledoc """
 Module in charge of handling **maps defined or used within an AST**.
 
-See <http://erlang.org/doc/apps/erts/absform.html> for more information.
+See [http://erlang.org/doc/apps/erts/absform.html] for more information.
 """.
 
 
@@ -69,11 +69,9 @@ See <http://erlang.org/doc/apps/erts/absform.html> for more information.
 
 
 
--doc "AST map update form.".
+-doc "AST form corresponding to a map update.".
 -type ast_map_update_form() ::
 		ast_map_update_form( ast_element(), ast_element() ).
-% AST form corresponding to a map update.
-
 
 
 -doc "AST map update form.".
@@ -99,7 +97,7 @@ See <http://erlang.org/doc/apps/erts/absform.html> for more information.
 		  transform_map_association/3 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type file_loc() :: ast_base:file_loc().
 -type ast_element() :: ast_base:ast_element().
@@ -154,11 +152,11 @@ Transforms specified map association involved in a map operation.
 
 An association A is one of the following:
 
- - if A is an association K => V, then
-	  Rep(A) = {map_field_assoc, FILE_LOC, Rep(K), Rep(V)}.
+ - if A is an association `K => V`, then
+	  `Rep(A) = {map_field_assoc, FILE_LOC, Rep(K), Rep(V)}`.
 
- - if A is an association K := V, then
-	  Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}."
+ - if A is an association `K := V`, then
+	  `Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}`.
 """.
 -spec transform_map_association( ast_map_association(), ast_transforms(),
 		ast_transform:transform_fun() ) ->

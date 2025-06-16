@@ -91,8 +91,8 @@
 ;; erlang-electric-semicolon removed, as more a nuisance than a help (function
 ;; headers generally pasted from first):
 ;;
-;;(setq erlang-electric-commands '(erlang-electric-comma
-;;                                 erlang-electric-g))
+(setq erlang-electric-commands '(erlang-electric-comma
+                                 erlang-electric-gt))
 
 
 ;; So that it can be loaded with 'require':

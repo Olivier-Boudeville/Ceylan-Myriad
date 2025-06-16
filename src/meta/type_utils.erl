@@ -439,10 +439,10 @@ So, as an example, the type-as-a-term corresponding to `"[{float,boolean}]"` is:
 `{list, [{tuple, [{float,[]}, {boolean,[]} ]}]}`;
 
 Note that an alternate type language (sticking more closely to its textual
-counterpart) could have been a more direct `[{float,boolean}]` term (hence getting
-rid of the parentheses and the pair with an empty list in second position);
-reason for not doing so: then no possible support of the polymorphic types that
-happen to be often needed.
+counterpart) could have been a more direct `[{float,boolean}]` term (hence
+getting rid of the parentheses and the pair with an empty list in second
+position); reason for not doing so: then no possible support of the polymorphic
+types that happen to be often needed.
 
 The origin of this term-as-a-type notation is clearly the standard (Erlang) type
 specifications; for example `meta_utils:string_to_form("-type a() ::
@@ -1288,7 +1288,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 					text_utils:format( "list of ~B elements: ~ts",
 						[ length( Term ),
 						  text_utils:strings_to_enumerated_string( Elems,
-												CurrentNestingLevel ) ] )
+							CurrentNestingLevel ) ] )
 
 			end
 
@@ -1325,7 +1325,7 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-				when is_tuple( Term ) ->
+				                            when is_tuple( Term ) ->
 
 	Elems = [ interpret_type_helper( E, CurrentNestingLevel+1,
 									 MaxNestingLevel )
@@ -1339,11 +1339,11 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 												 CurrentNestingLevel ) ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_port( Term ) ->
+				                            when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_reference( Term ) ->
+				                            when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
@@ -1421,19 +1421,17 @@ get_simple_builtin_types() ->
 
 -doc """
 Tells whether the specified term designates a type (i.e. a `type()` instance).
-
-(only the elementary types are currently recognised)
 """.
 -spec is_type( term() ) -> boolean().
-%is_type( { Tag, SubTypes } ) when is_list( SubTypes ) ->
-%   lists:member( Tag, get_elementary_types() );
-%
-%is_type( _T ) ->
-%   false.
+% Certainly to be improved:
+is_type( TypeList ) when is_list( TypeList ) ->
+    lists:all( _Pred=fun is_type/1, TypeList );
 
-% To be implemented:
-is_type( _T ) ->
-	true.
+is_type( TypeTuple ) when is_tuple( TypeTuple ) ->
+    lists:all( _Pred=fun is_type/1, tuple_to_list( TypeTuple ) );
+
+is_type( ElemType ) ->
+    lists:member( ElemType, get_ast_simple_builtin_types() ).
 
 
 

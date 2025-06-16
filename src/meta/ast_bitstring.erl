@@ -30,7 +30,7 @@
 -moduledoc """
 Module in charge of handling **bitstrings defined or used within an AST**.
 
-See <http://erlang.org/doc/apps/erts/absform.html> for more information.
+See [http://erlang.org/doc/apps/erts/absform.html] for more information.
 """.
 
 
@@ -43,10 +43,10 @@ See <http://erlang.org/doc/apps/erts/absform.html> for more information.
 -doc """
 Bitstring Element Type Specifier.
 
-If TS is a type specifier A, where A is an atom, then Rep(TS) = A.
+If `TS` is a type specifier `A`, where `A` is an atom, then `Rep(TS) = A`.
 
 If TS is a type specifier A:Value, where A is an atom and Value is an integer,
-then Rep(TS) = {A,Value}.
+then `Rep(TS) = {A,Value}`.
 
 Actual type maybe be omitted.
 """.
@@ -58,8 +58,8 @@ Actual type maybe be omitted.
 -doc """
 Type Specifier List (TSL).
 
-"A type specifier list TSL for a bitstring element is a sequence of type
-specifiers TS_1 - ... - TS_k, and Rep(TSL) = [Rep(TS_1), ..., Rep(TS_k)]."
+`"A type specifier list TSL for a bitstring element is a sequence of type
+specifiers TS_1 - ... - TS_k, and Rep(TSL) = [Rep(TS_1), ..., Rep(TS_k)]."`
 """.
 -type type_specifier_list() :: [ type_specifier() ].
 
@@ -77,7 +77,7 @@ specifiers TS_1 - ... - TS_k, and Rep(TSL) = [Rep(TS_1), ..., Rep(TS_k)]."
 
 -doc """
 General form of a bitstring constructor, as a polymorphic type so that it can be
-specialized for dedicated contexts (for example in guards, expressions, etc.).
+specialised for dedicated contexts (for example in guards, expressions, etc.).
 """.
 -type constructor( ContentType ) ::
 		{ 'bin', file_loc(), [ bin_element( ContentType ) ] }.
@@ -110,7 +110,7 @@ A binary element within a bitstring constructor, with a specific content type.
 		  transform_bin_element/3 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type file_loc() :: ast_base:file_loc().
 
@@ -151,7 +151,7 @@ Transforms specified binary element involved in a bitstring expression.
 
 Note: finally common to patterns, expressions and guard expressions.
 
-(corresponds to pattern_grp/1 in erl_id_trans)
+(corresponds to `pattern_grp/1` in `erl_id_trans`)
 """.
 -spec transform_bin_element( bin_element(), ast_transforms() ) ->
 									{ bin_element(), ast_transforms() }.
@@ -199,10 +199,10 @@ transform_bin_element( Unexpected, Transforms )
 
 
 -doc """
-Transforms specified list of binary elements involved in a bitstring expression,
-applying to each element the specified function to perform the relevant
-transformations (that depends on the context; for example if being in a guard,
-in an expression, etc.).
+Transforms the specified list of binary elements involved in a bitstring
+expression, applying to each element the specified function to perform the
+relevant transformations (that depends on the context; for example if being in a
+guard, in an expression, etc.).
 """.
 -spec transform_bin_elements( [ bin_element() ], ast_transforms(),
 		element_transform_fun() ) -> { [ bin_element() ], ast_transforms() }.
@@ -267,13 +267,13 @@ transform_bin_element( Unexpected, Transforms, _TransformFun )
 
 
 -doc """
-"A type specifier list TSL for a bitstring element is a sequence of type
-specifiers TS_1 - ... - TS_k, and Rep(TSL) = [Rep(TS_1), ..., Rep(TS_k)]".
+`"A type specifier list TSL for a bitstring element is a sequence of type
+specifiers TS_1 - ... - TS_k, and Rep(TSL) = [Rep(TS_1), ..., Rep(TS_k)]"`.
 
-If TS is a type specifier A, where A is an atom, then Rep(TS) = A.
+If TS is a type specifier A, where A is an atom, then `Rep(TS) = A`.
 
 If TS is a type specifier A:Value, where A is an atom and Value is an integer,
-then Rep(TS) = {A,Value}."
+then `Rep(TS) = {A,Value}`."
 
 Note: maybe the types there shall be transformed as well.
 """.
