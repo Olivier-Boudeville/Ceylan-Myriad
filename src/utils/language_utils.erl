@@ -79,7 +79,7 @@ agent, otherwise directly a controller mbox).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 

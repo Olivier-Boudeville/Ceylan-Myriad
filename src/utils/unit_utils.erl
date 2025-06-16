@@ -34,13 +34,13 @@ simple, ad hoc, limited form, then on a more formal, heavyweight one.
 All kinds of units are listed here, alongside the reference ones (e.g. the meter
 is the unit of length in the International System of Units).
 
-One objective is to be able to specify, instead of mere values (e.g. "1.14"),
-values with units (e.g. "1.14 km/h"), and possibly to convert them into a
+One objective is to be able to specify, instead of mere values (e.g. `1.14`),
+values with units (e.g. `1.14 km/h`), and possibly to convert them into a
 canonical form transparently, for automated checking and exact conversion.
 
 See unit_utils_test.erl for the corresponding test.
 
-Read the 'Management of Units' section of the technical manual of the Myriad
+Read the `Management of Units` section of the technical manual of the Myriad
 Layer for more information.
 """.
 
@@ -81,7 +81,7 @@ Layer for more information.
 -type months() :: integer().
 
 
--doc "Month in the year; semantically equivalent to calendar:month().".
+-doc "Month in the year; semantically equivalent to `calendar:month()`.".
 -type canonical_month() :: 1..12.
 
 
@@ -99,7 +99,7 @@ Layer for more information.
 -type days() :: integer().
 
 
--doc "Day in the month; semantically equivalent to calendar:day().".
+-doc "Day in the month; semantically equivalent to `calendar:day()`.".
 -type canonical_day() :: 1..31.
 
 
@@ -266,7 +266,7 @@ astronomical units (AU), i.e. 30.9 trillion kilometres.
 
 Most commonly used in professional astronomy.
 
-See <https://en.wikipedia.org/wiki/Parsec>.
+See [https://en.wikipedia.org/wiki/Parsec].
 
 """.
 -type parsec() :: float().
@@ -285,12 +285,12 @@ See <https://en.wikipedia.org/wiki/Parsec>.
 
 -doc """
 A light-year expresses astronomical distances, and is equivalent to about
-9.46.10^12 km.
+`9.46.10^12 km`.
 
 Most often used when expressing distances to stars and other distances on a
 galactic scale.
 
-Also abbreviated as "ly".
+Also abbreviated as `"ly"`.
 """.
 -type light_year() :: float().
 
@@ -311,7 +311,7 @@ Also abbreviated as "ly".
 
 -doc """
 The distance that light travels in free space in one minute. It is equal to
-exactly 17987547480 m (hence about 18 million kilometres).
+exactly `17987547480 m` (hence about 18 million kilometres).
 """.
 -type light_minute() :: float().
 
@@ -322,7 +322,7 @@ exactly 17987547480 m (hence about 18 million kilometres).
 
 -doc """
 The distance that light travels in free space in one second. It is equal to
-exactly 299 792 458 m (hence about 300 000 km).
+exactly `299 792 458 m` (hence about 300 000 km).
 """.
 -type light_second() :: float().
 
@@ -334,7 +334,7 @@ exactly 299 792 458 m (hence about 300 000 km).
 -type light_seconds() :: light_second().
 
 
-% Correspond to c; exact number:
+% Correspond to `c`; exact number:
 -define(meters_per_light_second, 299792458 ).
 
 
@@ -347,8 +347,8 @@ exactly 299 792 458 m (hence about 300 000 km).
 
 
 -doc """
-The distance that light travels in free space in one nanosecond: 299.8 mm, hence
-about 30 cm or 0.3 m.
+The distance that light travels in free space in one nanosecond: `299.8 mm`,
+hence about 30 cm or 0.3 m.
 """.
 -type light_nanosecond() :: float().
 
@@ -356,12 +356,12 @@ about 30 cm or 0.3 m.
 
 -doc """
 An astronomical unit expresses astronomical distances; it corresponds roughly to
-the distance from Earth to the Sun, and is exactly equal to 149 597 870 700 m
+the distance from Earth to the Sun, and is exactly equal to `149 597 870 700 m`
 (approximately 150 million kilometres or 8.3 light-minutes).
 
 Primarily used to measure distances around stars.
 
-Also abbreviated as "au".
+Also abbreviated as `"au"`.
 """.
 -type astronomical_unit() :: float().
 
@@ -407,32 +407,32 @@ Also abbreviated as "au".
 
 
 -doc """
-Abbreviated as "m/s".
+Abbreviated as `"m/s"`.
 
-A unit that is 3.6 larger than "km/h".
+A unit that is 3.6 larger than `"km/h"`.
 """.
 -type meters_per_second() :: float().
 
 
 
 -doc """
-Abbreviated as "km/h".
+Abbreviated as `"km/h"`.
 
-A unit that is 3.6 smaller than "m/s".
+A unit that is 3.6 smaller than `"m/s"`.
 """.
 -type km_per_hour() :: float().
 
 
 
 -doc """
-Light-second per second, that is c, the speed of light (as a unit).
+Light-second per second, that is `c`, the speed of light (as a unit).
 
-Is exactly 299 792 458 m/s (i.e. about 300 000 km/s).
+Is exactly `299 792 458 m/s` (i.e. about 300 000 km/s).
 
-Could be abbreviated as "l" (for "light"), or "ls/s", but of course c is a lot
-clearer.
+Could be abbreviated as `"l"` (for "light"), or `"ls/s"`, but of course `c` is a
+lot clearer.
 
-See the physics_utils:c/0 function.
+See the `physics_utils:c/0` function.
 """.
 -type c() :: float().
 
@@ -441,9 +441,9 @@ See the physics_utils:c/0 function.
 
 
 -doc """
-Abbreviated as "ly/s".
+Abbreviated as `"ly/s"`.
 
-Of no real interest, as would designate speeds larger than c.
+Of no real interest, as would designate speeds larger than `c`.
 """.
 -type light_year_per_second() :: float().
 
@@ -1303,11 +1303,11 @@ speed_to_string( Mps ) ->
 Returns a list of all metric prefixes, together with their symbol and order of
 magnitude.
 
-For example: {'kilo', "k", 3} means that there are 10^3 grams in a kilogram, and
-that this prefix is represented as "k".
+For example: `{'kilo', "k", 3}` means that there are `10^3` grams in a kilogram,
+and that this prefix is represented as `"k"`.
 
-We can see that a symbol may span over multiple characters (ex : "da") and even
-use non-ASCII characters (e.g. "µ").
+We can see that a symbol may span over multiple characters (e.g. `"da""`) and
+even use non-ASCII characters (e.g. `"µ"`).
 """.
 -spec get_prefix_information() ->
 			[ { metric_prefix(), prefix_symbol(), magnitude_order() } ].
@@ -1337,7 +1337,7 @@ get_prefix_information() ->
 
 
 -doc """
-Type of measure corresponding to a unit (e.g. "length").
+Type of measure corresponding to a unit (e.g. `"length"`).
 
 In some cases, multiple measures can apply (e.g. a Coulomb is a measure of
 electric charge or quantity of electricity); we retain here only the most usual
@@ -1367,7 +1367,7 @@ get_unit_information() ->
 -doc """
 Returns information about a base unit.
 
-More info: <https://en.wikipedia.org/wiki/SI_base_unit>.
+More info: [https://en.wikipedia.org/wiki/SI_base_unit].
 """.
 -spec get_base_unit_information() -> [ unit_information() ].
 get_base_unit_information() ->
@@ -1384,7 +1384,7 @@ get_base_unit_information() ->
 -doc """
 Returns information about a derived unit.
 
-More info: <https://en.wikipedia.org/wiki/SI_derived_unit>.
+More info: [https://en.wikipedia.org/wiki/SI_derived_unit].
 """.
 -spec get_derived_unit_information() -> [ unit_information() ].
 get_derived_unit_information() ->
@@ -1498,10 +1498,10 @@ get_order_for_prefix( PrefixSymbol ) ->
 
 
 -doc """
-Parses specified string (expected to be a unit_string()) containing a value and
-its unit (e.g. "-8.15 kW.m/h^2"), and returns them in a program-tractable form,
-that is a pair made of the value (as a float) and the corresponding unit, in
-canonical form.
+Parses the specified string (expected to be a unit_string()) containing a value
+and its unit (e.g. `"-8.15 kW.m/h^2"`), and returns them in a program-tractable
+form, that is a pair made of the value (as a float) and the corresponding unit,
+in canonical form.
 
 The input format is the following (in order):
 
@@ -1516,10 +1516,10 @@ minus, e.g. "-8.15")
 - a unit (e.g. "kW.m/h^2")
 
 Knowing that:
-- a built-in unit is a base, derived, widely used, or special unit (e.g. 'W')
-- a prefixed unit is a built-in unit with a prefix (e.g. 'kW')
-- a unit component is a prefixed unit with an exponent (e.g. 'km^-2')
-- a unit operator is either '.' (dot, for multiply) or '/' (slash, for divide)
+- a built-in unit is a base, derived, widely used, or special unit (e.g. `W`)
+- a prefixed unit is a built-in unit with a prefix (e.g. `kW`)
+- a unit component is a prefixed unit with an exponent (e.g. `km^-2`)
+- a unit operator is either `.` (dot, for multiply) or `/` (slash, for divide)
 
 The general format of a unit is then: a series of unit components with one unit
 operator intercalated between two successive components (no whitespace allowed).
@@ -1597,7 +1597,7 @@ parse_as_float( StringValue ) ->
 
 
 -doc """
-Parses the specified string, expected to contain a unit (e.g. "kW.m/h^2"), and
+Parses the specified string, expected to contain a unit (e.g. `"kW.m/h^2"`), and
 returns a canonical unit.
 """.
 -spec parse_unit( ustring() ) -> canonical_unit().
@@ -1628,9 +1628,9 @@ parse_unit( UnitString ) ->
 
 
 -doc """
-Splits specified string, expected to contain a unit (e.g. "kW.m/h^2"), into a
-list of strings corresponding to multiplying unit components (e.g.  ["kw", "m"])
-and dividing ones (e.g. ["h^2"]), and returns both lists.
+Splits specified string, expected to contain a unit (e.g. `"kW.m/h^2"`), into a
+list of strings corresponding to multiplying unit components (e.g.  `["kw",
+"m"]`) and dividing ones (e.g. `["h^2"]`), and returns both lists.
 """.
 -spec split_unit_components( ustring() ) ->
 					{ [ unit_component() ], [ unit_component() ] }.
@@ -1743,7 +1743,7 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
 
 
--doc "Returns {ActualOrder, UnitName, Exponent}.".
+-doc "Returns `{ActualOrder, UnitName, Exponent}`.".
 -spec parse_component( ustring() ) ->
 							{ magnitude_order(), unit_name(), exponent() }.
 parse_component( ComponentString ) ->
@@ -1785,12 +1785,12 @@ parse_component( ComponentString ) ->
 
 -doc """
 Extracts the prefix and unit from specified exponent-less string (e.g.
-"decaA").
+`"decaA"`).
 
 We have to scan backward, starting from the unit then only its prefix, as some
-prefix symbols (e.g. "m", for 'milli') are actually prefixes of unit symbols
-(e.g. "mol"): a forward scan may interpret "m" for 'milli', whereas it was just
-the beginning of "mol".
+prefix symbols (e.g. `"m"`, for `milli`) are actually prefixes of unit symbols
+(e.g. `"mol"`): a forward scan may interpret `"m"` for `milli`, whereas it was
+just the beginning of `"mol"`.
 """.
 -spec extract_prefix_and_unit( ustring() ) ->
 									{ magnitude_order(), unit_name() }.
@@ -2232,7 +2232,7 @@ integrate_to_canonical_unit( _UnitName=hour, ActualOrder, NormalisedExponent,
 	% An hour is 3600 s:
 	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  order= Order + ActualOrder
-									  + NormalisedExponent * 3,
+                                            + NormalisedExponent * 3,
 								  factor= Factor *
 										math:pow( 3.6, NormalisedExponent ) };
 
@@ -2243,7 +2243,7 @@ integrate_to_canonical_unit( _UnitName=litre, ActualOrder, NormalisedExponent,
 	% A litre is 10^-3 m^3:
 	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * 3,
 								  order= Order + ActualOrder
-										+ NormalisedExponent * -3 };
+                                            + NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=tonne, ActualOrder, NormalisedExponent,
@@ -2252,7 +2252,7 @@ integrate_to_canonical_unit( _UnitName=tonne, ActualOrder, NormalisedExponent,
 	% A tonne is 10^6 g:
 	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  order= Order + ActualOrder
-										+ NormalisedExponent * 6 };
+                                            + NormalisedExponent * 6 };
 
 
 integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
@@ -2267,7 +2267,7 @@ integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
 	integrate_to_canonical_unit( joule, ActualOrder + NormalisedExponent * -19,
 								 NormalisedExponent,
 								 CanonicalUnit#canonical_unit{
-									factor = Factor * 1.602176620898 } );
+									factor=Factor * 1.602176620898 } );
 
 
 integrate_to_canonical_unit( _UnitName=dimensionless, _ActualOrder=0,
@@ -2287,7 +2287,7 @@ integrate_to_canonical_unit( _UnitName=dimensionless, ActualOrder,
 
 integrate_to_canonical_unit( UnitName, _ActualOrder, NormalisedExponent,
 		CanonicalUnit=#canonical_unit{ other_units=Others } )
-			when is_atom( UnitName ) ->
+                                            when is_atom( UnitName ) ->
 
 	%trace_utils:warning_fmt( "Integrating unknown unit '~ts' of order ~p, "
 	%   "normalised exponent ~p to ~ts.",
@@ -2313,8 +2313,8 @@ is_canonical_unit( _Term ) ->
 
 
 -doc """
-Converts a unit symbol, as a string (e.g. "Cd") into a unit name (e.g.
-'candela'):
+Converts a unit symbol, as a string (e.g. `"Cd"`) into a unit name (e.g.
+'candela').
 """.
 -spec unit_symbol_to_name( unit_string_symbol() ) -> unit_name().
 unit_symbol_to_name( UnitSymbol ) ->
@@ -2337,7 +2337,7 @@ unit_symbol_to_name( UnitSymbol ) ->
 Returns a textual representation of the raw unit only (factor and order ignored)
 for the specified canonical unit.
 
-Note: unit_to_string/1 shall be the relevant function for most uses.
+Note: `unit_to_string/1` shall be the relevant function for most uses.
 """.
 -spec pure_unit_to_string( canonical_unit() ) -> ustring().
 pure_unit_to_string( Unit ) ->

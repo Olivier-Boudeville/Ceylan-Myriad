@@ -47,7 +47,7 @@ terms, not modules)
 -include("test_facilities.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type topic_spec() :: const_bijective_topics:topic_spec().
 

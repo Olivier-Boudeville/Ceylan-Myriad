@@ -31,7 +31,7 @@
 Gathering of various facilities related to the **monitoring of processes, ports,
 time changes or nodes**.
 
-See monitor_utils_test.erl for the corresponding test.
+See `monitor_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -39,7 +39,7 @@ See monitor_utils_test.erl for the corresponding test.
 % Monitoring section.
 
 
--doc " Not allowed to be shortened into a local reference/0 type.".
+-doc "Not allowed to be shortened into a local `reference/0` type.".
 -type monitor_reference() :: reference().
 
 
@@ -84,16 +84,16 @@ This information may be:
 
 - the exit reason of the process
 
-- or 'noproc' (process or port did not exist at the time of monitor creation)
+- or `noproc` (process or port did not exist at the time of monitor creation)
 
-- or 'noconnection' (no connection to the node where the monitored process
+- or `noconnection` (no connection to the node where the monitored process
 resides)
 """.
 -type monitor_info() :: basic_utils:exit_reason() | 'noproc' | 'noconnection'.
 
 
 
--doc "See net_kernel:monitor_nodes/2 for more information.".
+-doc "See `net_kernel:monitor_nodes/2` for more information.".
 -type monitor_node_info() :: list_table:list_table().
 
 
@@ -113,7 +113,7 @@ resides)
 
 
 
-% Type Shorthands:
+% Type shorthands:
 
 -type registered_name() :: naming_utils:registration_name().
 
@@ -122,7 +122,7 @@ resides)
 -doc """
 Subscribes or unsubscribes the calling process to node status change messages.
 
-See net_kernel:monitor_nodes/2 for more information.
+See `net_kernel:monitor_nodes/2` for more information.
 """.
 -spec monitor_nodes( boolean() ) -> void().
 monitor_nodes( DoStartNewSubscription ) ->
@@ -133,7 +133,7 @@ monitor_nodes( DoStartNewSubscription ) ->
 -doc """
 Subscribes or unsubscribes the calling process to node status change messages.
 
-See net_kernel:monitor_nodes/2 for more information.
+See `net_kernel:monitor_nodes/2` for more information.
 """.
 -spec monitor_nodes( boolean(), [ monitor_node_option() ] ) -> void().
 monitor_nodes( DoStartNewSubscription, Options ) ->

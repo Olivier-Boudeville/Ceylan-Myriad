@@ -33,9 +33,9 @@
 Gathering of management facilities for **REST architectures** (*Representational
 State Transfer*).
 
-See rest_utils_test.erl for the corresponding test.
+See `rest_utils_test.erl` for the corresponding test.
 
-See also: web_utils.erl.
+See also: `web_utils.erl`.
 """.
 
 
@@ -74,7 +74,7 @@ See also: web_utils.erl.
 
 
 -doc """
-Content type (e.g. "text/html;charset=utf-8", "application/json").
+Content type (e.g. `"text/html;charset=utf-8"`, `"application/json"`).
 """.
 -type content_type() :: ustring().
 
@@ -96,7 +96,8 @@ Content type (e.g. "text/html;charset=utf-8", "application/json").
 
 
 -doc """
-Type of a request for httpc:request, see <http://erlang.org/doc/man/httpc.html>.
+Type of a request for `httpc:request*`, see
+[http://erlang.org/doc/man/httpc.html].
 """.
 -type request() :: { url(), headers(), content_type(), body() }
 				 | { url(), headers() }.
@@ -111,8 +112,8 @@ Type of a request for httpc:request, see <http://erlang.org/doc/man/httpc.html>.
 
 
 -doc """
-Type of a result extended from httpc:request, see
-<http://erlang.org/doc/man/httpc.html>.
+Type of a result extended from `httpc:request*`, see
+[http://erlang.org/doc/man/httpc.html].
 """.
 -type result() ::
 	{ status_line(), headers(), body() }
@@ -133,7 +134,7 @@ Type of a result extended from httpc:request, see
 			   result/0, context/0, retries_count/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type ssl_opt() :: web_utils:ssl_opt().
@@ -171,7 +172,7 @@ stop() ->
 
 -doc """
 Lists all the possible request methods defined by the HTTP/1.1 standard, except
-the 'CONNECT' method that seems not to be part of the function clauses appearing
+the `CONNECT` method that seems not to be part of the function clauses appearing
 in httpc:request.
 """.
 -spec get_supported_http_methods() -> [ method() ].
@@ -183,7 +184,7 @@ get_supported_http_methods() ->
 -doc """
 Lists all the supported HTTP/1.1 standard methods whose implementation in
 httpc:request does not allow the Body and (thus) ContentType arguments: they
-must be associated with requests of the form {URL, Headers}.
+must be associated with requests of the form `{URL, Headers}`.
 """.
 -spec get_no_body_http_methods() -> [ method() ].
 get_no_body_http_methods() ->
@@ -194,7 +195,7 @@ get_no_body_http_methods() ->
 -doc """
 Lists all the supported HTTP/1.1 standard methods whose implementation in
 httpc:request expects the Body and (thus) ContentType arguments: they must be
-associated with requests of the form {URL, Headers, ContentType, Body}.
+associated with requests of the form `{URL, Headers, ContentType, Body}`.
 """.
 -spec get_body_allowing_http_methods() -> [ method() ].
 get_body_allowing_http_methods() ->
@@ -318,9 +319,9 @@ http_request( URL ) ->
 
 -doc """
 Sends a generic HTTP request, as an alternate solution as suggested by the
-standard 'httpc' module of Erlang.
+standard `httpc` module of Erlang.
 
-(basically just a call to httpc:request/4 surrounded by checking steps)
+(basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
 -spec http_request( method(), request() ) -> { status_code(), term() }.
 http_request( Method, Request ) ->
@@ -331,7 +332,7 @@ http_request( Method, Request ) ->
 -doc """
 Sends a generic HTTP request, with the specified number of retries.
 
-(basically just a call to httpc:request/4 surrounded by checking steps)
+(basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
 -spec http_request( method(), request(), retries_count() ) ->
 							{ status_code(), term() }.
@@ -344,7 +345,7 @@ http_request( Method, Request, Retries ) ->
 Sends a generic HTTP request, with the specified number of retries and (HTTP or
 not) options.
 
-(basically just a call to httpc:request/4 surrounded by checking steps)
+(basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
 -spec http_request( method(), request(), http_options(), options(),
 					retries_count() ) -> term().

@@ -31,7 +31,7 @@
 Gathering of various facilities regarding **files and other filesystem
 elements**.
 
-See file_utils_test.erl for the corresponding test.
+See `file_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -6506,12 +6506,14 @@ Note: useful for network transfers of small files. Larger ones should be
 transferred with TCP/IP / send_file and by chunks.
 """.
 -spec files_to_zipped_term( [ file_name() ] ) -> binary().
-files_to_zipped_term( FilenameList ) ->
+files_to_zipped_term( Filenames ) ->
+
+    %trace_utils:debug_fmt( "Selected filenames: ~p.", [ Filenames ] ),
 
 	DummyFileName = "dummy",
 
 	{ ok, { _DummyFileName, Bin } } =
-		zip:zip( DummyFileName, FilenameList, [ memory ] ),
+		zip:zip( DummyFileName, Filenames, [ memory ] ),
 
 	Bin.
 
@@ -6525,18 +6527,23 @@ corresponding term, and returns it.
 Note: useful for network transfers of small files. Larger ones should be
 transferred with TCP/IP / send_file and by chunks.
 """.
--spec files_to_zipped_term( [ file_name() ], any_directory_name() ) -> binary().
-files_to_zipped_term( FilenameList, BaseDirectory ) ->
+-spec files_to_zipped_term( [ file_name() ], any_directory_path() ) -> binary().
+files_to_zipped_term( Filenames, BaseDirectory ) ->
+
+    trace_utils:debug_fmt( "Selected filenames (base directory: '~ts'): ~p.",
+                           [ BaseDirectory, Filenames ] ),
 
 	DummyFileName = "dummy",
 
 	%trace_utils:notice_fmt( "files_to_zipped_term operating, from '~ts', "
 	%   "on following ~B file(s): ~ts",
-	%   [ BaseDirectory, length( FilenameList ),
-	%     text_utils:terms_to_string( FilenameList ) ] ),
+	%   [ BaseDirectory, length( Filenames ),
+	%     text_utils:terms_to_string( Filenames ) ] ),
 
-	 case zip:zip( DummyFileName, FilenameList,
-				   [ memory, { cwd, BaseDirectory } ] ) of
+    BaseDirStr = text_utils:ensure_string( BaseDirectory ),
+
+	 case zip:zip( DummyFileName, Filenames,
+				   [ memory, { cwd, BaseDirStr } ] ) of
 
 		{ ok, { _DummyFileName, Bin } } ->
 			Bin;
@@ -6552,15 +6559,15 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 			%        is_existing_directory( BaseDirectory ) ] ),
 
 			% [ trace_utils:warning_fmt( "~n - file '~p' exists? ~p", [ F,
-			%    is_existing_file( F ) ] ) || F <- FilenameList ],
+			%    is_existing_file( F ) ] ) || F <- Filenames ],
 
-			throw( { zip_failed, BaseDirectory, FilenameList } );
+			throw( { zip_failed, BaseDirectory, Filenames } );
 
 		% einval might mean for example that at least some filenames are
 		% binaries rather that plain strings:
 		%
 		{ error, Other } ->
-			throw( { zip_failed, Other, BaseDirectory, FilenameList } )
+			throw( { zip_failed, Other, BaseDirectory, Filenames } )
 
 	 end.
 

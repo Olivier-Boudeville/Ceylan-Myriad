@@ -29,7 +29,7 @@
 
 -moduledoc """
 This module defines a few **basic facilities for tests**, at the level of the
-'Myriad' layer.
+`Myriad` layer.
 """.
 
 
@@ -46,7 +46,7 @@ This module defines a few **basic facilities for tests**, at the level of the
 -export([ get_myriad_icon_path/0, get_myriad_logo_path/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
@@ -60,11 +60,11 @@ This module defines a few **basic facilities for tests**, at the level of the
 Starts a test; expected to be the first test statement.
 
 Here we disable explicitly the trapping of EXIT events, as a function run
-through "erl -eval" (like our tests) or through "erl -run" will be executed in a
-process which will silently trap EXIT events, which would mean that the crash of
-any process created from the test, even thanks to spawn_link, would most
-probably remain unnoticed (just leading to an EXIT message happily sitting in
-the mailbox of the test process).
+through `"erl -eval"` (like our tests) or through `"erl -run"` will be executed
+in a process which will silently trap EXIT events, which would mean that the
+crash of any process created from the test, even thanks to spawn_link, would
+most probably remain unnoticed (just leading to an EXIT message happily sitting
+in the mailbox of the test process).
 """.
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
@@ -244,8 +244,8 @@ fail( FormatString, Values ) ->
 
 -doc """
 Returns a path to the Myriad icon image, supposing the current directory is two
-levels above the root one, that is typically in a subdirectory of the 'test'
-one, like 'test/user-interface/'.
+levels above the root one, that is typically in a subdirectory of the `test`
+one, like `test/user-interface/`.
 """.
 -spec get_myriad_icon_path() -> image_path().
 get_myriad_icon_path() ->

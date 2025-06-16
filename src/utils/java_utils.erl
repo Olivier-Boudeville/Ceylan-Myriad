@@ -1,5 +1,5 @@
 % Copyright (C) 2016-2025 Olivier Boudeville
-
+%
 % This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
@@ -34,9 +34,9 @@
 Gathering of some convenient facilities for the **binding to the Java
 language**.
 
-See java_utils_test.erl for the corresponding tests.
+See `java_utils_test.erl` for the corresponding tests.
 
-See also python_utils.erl for a similar binding.
+See also `python_utils.erl` for a similar binding.
 """.
 
 
@@ -97,26 +97,26 @@ See also python_utils.erl for a similar binding.
 
 
 -doc """
-The name of a Java package (e.g. 'org.foobar.research.someteam').
+The name of a Java package (e.g. `'org.foobar.research.someteam'`).
 """.
 -type java_package_name() :: atom().
 
 
 
 -doc """
-The name of a Java package, as a string (e.g. "org.foobar.research.someteam").
+The name of a Java package, as a string (e.g. `"org.foobar.research.someteam"`).
 """.
 -type java_string_package_name() :: atom().
 
 
 
--doc "The name of a Java class (e.g. 'Foobar').".
+-doc "The name of a Java class (e.g. `'Foobar'`).".
 -type java_classname() :: atom().
 
 
 
 -doc """
-The name of a Java class, as a string (e.g. "Foobar").
+The name of a Java class, as a string (e.g. `"Foobar"`).
 """.
 -type java_string_classname() :: ustring().
 
@@ -129,14 +129,14 @@ The name of a Java class, as a string (e.g. "Foobar").
 
 
 -doc """
-The name of a Java source file (e.g. "Foobar.java").
+The name of a Java source file (e.g. `"Foobar.java"`).
 """.
 -type java_source_filename() :: file_name().
 
 
 
 -doc """
-The name of a Java compiled file (e.g. "Foobar.class").
+The name of a Java compiled file (e.g. `"Foobar.class"`).
 """.
 -type java_bytecode_filename() :: file_name().
 
@@ -151,7 +151,7 @@ The name of a Java compiled file (e.g. "Foobar.class").
 			   java_source_filename/0, java_bytecode_filename/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -246,8 +246,8 @@ wait_for_request_result( MailboxPid, MethodName )
 	% Waits for the response:
 	Message = receive
 
-		_Msg={ Headers, MethodParameters } when is_tuple( Headers ) andalso
-							erlang:element( 1, Headers ) == java_message ->
+		_Msg={ Headers, MethodParameters } when is_tuple( Headers )
+                andalso erlang:element( 1, Headers ) == java_message ->
 
 			erlang:append_element( erlang:delete_element( 1, Headers ),
 								   MethodParameters )
@@ -263,14 +263,14 @@ wait_for_request_result( MailboxPid, MethodName )
 
 		% Trace emitted from Java:
 		TraceMessage = { trace_emitted, TraceType, _TraceFormattedMessage }
-			when is_atom( TraceType ) ->
+                                    when is_atom( TraceType ) ->
 
 			TraceMessage;
 
 		% Exception raised from Java:
 		ExceptionMessage = { exception_raised, ExceptionType,
 							 _ExceptionFormattedMessage }
-			when is_atom( ExceptionType ) ->
+                                    when is_atom( ExceptionType ) ->
 
 			ExceptionMessage;
 

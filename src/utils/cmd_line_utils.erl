@@ -324,7 +324,7 @@ arguments supplied to the interpreter.
 
 Note:
 
-- only the arguments specified on the command-line after the '-extra' marker
+- only the arguments specified on the command-line after the `-extra` marker
 will be taken into account; e.g. `make ui_run CMD_LINE_OPT="-a -extra some_value
 -b --use-ui-backend text_ui"` (here `-a` and, of course, `-extra`, will be
 ignored)
@@ -360,7 +360,7 @@ In this form, options start with a dash, may have any number of arguments, and
 may be specified more than once in the command-line; non-option arguments are
 collected as well (refer to the `no_option_key` define).
 
-Note: switches to the Unicode encoding (e.g. use "~tp" then).
+Note: switches to the Unicode encoding (e.g. use `~tp` then).
 """.
 -spec get_argument_table_from_strings( [ ustring() ] ) -> argument_table().
 get_argument_table_from_strings( ArgStrs ) ->
@@ -491,7 +491,7 @@ generate_argument_table( ArgStr ) ->
 Returns, if this option was specified on the command-line, the in-order list of
 the various (lists of) values (if any; no value at all being specified for an
 option resulting thus in `[ [] ]`) associated to the specified option; if this
-option was not specified on the command-line, returns 'undefined'.
+option was not specified on the command-line, returns `undefined`.
 
 Note: often the `extract_command_arguments_for_option/{1,2}` functions are more
 relevant to use.
