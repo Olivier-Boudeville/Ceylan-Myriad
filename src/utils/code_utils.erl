@@ -32,6 +32,9 @@ Gathering of various facilities regarding the management of **Erlang code**
 (typically BEAM files).
 
 See `code_utils_test.erl` for the corresponding test.
+
+See also the `meta_utils` module for more module-level features (e.g. to
+determine whether a given function is exported).
 """.
 
 
