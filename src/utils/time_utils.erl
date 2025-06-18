@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of **time management** facilities.
 
-See time_utils_test.erl for the corresponding test.
+See `time_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -70,9 +70,14 @@ See time_utils_test.erl for the corresponding test.
 		  user_to_canonical_date/1, canonical_to_user_date/1 ]).
 
 
+% Time support:
+-export([ is_canonical_time/1, check_canonical_time/1,
+		  compare_times/2, check_time_order/2, get_time_difference/2 ]).
+
+
 
 -doc """
-As calendar:daynum/0 is not exported.
+As `calendar:daynum/0` is not exported.
 
 Monday is 1, Tuesday is 2, etc.
 
@@ -94,11 +99,17 @@ Such numerical values are useful to operate based on ranges.
 
 
 -doc """
-A canonical calendar date; used instead of the less precise calendar:date/0 type
-(yet with similar types and order thereof). See also: user_date/0.
+A canonical calendar date; used instead of the less precise `calendar:date/0`
+type (yet with similar types and order thereof). See also `user_date/0`.
 """.
 -type date() :: { year(), canonical_month(), canonical_day() }.
 
+
+-doc """
+Either a canonical calendar date or a symbol relative to the current date.
+""".
+% Later: for example 'next_monday' may be supported.
+-type extended_date() :: date() | 'yesterday' | 'today' | 'tomorrow'.
 
 
 -doc "A canonical date of birth.".
@@ -107,8 +118,8 @@ A canonical calendar date; used instead of the less precise calendar:date/0 type
 
 
 -doc """
-A date in a format (reversed compared to a canonical date()) that is considered
-common to most users. See also: date/0.
+A date in a format (element order reversed compared to a `canonical date/0`)
+that is considered common to most users. See also `date/0`.
 """.
 -type user_date() :: { canonical_day(), canonical_month(), year() }.
 
@@ -120,9 +131,21 @@ common to most users. See also: date/0.
 
 
 -doc """
-A time in the day; used to be {hour(), minute(), second()} or calendar:time().
+A time in the day.
+
+Used to be `{hour(), minute(), second()}` or `calendar:time()`.
 """.
 -type time() :: { canonical_hour(), canonical_minute(), canonical_second() }.
+
+
+-doc """
+Either a canonical time in the day or a symbol relative to the current time.
+
+Refer to `extended_timestamp/0` to specify for example `in_1_hour` (as it may
+affect the date as well).
+""".
+-type extended_time() :: time()
+                       | 'now'.
 
 
 
@@ -162,7 +185,7 @@ a canonical form, for example more than 24 hours or 60 minutes can be
 specified).
 """.
 -type dhms_duration() ::
-		{ D :: days(), H :: hours(), M :: minutes(), S :: seconds() }.
+	{ D :: days(), H :: hours(), M :: minutes(), S :: seconds() }.
 
 
 
@@ -176,9 +199,9 @@ A duration expressed as a number of full days (e.g. one way to express an age).
 -doc """
 A (plain) string representing a timestamp according to ISO 8601.
 
-For example "2022-07-04T14:23:18Z".
+For example `"2022-07-04T14:23:18Z"`.
 
-Refer to <https://en.wikipedia.org/wiki/ISO_8601> for further information.
+Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information.
 """.
 -type iso8601_string() :: ustring().
 
@@ -187,16 +210,17 @@ Refer to <https://en.wikipedia.org/wiki/ISO_8601> for further information.
 -doc """
 A binary string representing a timestamp according to ISO 8601.
 
-For example "2022-07-04T14:23:18Z".
+For example `"2022-07-04T14:23:18Z"`.
 
-Refer to <https://en.wikipedia.org/wiki/ISO_8601 for further information>.
+Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 """.
 -type iso8601_bin_string() :: bin_string().
 
 
--export_type([ day_index/0, week_day/0, date/0, birth_date/0, user_date/0,
-			   date_in_year/0,
-			   time/0, ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
+-export_type([ day_index/0, week_day/0, date/0, extended_date/0,
+               birth_date/0, user_date/0, date_in_year/0,
+			   time/0, extended_time/0,
+               ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
 			   ms_duration/0, ms_period/0, second_duration/0,
 			   dhms_duration/0, day_duration/0,
 			   iso8601_string/0, iso8601_bin_string/0 ]).
@@ -205,7 +229,8 @@ Refer to <https://en.wikipedia.org/wiki/ISO_8601 for further information>.
 % Basics:
 -export([ get_textual_date/1, from_posix_timestamp/1,
 		  get_local_timestamp/0, get_local_date/0, get_local_time/0,
-		  is_leap_year/1 ]).
+		  is_leap_year/1,
+          resolve_date/1, resolve_time/1, resolve_timestamp/1 ]).
 
 
 % For rough, averaged conversions:
@@ -275,7 +300,7 @@ Refer to <https://en.wikipedia.org/wiki/ISO_8601 for further information>.
 
 
 -doc """
-Used to be calendar:datetime(), now uses our types.
+Used to be `calendar:datetime/0`, now uses our types.
 
 A timestamp shall preferably be canonical (e.g. with a canonical month).
 
@@ -293,10 +318,40 @@ For example: `<<"2024/9/2 21:37:22">>`.
 
 
 
+-doc """
+An extended timestamp.
+
+`next_possible_day` is useful when wanting to specify either 'today' or
+'tomorrow' depending on whether the current time is before or after the
+specified one.
+
+For example `{next_possible_day, {19, 54, 0}}` will be translated as `{today,
+{19, 54, 0}}` if current time is 18:00, but as `{tomorrow, {19, 54, 0}}` if
+current time is 20:00.
+
+In this last case, if specifying instead just `{today, {19, 54, 0}}`, then this
+timestamp would be in the past, and scheduling it would trigger an immediate
+trigger thereof, whereas we might prefer to wait for tomorrow's 19:54.
+
+See also `offset_timestamp/2`.
+""".
+-type extended_timestamp() ::
+    { extended_date(), extended_time() }
+  | { 'next_possible_day', extended_time() }
+  | 'in_5_minutes'
+  | 'in_1_hour'.
 
 
--doc "A precise timestamp.".
--type precise_timestamp() :: { megaseconds(), seconds(), microseconds() }.
+
+-doc """
+A timestamp that is as precise as possible, that is `{MegaSecs, Secs,
+MicroSecs}`, where:
+ - MegaSecs is an integer number of millions of seconds
+ - Secs is an integer number of seconds that is less than one million
+ - MicroSecs is an integer number of microseconds
+""".
+-type precise_timestamp() :: { MegaSecs :: megaseconds(), Secs :: seconds(),
+                               MicroSecs :: microseconds() }.
 
 
 
@@ -307,7 +362,7 @@ For example: `<<"2024/9/2 21:37:22">>`.
 
 -doc """
 Typically a user-defined time frame, to be transformed into a legit
-time_frame/0.
+`time_frame/0`.
 """.
 -type user_time_frame() ::
 		{ Begin :: timestamp() | date(), End   :: timestamp() | date() }.
@@ -322,7 +377,7 @@ time_frame/0.
 -doc """
 Any kind of time-out, finite or not.
 
-The actual definition of the built-in timeout() type could not be found.
+The actual definition of the built-in `timeout/0` type could not be found.
 """.
 -type time_out() :: 'infinity' | finite_time_out().
 
@@ -331,13 +386,13 @@ The actual definition of the built-in timeout() type could not be found.
 -doc """
 An actual, finite time-out, in seconds.
 
-The finite_time_out/0 type should be preferred to this one, as conversions to
+The `finite_time_out/0` type should be preferred to this one, as conversions to
 milliseconds (for actual use in primitives) may raise compilation issues
-(e.g. operations like 'MySecondTimeout * 1000' or 'MyMillisecondTimeout div
-1000', supposedly to fail with a 'badarith' exception): the compiler may not
+(e.g. operations like `MySecondTimeout * 1000` or `MyMillisecondTimeout div
+1000`, supposedly to fail with a `badarith` exception): the compiler may not
 able to determine that, in a clause, a given variable is necessarily an integer
-and not 'infinity' (and thus may complain that, for example, "evaluation of
-operator '*'/2 will fail with a 'badarith' exception").
+and not `infinity` (and thus may complain that, for example, `"evaluation of
+operator '*'/2 will fail with a 'badarith' exception"`).
 
 Moreover all other time-outs are in milliseconds, so this current type may be
 error-prone.
@@ -349,7 +404,7 @@ error-prone.
 -doc """
 Any kind of time-out, finite or not, in seconds if finite.
 
-The millisecond version thereof, time_out/0, shall be preferred.
+The millisecond version thereof, `time_out/0`, shall be preferred.
 """.
 -type second_time_out() :: 'infinity' | finite_second_time_out().
 
@@ -357,7 +412,7 @@ The millisecond version thereof, time_out/0, shall be preferred.
 
 -doc """
 Designates an integer number of seconds since or before Unix time epoch, which
-is 1970-01-01 00:00 UTC.
+is `1970-01-01 00:00 UTC`.
 """.
 -type posix_seconds() :: integer().
 
@@ -410,7 +465,7 @@ is 1970-01-01 00:00 UTC.
 
 
 -doc """
-Returns a string corresponding to the specified date, like: "30/11/2009".
+Returns a string corresponding to the specified date, like `"30/11/2009"`.
 """.
 -spec get_textual_date( date() ) -> ustring().
 get_textual_date( { Year, Month, Day } ) ->
@@ -420,7 +475,7 @@ get_textual_date( { Year, Month, Day } ) ->
 
 -doc """
 Converts specified POSIX timestamp (typically the one obtained through
-file-level operations such as file_utils:get_last_modification_time/1) into a
+file-level operations such as `file_utils:get_last_modification_time/1`) into a
 standard timestamp.
 """.
 -spec from_posix_timestamp( posix_seconds() ) -> timestamp().
@@ -483,11 +538,66 @@ is_leap_year( Year ) ->
 	calendar:is_leap_year( Year ).
 
 
+-doc "Resolves the specified extended date into a basic date.".
+-spec resolve_date( extended_date() ) -> date().
+resolve_date( _ExtDate=yesterday ) ->
+    ThisDayCount = calendar:date_to_gregorian_days( date() ),
+    calendar:gregorian_days_to_date( ThisDayCount - 1 );
+
+resolve_date( _ExtDate=today ) ->
+    date();
+
+resolve_date( _ExtDate=tomorrow ) ->
+    ThisDayCount = calendar:date_to_gregorian_days( date() ),
+    calendar:gregorian_days_to_date( ThisDayCount + 1 );
+
+resolve_date( Date ) when is_tuple( Date ) ->
+    Date.
+
+
+-doc "Resolves the specified extended time into a basic time.".
+-spec resolve_time( extended_time() ) -> time().
+resolve_time( _ExtTime=now ) ->
+    time();
+
+resolve_time( Time ) ->
+    Time.
+
+
+-doc "Resolves the specified extended timestamp into a basic timestamp.".
+-spec resolve_timestamp( extended_timestamp() ) -> timestamp().
+resolve_timestamp( _ExtTimestamp=in_5_minutes ) ->
+    Now = get_timestamp(),
+    offset_timestamp( Now, _SecDuration=5*60 );
+
+resolve_timestamp( _ExtTimestamp=in_1_hour ) -> Now = get_timestamp(),
+    offset_timestamp( Now, _SecDuration=3600 );
+
+resolve_timestamp( _ExtTimestamp={ next_possible_day, ExtTime } ) ->
+    ReqTime = resolve_time( ExtTime ),
+    SelectedDate = case compare_times( _CurrentTime=time(), ReqTime )  of
+
+        % We are before the deadline:
+        lower ->
+            date();
+
+        % Prefering ostponing if in the same second:
+        _ ->
+            resolve_date( tomorrow )
+
+    end,
+
+    { SelectedDate, ReqTime };
+
+resolve_timestamp( _ExtTimestamp={ ExtDate, ExtTime } ) ->
+    { resolve_date( ExtDate ), resolve_time( ExtTime ) }.
+
+
 
 % Month section.
 
 
--doc "Canonicalises specified month.".
+-doc "Canonicalises the specified month.".
 -spec canonicalise_month( month() ) -> canonical_month().
 canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
@@ -534,7 +644,7 @@ check_month_order( Start={ StartYear, StartMonth },
 
 
 -doc """
-Converts a month (an integer in [1,12] or a 12-multiple thereof, like 23) into
+Converts a month (an integer in `[1,12]` or a 12-multiple thereof, like 23) into
 its common name.
 """.
 -spec month_to_string( month() ) -> ustring().
@@ -648,7 +758,7 @@ get_month_durations() ->
 
 
 -doc """
-Returns the day in the year (thus in [1,366]) corresponding to the specified
+Returns the day in the year (thus in `[1,366]`) corresponding to the specified
 date.
 
 Handles correctly leap years.
@@ -664,11 +774,11 @@ get_day_in_year( _Date={ Year, Month, Day } ) ->
 
 
 -doc """
-Returns the rank in year of the specified day, in [1,365].
+Returns the rank in year of the specified day, in `[1,365]`.
 
 For example, for the tenth of February: `get_day_rank({2, 10}) = 41.`.
 
-Cannot take into account leap years; prefer using get_day_in_year/1 whenever
+Cannot take into account leap years; prefer using `get_day_in_year/1` whenever
 possible.
 """.
 -spec get_day_rank( date_in_year() ) -> day().
@@ -697,9 +807,9 @@ is_bank_holiday( _Date={ Y, M, D }, Country ) ->
 
 -doc """
 Returns a (non chronologically-ordered) list of the dates of the bank holidays,
-for specified year and country.
+for the specified year and country.
 
-Sources for France: `https://kalendrier.ouest-france.fr/jours-feries/2020.html`
+Sources for France: [https://kalendrier.ouest-france.fr/jours-feries/2020.html]
 ("fixed" days have then been factored).
 """.
 -spec get_bank_holidays_for( year(), country() ) -> [ date_in_year() ].
@@ -734,7 +844,7 @@ get_bank_holidays_for( Year, Country ) ->
 
 -doc """
 Returns the fixed bank holidays (whose date is constant from one year to
-another) for specified country.
+another) for the specified country.
 """.
 -spec get_fixed_bank_holidays_for( country() ) -> [ date_in_year() ].
 get_fixed_bank_holidays_for( _Country=france ) ->
@@ -867,7 +977,7 @@ get_daylight_saving_time( _Date={ Y, _M=10, D } ) ->
 
 
 
--doc "Returns the symbol (atom) corresponding to specified week day index.".
+-doc "Returns the symbol (atom) corresponding to the specified week day index.".
 -spec get_week_day( day_index() ) -> week_day().
 get_week_day( _DayIndex=1 ) ->
 	monday;
@@ -961,6 +1071,7 @@ check_canonical_date( Date ) ->
 
 -doc "Tells whether the specified term is a user date.".
 -spec is_user_date( term() ) -> boolean().
+% Different order from is_canonical_date/1:
 is_user_date( _Date={ Day, Month, Year } ) when
 		is_integer( Year ) andalso is_integer( Month ) andalso
 		is_integer( Day ) andalso Month >= 1 andalso Month =< 12
@@ -1003,38 +1114,41 @@ compare_dates( FirstDate, SecondDate ) ->
 	compare_helper( FirstDate, SecondDate ).
 
 
+% Natural term (tuple) order would be sufficient, but this version is stricter
+% (checks structures) and may be quicker (not restarting to sort out equality).
+%
+% Defined for dates but works for times as well:
+compare_helper( _FirstTriplet={ Yf, _Mf, _Df },
+                _SecondTriplet={ Ys, _Ms, _Ds } ) when Yf < Ys ->
+  lower;
 
-compare_helper( _FirstDate={ Yf, _Mf, _Df },
-				_SecondDate={ Ys, _Ms, _Ds } ) when Yf < Ys ->
-	lower;
-
-compare_helper( _FirstDate={ Yf, _Mf, _Df },
-				_SecondDate={ Ys, _Ms, _Ds } ) when Yf > Ys ->
-	higher;
+compare_helper( _FirstTriplet={ Yf, _Mf, _Df },
+                _SecondTriplet={ Ys, _Ms, _Ds } ) when Yf > Ys ->
+  higher;
 
 % From here, Yf =:= Ys:
-compare_helper( _FirstDate={ _Yf, Mf, _Df },
-				_SecondDate={ _Ys, Ms, _Ds } )  when Ms < Mf ->
-	lower;
+compare_helper( _FirstTriplet={ _Yf, Mf, _Df },
+                _SecondTriplet={ _Ys, Ms, _Ds } )  when Ms < Mf ->
+  lower;
 
-compare_helper( _FirstDate={ _Yf, Mf, _Df },
-				_SecondDate={ _Ys, Ms, _Ds } ) when Ms > Mf ->
-	higher;
+compare_helper( _FirstTriplet={ _Yf, Mf, _Df },
+                _SecondTriplet={ _Ys, Ms, _Ds } ) when Ms > Mf ->
+  higher;
 
 % From here, Yf =:= Ys and Mf =:= Ms:
-compare_helper( _FirstDate={ _Yf, _Mf, Df },
-				_SecondDate={ _Ys, _Ms, Ds } )  when Df < Ds ->
-	lower;
+compare_helper( _FirstTriplet={ _Yf, _Mf, Df },
+                _SecondTriplet={ _Ys, _Ms, Ds } )  when Df < Ds ->
+  lower;
 
-compare_helper( _FirstDate={ _Yf, _Mf, Df },
-				_SecondDate={ _Ys, _Ms, Ds } ) when Df > Ds ->
-	higher;
+compare_helper( _FirstTriplet={ _Yf, _Mf, Df },
+                _SecondTriplet={ _Ys, _Ms, Ds } ) when Df > Ds ->
+  higher;
 
 % Df =:= Ds, equality:
-%compare_helper( _FirstDate={ _Yf, _Mf, _Df },
-%                _SecondDate={ _Ys, _Ms, _Ds } ) ->
-compare_helper( _FirstDate, _SecondDate ) ->
-	equal.
+%compare_helper( _FirstTriplet={ _Yf, _Mf, _Df },
+%                _SecondTriplet={ _Ys, _Ms, _Ds } ) ->
+compare_helper( _FirstTriplet, _SecondTriplet ) ->
+  equal.
 
 
 
@@ -1042,7 +1156,7 @@ compare_helper( _FirstDate, _SecondDate ) ->
 Ensures that the starting canonical date is strictly before the stopping one.
 
 Note: both dates are expected to be in canonical form (e.g. not more than 12
-months or 31 days in the specified date).
+months or 31 days in a specified date).
 """.
 -spec check_date_order( date(), date() ) -> void().
 check_date_order( StartDate, StopDate ) ->
@@ -1131,7 +1245,7 @@ hours_to_seconds( HourDuration ) ->
 Tells whether the specified term is a DHMS duration.
 
 Note: does not check whether its components are in canonical form (e.g. Hours in
-[0,23]).
+`[0,23]`).
 """.
 -spec is_dhms_duration( term() ) -> boolean().
 is_dhms_duration( { Days, Hours, Minutes, Seconds } ) when
@@ -1259,6 +1373,72 @@ time_to_seconds( { Hours, Minutes, Seconds } ) ->
 % Time section.
 
 
+-doc "Tells whether the specified term is a canonical time.".
+-spec is_canonical_time( term() ) -> boolean().
+is_canonical_time( _Time={ Hour, Minute, Second } ) when
+		is_integer( Hour ) andalso is_integer( Minute ) andalso
+		is_integer( Second ) andalso Hour >= 0 andalso Hour =< 23
+        andalso Minute >= 0 andalso Minute =< 59
+        andalso Second  >= 0 andalso Second =< 59 ->
+	true;
+
+is_canonical_time( _Other ) ->
+	false.
+
+
+
+-doc "Checks that the specified time is a canonical one, and returns it.".
+-spec check_canonical_time( term() ) -> time().
+check_canonical_time( Time ) ->
+	case is_canonical_time( Time ) of
+
+		true ->
+			Time;
+
+		false ->
+			throw( { non_canonical_time, Time } )
+
+	end.
+
+
+
+-doc """
+Compares the specified two times: tells whether the first time is strictly
+before, after or the same as the second one.
+
+Note: both times are expected to be in canonical form (e.g. not more 23 hours or
+59 minutes/seconds in the specified time).
+""".
+-spec compare_times( time(), time() ) -> basic_utils:comparison_result().
+compare_times( FirstTime, SecondTime ) ->
+
+	check_canonical_time( FirstTime ),
+	check_canonical_time( SecondTime ),
+
+	compare_helper( FirstTime, SecondTime ).
+
+
+-doc """
+Ensures that the starting canonical time is strictly before the stopping one.
+
+Note: both times are expected to be in canonical form (e.g. not more than 23
+hours in a specified time).
+""".
+-spec check_time_order( time(), time() ) -> void().
+check_time_order( StartTime, StopTime ) ->
+	compare_times( StartTime, StopTime ) =:= lower orelse
+		% Equal or higher:
+		throw( { wrong_time_order, StartTime, StopTime } ).
+
+
+-doc """
+Returns the signed duration, in seconds, between the two specified times.
+""".
+-spec get_time_difference( time(), time() ) -> seconds().
+get_time_difference( _FirstTime={ H1, M1, S1 }, _SecondTime={ H2, M2, S2 } ) ->
+    (( H2-H1) * 60 + (M2-M1)) * 60 + S2-S1.
+
+
 
 -doc """
 Returns the signed duration, in integer seconds, between the two specified
@@ -1286,7 +1466,7 @@ frequency_to_period( Freq ) ->
 -doc """
 Waits (approximately) until the end of the specified period, which is expected
 to have started at the specified monotonic timestamp - which shall have been
-obtained thanks to get_monotonic_time/0.
+obtained thanks to `get_monotonic_time/0`.
 
 Returns (after some relevant time) whether this waiting is expected to have
 stopped on time.
@@ -1361,8 +1541,8 @@ get_system_time() ->
 Returns a timestamp tuple describing now, that is the current time, the time
 zone and Daylight Saving Time correction depending on the underlying OS.
 
-For example {{Year, Month, Day}, {Hour, Minute, Second}} = get_timestamp() may
-return {{2007,9,6}, {15,9,14}}.
+For example `{{Year, Month, Day}, {Hour, Minute, Second}} = get_timestamp()` may
+return `{{2007,9,6}, {15,9,14}}`.
 """.
 -spec get_timestamp() -> timestamp().
 get_timestamp() ->
@@ -1409,8 +1589,8 @@ get_epoch_milliseconds_since_year_0() ->
 Returns whether the specified term is a legit, valid (canonical) timestamp.
 
 A timestamp must be valid in terms of type (a pair of triplet of integers) and
-also of semantics (e.g. {{2022,9,31}, {18,0,0}} is not valid, at not 31st exists
-in September).
+also of semantics (e.g. `{{2022,9,31}, {18,0,0}}` is not valid, at not 31st
+exists in September).
 
 Useful to vet user-specified timestamps.
 """.
@@ -1537,7 +1717,7 @@ get_bin_textual_timestamp() ->
 
 -doc """
 Returns a string corresponding to the specified timestamp in a user-friendly
-manner, like: "Wednesday, January 6, 2021 at 11:46:53".
+manner, like: `"Wednesday, January 6, 2021 at 11:46:53"`.
 """.
 get_user_friendly_textual_timestamp(
 						_Timestamp={ Date={ Year, Month, Day }, Time } ) ->
@@ -1549,7 +1729,7 @@ get_user_friendly_textual_timestamp(
 
 -doc """
 Returns a string corresponding to the specified timestamp expressed in French,
-like: "le 1/9/2009, à 11h46m53".
+like: `"le 1/9/2009, à 11h46m53"`.
 """.
 -spec get_french_textual_timestamp( timestamp() ) -> ustring().
 get_french_textual_timestamp( _Timestamp={ { Year, Month, Day },
@@ -1583,12 +1763,12 @@ get_french_textual_timestamp( _Timestamp={ { Year, Month, Day },
 
 -doc """
 Returns a string corresponding to the current timestamp expressed as the
-"%time2" Date and time format, that is "yyyy-mm-dd hh-mm-ss"; for example:
-"2020-01-01 00-01-22".
+"%time2" Date and time format, that is `"yyyy-mm-dd hh-mm-ss"`; for example:
+`"2020-01-01 00-01-22"`.
 
 Used by various web-related tools (see
-<https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat> and
-<https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG>).
+[https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat] and
+[https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG]).
 """.
 -spec get_time2_textual_timestamp() -> ustring().
 get_time2_textual_timestamp() ->
@@ -1598,13 +1778,12 @@ get_time2_textual_timestamp() ->
 
 -doc """
 Returns a string corresponding to the specified timestamp expressed as the
-"%time2" Date and time format, that is "yyyy-mm-dd hh-mm-ss"; for example:
-"2020-01-01 00-01-22".
+"%time2" Date and time format, that is `"yyyy-mm-dd hh-mm-ss"`; for example:
+`"2020-01-01 00-01-22"`.
 
 Used by various web-related tools (see
-<https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat> and
-<https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG>).
-
+[https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat] and
+[https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG]).
 """.
 -spec get_time2_textual_timestamp( timestamp() ) -> ustring().
 get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
@@ -1616,7 +1795,7 @@ get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
 
 -doc """
 Returns a string corresponding to the current timestamp and able to be a part of
-a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
+a path (in a filesystem), like `"2010-11-18-at-13h-30m-35s"`.
 """.
 -spec get_textual_timestamp_for_path() -> ustring().
 get_textual_timestamp_for_path() ->
@@ -1626,7 +1805,7 @@ get_textual_timestamp_for_path() ->
 
 -doc """
 Returns a string corresponding to the specified timestamp and able to be a part
-of a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
+of a path (in a filesystem), like `"2010-11-18-at-13h-30m-35s"`.
 """.
 -spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
 get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
@@ -1638,7 +1817,7 @@ get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
 
 -doc """
 Returns a string corresponding to the specified timestamp, with "dash"
-conventions (e.g. used by jsgantt), like: "2017-05-20 12:00:17".
+conventions (e.g. used by jsgantt), like `"2017-05-20 12:00:17"`.
 """.
 -spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
 get_textual_timestamp_with_dashes( _Timestamp={ { Year, Month, Day },
@@ -1678,9 +1857,8 @@ timestamp_to_iso8601_bin_string( _Timestamp={ { Year, Month, Day },
 
 
 -doc """
-Parses back a timestamp in the form of "14/4/11 18:48" ("11" for 2011, and with
-no seconds specified) into a timestamp(), that is {_Date={Year,Month,Day},
-_Time={Hour,Minute,Second}}.
+Parses back a (string) timestamp in the form of `"14/4/11 18:48"` ("11" for
+2011, and with no seconds specified) into a `timestamp/0`.
 """.
 -spec short_string_to_timestamp( ustring() ) -> timestamp().
 short_string_to_timestamp( TimestampString ) ->
@@ -1707,7 +1885,6 @@ short_string_to_timestamp( TimestampString ) ->
 	end.
 
 
-
 -doc """
 Converts (with a bit of approximation) the specified number of Gregorian
 milliseconds into a proper, user-level (local, system) timestamp.
@@ -1721,10 +1898,9 @@ gregorian_ms_to_timestamp( GregorianMs ) ->
 		calendar:gregorian_seconds_to_datetime( GregorianSecs ) ).
 
 
-
 -doc """
-Parses back a timestamp in the form of "14/4/2011 18:48:51" into a timestamp(),
-that is {_Date={Year,Month,Day}, _Time={Hour,Minute,Second}}.
+Parses back a (string) timestamp in the form of `"14/4/2011 18:48:51"` into a
+`timestamp/0`.
 """.
 -spec string_to_timestamp( ustring() ) -> timestamp().
 string_to_timestamp( TimestampString ) ->
@@ -1751,9 +1927,7 @@ string_to_timestamp( TimestampString ) ->
 
 
 
--doc """
-Returns a textual description of the specified DHMS-based duration.
-""".
+-doc "Returns a textual description of the specified DHMS-based duration.".
 -spec dhms_to_string( dhms_duration() ) -> ustring().
 dhms_to_string( DHMS ) ->
 	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
@@ -1761,7 +1935,7 @@ dhms_to_string( DHMS ) ->
 
 
 -doc """
-Returns a textual description of the specified time of day, like: "9:14:57".
+Returns a textual description of the specified time of day, like: `"9:14:57"`.
 """.
 -spec time_to_string( time() ) -> ustring().
 time_to_string( _Time={ H, M, S } ) ->
@@ -1804,7 +1978,7 @@ timestamp_to_seconds() ->
 
 
 -doc """
-Returns the week day (e.g. 'Tuesday') corresponding to the specified timestamp.
+Returns the week day (e.g. `Tuesday`) corresponding to the specified timestamp.
 """.
 -spec timestamp_to_weekday( timestamp() ) -> week_day().
 timestamp_to_weekday( _Timestamp={ Date, _Time } ) ->
@@ -1813,7 +1987,7 @@ timestamp_to_weekday( _Timestamp={ Date, _Time } ) ->
 
 
 -doc """
-Returns the week day (e.g. 'Tuesday') corresponding to the specified date.
+Returns the week day (e.g. `Tuesday`) corresponding to the specified date.
 """.
 -spec date_to_weekday( date() ) -> week_day().
 date_to_weekday( Date ) ->
@@ -1928,8 +2102,8 @@ offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 Offsets the specified time of the specified (signed) duration: returns a time
 translated accordingly.
 
-Returns ?first_time if the resulting time would be offset to the previous day,
-and ?last_time if the resulting time would be offset to the next day.
+Returns `?first_time` if the resulting time would be offset to the previous day,
+and `?last_time` if the resulting time would be offset to the next day.
 """.
 -spec offset_time( time(), second_duration() ) -> time().
 offset_time( Time, SecDuration ) ->
@@ -1958,7 +2132,7 @@ offset_time( Time, SecDuration ) ->
 Returns the same timestamp as specified, except exactly one month later (hence
 not translated of a fixed duration).
 
-Note that this may still lead to invalid date, if the specified month has more
+Note that this may still lead to invalid dates, if the specified month has more
 days than the next (e.g. January, 31 becoming then a nonsensical February, 31).
 """.
 -spec next_month( timestamp() ) -> timestamp().
@@ -2005,7 +2179,7 @@ get_duration_since( StartTimestamp ) ->
 
 
 -doc """
-Returns an (english), smart textual description of the duration between the two
+Returns an (English), smart textual description of the duration between the two
 specified timestamps, using the first one as starting time and the second one as
 stopping time.
 """.
@@ -2045,14 +2219,14 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 Returns an approximate textual description, in the specified language, of the
 specified duration, expected to be expressed as a number of milliseconds
 (integer; otherwise, if being floating-point, it will be rounded), or as the
-'infinity' atom.
+`infinity` atom.
 
-For example for a duration of 150 012 ms, returns for English: "2 minutes, 30
-seconds and 12 milliseconds".
+For example for a duration of 150 012 ms, returns for English: `"2 minutes, 30
+seconds and 12 milliseconds"`.
 
-Can be fed directly with a time_out() value.
+Can be fed directly with a `time_out/0` value.
 
-See also: basic_utils:get_textual_duration/2.
+See also: `get_textual_duration/2`.
 """.
 -spec duration_to_string( milliseconds() | float() | 'infinity',
 						  language_utils:human_language() ) -> ustring().
@@ -2068,12 +2242,12 @@ duration_to_string( Duration, _Lang ) ->
 -doc """
 Returns an approximate textual (English) description of the specified duration,
 expected to be expressed as a signed number of milliseconds (integer; otherwise,
-if being floating-point, it will be rounded), or as the 'infinity' atom.
+if being floating-point, it will be rounded), or as the `infinity` atom.
 
-For example for a duration of 150 012 ms, returns: "2 minutes, 30 seconds and 12
-milliseconds".
+For example for a duration of 150 012 ms, returns: `"2 minutes, 30 seconds and
+12 milliseconds"`.
 
-See also: basic_utils:get_textual_duration/2.
+See also: `get_textual_duration/2`.
 """.
 -spec duration_to_string( milliseconds() | float() | 'infinity' ) -> ustring().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
@@ -2185,12 +2359,12 @@ duration_to_string( Other ) ->
 -doc """
 Returns an approximate textual, French description of the specified duration,
 expected to be expressed as a number of milliseconds (integer; otherwise, if
-being floating-point, it will be rounded), or as the 'infinity' atom.
+being floating-point, it will be rounded), or as the `infinity` atom.
 
-For example for a duration of 150 012 ms, returns: "2 minutes, 30 secondes et 12
-millisecondes".
+For example for a duration of 150 012 ms, returns: `"2 minutes, 30 secondes et
+12 millisecondes"`.
 
-See also: basic_utils:get_textual_duration/2.
+See also: `get_textual_duration/2`.
 """.
 -spec duration_to_french_string( milliseconds() | float() | 'infinity' ) ->
 										ustring().
@@ -2297,10 +2471,10 @@ duration_to_french_string( infinity ) ->
 Returns an approximate textual description of the specified time-out, in the
 specified language, expected to be expressed as a number of milliseconds
 (integer; otherwise, if being floating-point, it will be rounded), or as the
-'infinity' atom.
+`infinity` atom.
 
-For example for a time-out of 150 012 ms, returns for English: "time-out of 2
-minutes, 30 seconds and 12 milliseconds".
+For example for a time-out of 150 012 ms, returns for English: `"time-out of 2
+minutes, 30 seconds and 12 milliseconds"`.
 """.
 -spec time_out_to_string( time_out(),
 						  language_utils:human_language() ) -> ustring().
@@ -2319,12 +2493,12 @@ time_out_to_string( Duration, _Lang ) ->
 -doc """
 Returns an approximate textual (English) description of the specified time-out,
 expected to be expressed as a signed number of milliseconds (integer; otherwise,
-if being floating-point, it will be rounded), or as the 'infinity' atom.
+if being floating-point, it will be rounded), or as the `infinity` atom.
 
-For example for a time-out of 150 012 ms, returns: "time-out of 2 minutes, 30
-seconds and 12 milliseconds".
+For example for a time-out of 150 012 ms, returns: `"time-out of 2 minutes, 30
+seconds and 12 milliseconds"`.
 
-See also: basic_utils:get_textual_duration/2.
+See also: `get_textual_duration/2`.
 """.
 -spec time_out_to_string( time_out() ) -> ustring().
 time_out_to_string( _Timeout=infinity ) ->
@@ -2335,13 +2509,7 @@ time_out_to_string( Duration ) ->
 
 
 
--doc """
-Returns a timestamp that is as precise as possible, that is {MegaSecs, Secs,
-MicroSecs}. where:
- - MegaSecs is an integer number of millions of seconds
- - Secs is an integer number of seconds that is less than one million
- - MicroSecs is an integer number of microseconds
-""".
+-doc "Returns a precise timestamp.".
 -spec get_precise_timestamp() -> precise_timestamp().
 get_precise_timestamp() ->
 	% Was initially: erlang:now().
@@ -2355,7 +2523,7 @@ get_precise_timestamp() ->
 
 -doc """
 Returns the (signed) duration in milliseconds between the two specified precise
-timestamps (as obtained thanks to get_precise_duration/0), using the first one
+timestamps (as obtained thanks to `get_precise_duration/0`), using the first one
 as starting time and the second one as stopping time.
 """.
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
@@ -2370,7 +2538,7 @@ get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 
 -doc """
 Returns the (signed) duration in milliseconds between the specified precise
-timestamp (as obtained thanks to get_precise_duration/0) and the current time.
+timestamp (as obtained thanks to `get_precise_duration/0`) and the current time.
 """.
 -spec get_precise_duration_since( precise_timestamp() ) -> milliseconds().
 get_precise_duration_since( StartTimestamp ) ->
