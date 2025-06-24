@@ -32,7 +32,7 @@
 -moduledoc """
 Gathering of various convenient **network-related** facilities.
 
-See net_utils_test.erl for the corresponding test.
+See `net_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -110,7 +110,7 @@ See net_utils_test.erl for the corresponding test.
 -doc """
 An IPv6 address, using 16 bytes.
 
-For example 2001:0db8:0000:85a3:0000:0000:ac1f:8001.
+For example `2001:0db8:0000:85a3:0000:0000:ac1f:8001`.
 """.
 -type ip_v6_address() :: <<_:16*8>>.
 
@@ -147,7 +147,7 @@ We tend to favor atom-based node names (usual in Erlang) to string-based ones.
 -doc """
 A node type.
 
-See net_kernel:monitor_nodes/2 for more information.
+See `net_kernel:monitor_nodes/2` for more information.
 """.
 -type node_type() :: 'visible' | 'hidden' | 'all'.
 
@@ -224,7 +224,7 @@ A domain name (e.g. `"foo.baz.org"`), as a string.
 
 
 -doc """
-A domain name, as a binary string (e.g. ``<<"foo.baz.org">>``).
+A domain name, as a binary string (e.g. `<<"foo.baz.org">>`).
 """.
 -type bin_domain_name() :: bin_string().
 
@@ -238,8 +238,8 @@ An element of a domain name (e.g. `"foo"` in `"bar.foo.baz.org"`), as a string.
 
 
 -doc """
-An element of a domain name, as a binary string (e.g. <<"foo">> in
-"bar.foo.baz.org").
+An element of a domain name, as a binary string (e.g. `<<"foo">>` in
+`"bar.foo.baz.org"`).
 """.
 -type bin_subdomain() :: bin_string().
 
@@ -264,7 +264,7 @@ conventions.
 
 
 -doc """
-No standard definition of NameType found in net_kernel or elsewhere.
+No standard definition of NameType found in `net_kernel` or elsewhere.
 """.
 -type erlang_naming_type() :: 'shortnames' | 'longnames'.
 
@@ -442,7 +442,7 @@ ping( Hostname ) ->
 Returns an appropriate DNS name for the local host (as a plain string), or
 throws an exception.
 
-Tries to collect a FQDN (Fully Qualified Domain Name).
+Tries to collect a FQDN (*Fully Qualified Domain Name*).
 """.
 -spec localhost() -> string_host_name().
 localhost() ->
@@ -454,7 +454,7 @@ localhost() ->
 Returns an appropriate DNS name for the local host (as a binary string), or
 throws an exception.
 
-Tries to collect a FQDN (Fully Qualified Domain Name).
+Tries to collect a FQDN (*Fully Qualified Domain Name*).
 """.
 -spec bin_localhost() -> bin_host_name().
 bin_localhost() ->
@@ -589,7 +589,7 @@ localhost_for_node_name() ->
 
 -doc """
 Returns, from the specified FQDN, the corresponding actual host and its full
-domain if possible, otherwise jsut 'none_found'.
+domain if possible, otherwise just `none_found`.
 
 For example: `{"garfield", "baz.foobar.org"} =
 	split_fqdn("garfield.baz.foobar.org").`.
@@ -642,7 +642,7 @@ get_local_ip_addresses() ->
 			List;
 
 		{ error, Reason } ->
-			throw( { local_ip_look_up_failed, Reason } )
+			throw( { local_ip_lookup_failed, Reason } )
 
 	end,
 
@@ -770,7 +770,7 @@ get_reverse_lookup_info() ->
 					case executable_utils:lookup_executable( "dig" ) of
 						false ->
 							undefined;
-							%throw( { no_look_up_executable_found,
+							%throw( { no_lookup_executable_found,
 							%           [ "host", "drill", "dig" ] } );
 
 						DigPath ->
@@ -903,8 +903,8 @@ reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 -doc """
 Returns the name of the local node, as an atom.
 
-It is either a specific node name, or the atom 'local_node' (preferred to
-'nonode@nohost') - which unfortunately are both atoms...
+It is either a specific node name, or the atom `local_node` (preferred to
+`nonode@nohost`) - which unfortunately are both atoms...
 """.
 -spec localnode() -> atom_node_name() | 'local_node'.
 localnode() ->
@@ -942,8 +942,8 @@ Useful to allow multiple instances of a given application to run concurrently
 
 Restarts the distribution node with long names - however it is generally *not*
 expected to succeed. Anyway an often better solution is not running a networked
-(distributed) node at the first place (see NODE_NAMING="--nn") and (iff needed)
-to execute enable_distribution_mode/2 afterwards.
+(distributed) node at the first place (see `NODE_NAMING="--nn"`) and (iff
+needed) to execute `enable_distribution_mode/2` afterwards.
 """.
 -spec set_unique_node_name() -> void().
 set_unique_node_name() ->
@@ -975,7 +975,7 @@ set_unique_node_name() ->
 
 -doc """
 Returns the list of all connected nodes (each being designated by an atom, like
-'foo@bar.org'), including the local node.
+`foo@bar.org`), including the local node.
 """.
 -spec get_all_connected_nodes() -> [ atom_node_name() ].
 get_all_connected_nodes() ->
@@ -1026,20 +1026,20 @@ check_node_availability( NodeName ) when is_atom( NodeName ) ->
 
 -doc """
 Tells whether the specified Erlang node is available: returns
-{IsAvailable,Duration} where IsAvailable is a boolean and Duration is the number
-of milliseconds that was used to determine it.
+`{IsAvailable,Duration}` where `IsAvailable` is a boolean and `Duration` is the
+number of milliseconds that was used to determine it.
 
 Parameters:
 
 - NodeName is an atom or a string corresponding to the name of the target node
 
-- Timing is either 'immediate', 'with_waiting' or a positive number of attempts
+- Timing is either `immediate`, `with_waiting` or a positive number of attempts
 with exponential back-off:
 
-  - if 'immediate', the target node will be deemed available or not, as soon as
+  - if `immediate`, the target node will be deemed available or not, as soon as
   the first and only ping attempted returns a result
 
-  - if 'with_waiting', a fixed, default number of attempts with some exponential
+  - if `with_waiting`, a fixed, default number of attempts with some exponential
   waiting in-between will be performed, for a standard duration
 
   - if it is an integer, it will be used as a duration, i.e. the number of
@@ -1155,7 +1155,7 @@ check_node_availability( _NodeName, _CurrentDurationStep, ElapsedDuration,
 
 
 -doc """
-Returns the naming mode of this node, either 'short_name' or 'long_name',
+Returns the naming mode of this node, either `short_name` or `long_name`,
 provided that the current node is a distributed one.
 """.
 -spec get_node_naming_mode() -> option( node_naming_mode() ).
@@ -1271,9 +1271,9 @@ Returns the complete name of the specified node (as a string), which has to be
 used to target it from another node, with respect to the specified node naming
 conventions.
 
-For example for a node name "foo", a hostname "bar.org", with short names, we
-may specify "foo@bar" to target the corresponding node with these conventions
-(not a mere "foo", neither "foo@bar.org").
+For example for a node name `"foo"`, a hostname `"bar.org"`, with short names,
+we may specify `"foo@bar"` to target the corresponding node with these
+conventions (not a mere `"foo"`, neither `"foo@bar.org"`).
 """.
 -spec get_complete_node_name( string_node_name(), string_host_name(),
 							  node_naming_mode() ) -> atom_node_name().
@@ -1327,7 +1327,7 @@ If an EPMD instance is already launched for that port, no extra instance will be
 launched, the former one remaining the active one (possibly with different other
 settings); there is up to one EPMD instance per port.
 
-The actual EPMD port configured for Myriad (refer to the EPMD_PORT make
+The actual EPMD port configured for Myriad (refer to the `EPMD_PORT` make
 variable) does not seem to be easily available from an Erlang program.
 """.
 -spec launch_epmd( net_port() ) -> void().
@@ -1363,9 +1363,9 @@ in this module for that; apparently no race condition happens, hence initially
 no need for a wait-and-retry mechanism was seen here.
 
 Otherwise following messages might be output:
- - 'Protocol: "inet_tcp": register/listen error: econnrefused'
+ - `Protocol: "inet_tcp": register/listen error: econnrefused`
  - '{distribution_enabling_failed,foobar,long_name,{{shutdown,
-		{failed_to_start_child,net_kernel,{'EXIT',nodistribution}}},...
+		{failed_to_start_child,net_kernel,{'EXIT',nodistribution}}},...`
 
 In some cases yet (first time an Erlang program is run after boot?), a
 distribution_enabling_failed exception is raised, like in:
@@ -1408,7 +1408,7 @@ interest, or returns an error.
 The current node is supposedly not already distributed (otherwise the operation
 will fail).
 
-See enable_distribution_mode/2 for more information.
+See `enable_distribution_mode/2` for more information.
 """.
 -spec enable_preferred_distribution_mode( node_name(),
 				[ node_naming_mode() ] ) -> fallible( node_naming_mode() ).
@@ -1442,9 +1442,6 @@ enable_preferred_distribution_mode( NodeName, _NamingModes ) ->
 
 
 % We ensure that we have an actual error to report in all cases.
-%
-% (helper)
-%
 enable_preferred_distribution_mode( NodeName, _NamingModes=[], LastError ) ->
 
 	trace_utils:error_fmt( "No node naming left to enable the distribution "
@@ -1491,7 +1488,7 @@ enable_preferred_distribution_mode( NodeName,
 
 
 enable_preferred_distribution_mode( NodeName,
-					_NamingModes=[ InvalidMode | _T ], _LastError ) ->
+		_NamingModes=[ InvalidMode | _T ], _LastError ) ->
 
 	trace_utils:error_fmt( "Invalid node naming mode '~ts' specified for "
 						   "node '~ts'.", [ InvalidMode, NodeName ] ),
@@ -1581,7 +1578,7 @@ Especially useful in the context of continuous integration and/or from within a
 container facility such as Docker or Singularity, where enabling the
 distribution of nodes may fail for varied reasons.
 
-See enable_distribution_mode/2 for more details.
+See `enable_distribution_mode/2` for more details.
 """.
 -spec secure_distribution( node_name() ) -> node_naming_mode().
 secure_distribution( NodeName ) ->
@@ -1606,7 +1603,7 @@ secure_distribution( NodeName ) ->
 
 -doc """
 Returns the Erlang cookie of the current node if that node is alive, otherwise
-the 'nocookie' atom.
+the `nocookie` atom.
 """.
 -spec get_cookie() -> cookie() | 'nocookie'.
 get_cookie() ->
@@ -1641,8 +1638,8 @@ set_cookie( Cookie, Node ) ->
 
 
 -doc """
-Shutdowns current node, and never returns (unlike init:stop/0): it is a reliable
-and synchronous operation.
+Shutdowns current node, and never returns (unlike `init:stop/0`): it is a
+reliable and synchronous operation.
 
 Throws an exception if not able to terminate it.
 """.
@@ -1786,7 +1783,7 @@ get_cookie_option() ->
 -doc """
 Returns the default Erlang-level EPMD TCP port (not necessarily the one being
 currently used, not necessarily the one in the default Myriad settings either;
-refer to the EPMD_PORT variable in myriad/GNUmakevars.inc).
+refer to the `EPMD_PORT` variable in `myriad/GNUmakevars.inc`).
 """.
 -spec get_default_epmd_port() -> tcp_port().
 get_default_epmd_port() ->
@@ -1801,8 +1798,8 @@ node with the specified EPMD port specification, which can be either the
 
 Note that if a non-default EPMD port is specified for a new node, this implies
 that the current node usually has to itself respect the same non-standard
-convention (e.g. see the FIREWALL_OPT make option in myriad/GNUmakevars.inc),
-otherwise available nodes will not be found.
+convention (e.g. see the `FIREWALL_OPT` make option in
+`myriad/GNUmakevars.inc`), otherwise available nodes will not be found.
 """.
 -spec get_epmd_environment( option( tcp_port() ) ) -> environment().
 get_epmd_environment( undefined ) ->
@@ -1843,11 +1840,11 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 -doc """
 Returns the command-line option (a plain string) to be used to run a new Erlang
 node with the specified TCP port restriction, which can be either the
-'no_restriction' atom or a pair of integers {MinTCPPort,MaxTCPPort}.
+`no_restriction` atom or a pair of integers `{MinTCPPort,MaxTCPPort}`.
 
 If using a specific TCP/IP port range for a new node, the current node may have
-to respect this constraint as well (see the FIREWALL_OPT make option in
-myriad/GNUmakevars.inc), otherwise inter-node communication could fail.
+to respect this constraint as well (see the `FIREWALL_OPT` make option in
+`myriad/GNUmakevars.inc`), otherwise inter-node communication could fail.
 """.
 -spec get_tcp_port_range_option( 'no_restriction' | tcp_port_range() ) ->
 									ustring().
@@ -1943,7 +1940,7 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 
 -doc """
 Sends the specified file (most probably over the network) to the specified
-recipient PID, supposed to have already called one of the receive_file/{1,2,3}
+recipient PID, supposed to have already called one of the `receive_file/{1,2,3}`
 functions.
 
 The operation will be done filesystem-to-filesystem, hence no specific return is
@@ -2049,7 +2046,7 @@ send_file( FilePath, RecipientPid ) ->
 
 -doc """
 Receives specified file out of band (through a dedicated TCP socket, not thanks
-to Erlang messages), the emitter being supposed to use send_file/2.
+to Erlang messages), the emitter being supposed to use `send_file/2`.
 
 The file will be written in current directory, and the default TCP port will be
 used.
@@ -2065,7 +2062,7 @@ receive_file( EmitterPid ) ->
 -doc """
 Receives specified file out of band (through a dedicated TCP socket, not thanks
 to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use send_file/2.
+supposed to use `send_file/2`.
 
 The default TCP port will be used.
 
@@ -2080,7 +2077,7 @@ receive_file( EmitterPid, TargetDir ) ->
 -doc """
 Receives specified file out of band (through a dedicated TCP socket, not thanks
 to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use send_file/2.
+supposed to use `send_file/2`.
 
 The specified TCP port will be used for that.
 """.
@@ -2122,7 +2119,7 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 -doc """
 Receives specified file out of band (through a dedicated TCP socket - not thanks
 to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use send_file/2.
+supposed to use `send_file/2`.
 
 A TCP port in the specified range (min included, max excluded) will be used for
 that (useful to comply with some firewall rules).
@@ -2159,9 +2156,6 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 
 
 % Finds next available TCP port for listening in specified range.
-%
-% (helper)
-%
 listen_to_next_available_port( _CurrentTCPPort=MaxTCPPort, MinTCPPort,
 							   MaxTCPPort ) ->
 	throw( { no_available_listen_tcp_port, MinTCPPort, MaxTCPPort } );
@@ -2232,9 +2226,6 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 
 
 % Reads next chunk of transferred file.
-%
-% (helper)
-%
 receive_file_chunk( DataSocket, OutputFile ) ->
 
 	inet:setopts( DataSocket, [ { active, once } ] ),
@@ -2365,7 +2356,7 @@ is_service_running_at( TargetHostname, TCPPort, Timeout ) ->
 -doc """
 Tells whether the specified IPv4 address is routable.
 
-Note: the loopback ({127,0,0,1}, or {0,0,0,0,0,0,0,1}) is deemed routable.
+Note: the loopback (`{127,0,0,1}`, or `{0,0,0,0,0,0,0,1}`) is deemed routable.
 """.
 -spec is_routable( ip_v4_address() ) -> boolean().
 is_routable( { 10, _, _, _ } ) ->
