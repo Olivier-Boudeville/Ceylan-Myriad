@@ -393,7 +393,7 @@ get_value( Key, Table ) ->
 
 		false ->
 			% Badmatches are not informative enough:
-			trace_utils:error_fmt( "No key '~p' found in following table "
+			trace_utils:error_fmt( "No key '~p' found in the following table "
 				"(process: ~w): ~ts", [ Key, self(), to_string( Table ) ] ),
 			throw( { key_not_found, Key } )
 
