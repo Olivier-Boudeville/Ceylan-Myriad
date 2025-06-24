@@ -566,7 +566,7 @@ update_table( Table, Module, Pairs ) ->
 
 
 % Benchmarks look-up durations.
-benchmark_look_ups( Table, Module, Pairs ) ->
+benchmark_lookups( Table, Module, Pairs ) ->
 
 	%test_facilities:display( "Benchmarking ~ts on:~n~ts",
 	%		   [ Module, Module:to_string( Table ) ] ),
@@ -664,7 +664,7 @@ run_performance_tests() ->
 
 	ShuffledPairs = list_utils:random_permute( OtherPairs ),
 
-	LookedUpTimings = [ benchmark_look_ups( T, M, ShuffledPairs )
+	LookedUpTimings = [ benchmark_lookups( T, M, ShuffledPairs )
 						|| { M, T, _Timings } <- UpdatedTablesWithTimings ],
 
 	LookedUpStrings = [ text_utils:format( "for ~ts: ~.1f microsec",
@@ -682,7 +682,7 @@ run_performance_tests() ->
 	test_facilities:display(
 	  "~nBenchmarking look-ups (after optimisation)." ),
 
-	NewLookedUpTimings = [ benchmark_look_ups( T, M, ShuffledPairs )
+	NewLookedUpTimings = [ benchmark_lookups( T, M, ShuffledPairs )
 							|| { M, T, _Timings } <- OptimisedTables ],
 
 	NewLookedUpStrings = [ text_utils:format( "for ~ts: ~.1f microsec",
