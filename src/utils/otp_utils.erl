@@ -799,9 +799,9 @@ get_build_ebin_from_checkouts( BaseDir, AppNameStr ) ->
 Searches for the BEAM file corresponding to the specified module in the
 specified ebin or build directory, otherwise through current code path.
 """.
--spec look_up_beam( module_name(), abs_directory_path(),
-			abs_directory_path(), file_path(), application_name() ) -> void().
-look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
+-spec lookup_beam( module_name(), abs_directory_path(),
+    abs_directory_path(), file_path(), application_name() ) -> void().
+lookup_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 
 	TestedBeamFilename = code_utils:get_beam_filename( ModuleName ),
 
@@ -817,7 +817,7 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 			% directories are already in the code path. Checking that:
 			%
 			code_utils:is_beam_in_path( ModuleName ) =:= not_found andalso
-				look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath,
+				lookup_beam_last_chance( EBinPath, BaseDir, AppFilePath,
 					AppName, TestedBeamFilename, ExpectedModPath )
 
 		end.
@@ -825,9 +825,9 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 
 
 % Last chance to find a right BEAM path.
--spec look_up_beam_last_chance( file_path(), abs_directory_path(), file_path(),
-					application_name(), file_name(), file_path() ) -> void().
-look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
+-spec lookup_beam_last_chance( file_path(), abs_directory_path(), file_path(),
+	application_name(), file_name(), file_path() ) -> void().
+lookup_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
 						  TestedBeamFilename, ExpectedModPath ) ->
 
 	% Last chance: at least with some applications such as cowboy (taken as an
@@ -950,8 +950,8 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 				% Testing just the first module found:
 				{ value, [ FirstModName | _ ] } ->
-					look_up_beam( FirstModName, EBinPath, BaseDir, AppFilePath,
-								  AppName )
+					lookup_beam( FirstModName, EBinPath, BaseDir, AppFilePath,
+                                 AppName )
 
 			end,
 
