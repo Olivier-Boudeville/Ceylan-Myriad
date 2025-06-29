@@ -41,8 +41,12 @@ See `naming_utils_test.erl` for the corresponding test.
 		  unregister/2,
 
 		  vet_registration_name/1, check_registration_name/1,
-          vet_registration_scope/1, check_registration_scope/1,
-          vet_lookup_scope/1, check_lookup_scope/1,
+          vet_registration_scope/1, check_registration_scope/1 ]).
+
+
+
+% Lookup-related functions.
+-export([ vet_lookup_scope/1, check_lookup_scope/1,
 
 		  registration_to_lookup_scope/1,
 
@@ -61,7 +65,9 @@ See `naming_utils_test.erl` for the corresponding test.
 		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
 		  wait_for_local_registration_of/1, wait_for_local_registration_of/2,
 		  wait_for_remote_local_registrations_of/2,
-		  display_registered/0 ]).
+		  display_registered/0, lookup_info_to_string/1 ]).
+
+
 
 
 -doc "Necessarily an atom.".
@@ -139,6 +145,8 @@ Not to be mixed up with a registration scope.
 
 
 % Type shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 -type atom_node_name() :: net_utils:atom_node_name().
 
@@ -397,6 +405,27 @@ vet_lookup_scope( _Other ) ->
 check_lookup_scope( Term ) ->
     vet_lookup_scope( Term ) orelse
         throw( { invalid_registration_lookup_scope, Term } ).
+
+
+
+-doc """
+Converts a registration scope into a lookup one.
+
+Note: only legit for a subset of the registration scopes, otherwise a case
+clause is triggered.
+""".
+-spec registration_to_lookup_scope( registration_scope() ) -> lookup_scope().
+registration_to_lookup_scope( _RegScope=global_only ) ->
+	global;
+
+registration_to_lookup_scope( _RegScope=local_only ) ->
+	local;
+
+registration_to_lookup_scope( _RegScope=local_and_global ) ->
+	local_and_global;
+
+registration_to_lookup_scope( _RegScope=none ) ->
+	throw( no_possible_lookup_for_none ).
 
 
 
@@ -1102,18 +1131,8 @@ display_registered() ->
 
 
 
--doc """
-Converts a registration scope into a look-up one.
-
-Note: only legit for a subset of the registration scopes, otherwise a case
-clause is triggered.
-""".
--spec registration_to_lookup_scope( registration_scope() ) -> lookup_scope().
-registration_to_lookup_scope( _RegScope=global_only ) ->
-	global;
-
-registration_to_lookup_scope( _RegScope=local_only ) ->
-	local;
-
-registration_to_lookup_scope( _RegScope=local_and_global ) ->
-	local_and_global.
+-doc "Returns a textual representation of the specified lookup information.".
+-spec lookup_info_to_string( lookup_info() ) -> ustring().
+lookup_info_to_string( _LookUpInfo={ RegName, LookupScope } ) ->
+    text_utils:format( "~ts lookup of registration name '~ts'",
+                       [ LookupScope, RegName ] ).
