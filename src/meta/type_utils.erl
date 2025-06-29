@@ -44,16 +44,16 @@ parse-transforms, etc.
 % Types may be defined according to three forms, from the most human-focused to
 % the most computer-native one:
 %
-% F1. type-as-a-string, ie a textual specification possibly entered from a
+% F1. type-as-a-string, i.e. a textual specification possibly entered from a
 % user interface; for example, a type "my_type" may be specified as:
 % "foo|bar|[integer]"
 %
-% F2. type-as-a-contextual-term, ie an Erlang term that defines a type, yet
-% may still be contextual (ie it may depend on other non-builtin types); the
-% same example may then be defined as: { union, [ foo, bar, {list,[integer]} ]
-% }, where foo and bar are expected to be defined in the context
+% F2. type-as-a-contextual-term, i.e. an Erlang term that defines a type, yet
+% may still be contextual (i.e. it may depend on other non-builtin types); the
+% same example may then be defined as the {union, [foo, bar, {list,[integer]}]}
+% term, where foo and bar are expected to be defined in the context
 %
-% F3. explicit-type, ie a fully explicit, self-standing term defining a type
+% F3. explicit-type, i.e. a fully explicit, self-standing term defining a type
 % (therefore relying only on built-in types and type constructs); for example,
 % supposing that the type foo is an alias for float, and that the type bar is
 % specified as "'hello'|'goodbye'", the same example translates to the following
@@ -80,11 +80,11 @@ parse-transforms, etc.
 % A type signature is made from the type name and from a list of the type names
 % (if any) it depends upon.
 
-% For monomorphic types (ie types that are not parametrised by other types),
+% For monomorphic types (i.e. types that are not parametrised by other types),
 % their signature is their sole name. For example "foo" ("foo()" is also
 % accepted).
 
-% The signature of polymorphic types (ie types that are parametrised by other
+% The signature of polymorphic types (i.e. types that are parametrised by other
 % types) is made of their name immediately followed by a list of the names of
 % the types they depend upon, enclosed in parentheses.
 %
@@ -302,7 +302,7 @@ plain types).
 
 
 -doc """
-The "most precise" description of a in-memory primitive, in which:
+The "most precise" description of an in-memory primitive, in which:
 - simple types (e.g. `boolean` and `atom`) coexist (despite overlapping)
 - `number` and `bitstring` are not used (as they derive respectively from
 `float()|integer()` and `binary()`)
@@ -319,7 +319,7 @@ Polymorphic types (e.g. lists) are described with no mention of the types they
 may depend on (e.g. `list` can be specified, not `list(float())` or anything
 like that).
 
-The description of any given type is based on `primitive_type_description/0`)
+The description of any given type is based on `primitive_type_description/0`,
 and can be done in two complementary forms: the textual one, and the internal
 one, which are relatively different.
 """.
@@ -327,15 +327,23 @@ one, which are relatively different.
 									| 'binary'
 									| 'boolean'
 									| 'float'
-									| 'function'
 									| 'integer'
-									| 'list'
-									| 'map' % Could have been 'table'
 									| 'pid'
 									| 'port'
-									| 'record'
-									| 'reference'
-									| 'tuple'.
+									| 'reference'.
+
+
+-doc """
+Describes a compounding type.
+
+They can be nested (i.e. they can operate on primitive and/or compounding
+types).
+"""
+-type compounding_type_description() :: 'function'
+                                      | 'list'
+                                      | 'table' % (preferred to 'map')
+                                      | 'record'
+                                      | 'tuple'.
 
 
 -doc """
@@ -429,8 +437,8 @@ opposed to in the textual counterpart), parentheses cannot be used to express
 these polymorphic types (not only they denote function calls, but also are not
 legit components of a term); therefore the convention chosen here is to specify
 types as pairs, the first element being the name of the type, the second one
-being the (ordered) list of the types it depends on; then the textual type `"a(
-T1, T2 )"` is translated to the `{a,[T1,T2]}` type term; most types being
+being the (ordered) list of the types it depends on; then the textual type
+`"a(T1, T2)"` is translated to the `{a,[T1,T2]}` type term; most types being
 "monomorphic", they are represented as `{my_simple_type,[]}` (which cannot be
 abbreviated by only the `my_simple_type` atom, as it would lead to ambiguous
 forms)
@@ -500,8 +508,14 @@ expected: `{list, [{tuple, [{float, []}, {boolean, []}]}]}`.
 Note that such a type may not be fully explicit, as it may contain unresolved
 references to other types; for example: `{list, [{count, []}]}` does not specify
 what the `count()` type is.
+
+The fully explicit types (F3) can be obtained by composing the primitive types
+(see `primitive_type_description/0`) with the compounding, polymorphic
+construction types (see `compounding_type_description/0`).
 """.
--type type() :: term().
+%-type type() :: term().
+-type type() ::
+    tuploid( primitive_type_description() | compounding_type_description() ).
 
 
 
@@ -785,10 +799,10 @@ permanent iff all the terms that they aggregate are themselves permanent terms.
 Permanent terms are the opposite of transient ones.
 """.
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
-		| list( permanent_term() ) | tuple( permanent_term() )
-		% (maps:)map/2 does not exist apparently:
-		%| map( permanent_term(), permanent_term() )
-		| map().
+	| list( permanent_term() ) | tuple( permanent_term() )
+	% (maps:)map/2 does not exist apparently:
+	%| map( permanent_term(), permanent_term() )
+	| map().
 
 
 
@@ -852,7 +866,8 @@ Transient terms are the opposite of permanent ones.
 		  is_value_matching/2,
 		  get_low_level_type_size/1,
 		  is_transient/1, is_byte/1,
-		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1 ]).
+		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
+          coerce_string_to_term/2 ]).
 
 
 
@@ -1325,7 +1340,7 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-				                            when is_tuple( Term ) ->
+                                            when is_tuple( Term ) ->
 
 	Elems = [ interpret_type_helper( E, CurrentNestingLevel+1,
 									 MaxNestingLevel )
@@ -1339,11 +1354,11 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 												 CurrentNestingLevel ) ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				                            when is_port( Term ) ->
+                                            when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				                            when is_reference( Term ) ->
+                                            when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
@@ -1698,6 +1713,44 @@ is_neg_integer( I ) when is_integer( I ), I < 0 ->
 
 is_neg_integer( _Other ) ->
 	false.
+
+
+
+-doc """
+Converts the term specified as a string to the actual value that corresponds to
+its specified type.
+
+For example: `coerce_string_to_term("[4,3]", {list, [integer]})
+""".
+-spec coerce_string_to_term( any_string(), type() ) -> term().
+% Identity on binaries:
+coerce_string_to_term( BinStr, _Type=binary ) when is_binary( BinStr ) ->
+    BinStr;
+
+% To have a plain string in all cases:
+coerce_string_to_term( BinStr, Type ) when is_binary( BinStr ) ->
+    coerce_string_to_term( text_utils:binary_to_string( BinStr ), Type );
+
+% Now a plain string; first, simple, built-in types:
+coerce_string_to_term( Str, _Type=atom ) when is_list( Str ) ->
+    text_utils:string_to_atom( Str );
+
+coerce_string_to_term( Str, _Type=boolean ) when is_list( Str ) ->
+    Atom = text_utils:string_to_atom( Str ),
+    case is_boolean( Atom ) of
+
+        true ->
+            Atom;
+
+        false ->
+            throw( { not_boolean, Str } )
+
+    end;
+
+% Currently compounding constructs like list, map, tuple, union are not
+% supported.
+
+
 
 
 
