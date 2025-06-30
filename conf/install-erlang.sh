@@ -63,6 +63,8 @@ fi
 # it is just obtained from (some) downloaded source archive.
 
 
+erlang_sha512_for_28_0_1="77a0a40ea0f81a08fa00b018c55a34e632eb693c8ca4114066e9a98dbf997c1a017f986bc180c095616939f65a465bb776846c8a6a81f2773d6e8111d93ce527"
+
 erlang_sha512_for_28_0="2d85ce5ec069e483b4471053faf602d61abcb6fb1d041a0956df95ab38786944e3c3674a0ef3e84815d99d3bf955f2c4d93e151151672249cd48a2f7367f5c56"
 
 erlang_sha512_for_27_3_2="2268b86a30d64c5a060547d793ed93209144e3e2d07adb177325140ca7a4cbeff92d21113ca9925cb6a9b619e6f250b17d37a3bdd0c0956ea2a3af174e8b4a0a"
@@ -123,10 +125,10 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="28.0"
+erlang_version="28.0.1"
 #erlang_version="27.3.2"
 
-erlang_sum="${erlang_sha512_for_28_0}"
+erlang_sum="${erlang_sha512_for_28_0_1}"
 #erlang_sum="${erlang_sha512_for_27_3_2}"
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
@@ -135,8 +137,8 @@ erlang_sum="${erlang_sha512_for_28_0}"
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="27.3.2" # "27.2"
-erlang_sum_candidate="${erlang_sha512_for_27_2}"
+erlang_version_candidate="28.0" # "27.3.2"
+erlang_sum_candidate="${erlang_sha512_for_28_0}"
 #erlang_commit_id_candidate=""
 
 base_install_dir="${HOME}/Software/Erlang"
