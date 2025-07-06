@@ -28,7 +28,9 @@
 -module(type_utils).
 
 -moduledoc """
-Module helping to manage **datatypes** (and also values), notably in ASTs.
+Module helping to manage **datatypes** (and also values), notably in ASTs, but
+also for our (admittedly very limited) own type language (which does not
+specifically depends on Erlang).
 
 See `type_utils_test.erl` for the corresponding test.
 
@@ -44,37 +46,52 @@ parse-transforms, etc.
 % Types may be defined according to three forms, from the most human-focused to
 % the most computer-native one:
 %
-% F1. type-as-a-string, i.e. a textual specification possibly entered from a
-% user interface; for example, a type "my_type" may be specified as:
-% "foo|bar|[integer]"
+% F1. type-as-a-string, i.e. a textual specification of a type, possibly entered
+% from a user interface; for example, a type (possibly named "my_type") may be
+% specified as: "union(foo(), bar(), [integer()])"; this corresponds to the
+% text_type() type
 %
 % F2. type-as-a-contextual-term, i.e. an Erlang term that defines a type, yet
 % may still be contextual (i.e. it may depend on other non-builtin types); the
-% same example may then be defined as the {union, [foo, bar, {list,[integer]}]}
-% term, where foo and bar are expected to be defined in the context
+% same example may then be defined as the {union, [foo, bar, {list,integer}]}
+% contextual type (hence a term), where the foo/0 and bar/0 types are expected
+% to be defined in the context; this corresponds to the contextual_type() type;
+% note that here foo is a shorthand for {foo,[]}
 %
-% F3. explicit-type, i.e. a fully explicit, self-standing term defining a type
-% (therefore relying only on built-in types and type constructs); for example,
-% supposing that the type foo is an alias for float, and that the type bar is
-% specified as "'hello'|'goodbye'", the same example translates to the following
-% explicit type: {union, [float, {union,[ {atom,hello}, {atom,goodbye}]},
-% {list,[integer]}]}
+% F3. explicit-type, i.e. a fully explicit, self-standing, Erlang-level term
+% defining a type (therefore relying only on built-in types and type constructs,
+% the initial type being fully resolved into them); for example, supposing that
+% the type foo/0 is an alias for float, and that the type bar/0 is specified as
+% "'hello'|'goodbye'", the same example translates to the following explicit
+% type: {union, [float, {union,[{atom,hello}, {atom,goodbye}]},
+% {list,integer}]}; this corresponds to the resolved_type() type
 
 % Going from:
-%  - form F1 to form F2 is named (here) type parsing
-%  - form F2 to form F3 is named (here) type resolution
+%
+% - form F1 (text_type/0) to form F2 (contextual_type/0) is named (here) type
+% parsing
+%
+% - form F2 (contextual_type/0) to form F3 (resolved_type/0) is named (here)
+% type resolution
 
-
+% Instead of "union(T1, T2, T3)" we would have preferred "T1|T2|T3", but reusing
+% parts of the parser (possibly erl_parse.yrl) does not seem obvious.
 
 
 % On type names and signatures.
 
-% A type T (whether built-in or user-defined) is designated directly by its name
-% T, as an atom. For example written as "count", refered to as: count.
+% A type T (whether built-in or not - possibly user-defined) is designated
+% directly by its name T, as an atom, with its arity (supposing it depends on
+% the T1, T2, ..., Tk types); its F2 form (representation) is Rep(T) = {type,
+% TAsAtom, [Rep(T1), Rep(T2), ..., Rep(Tk)}.
+%
+% For example a type written as "count()", refered to as: 'count()', would be in
+% a F2 form designated as {type,count,[]} - and not just as
+% 'count'.
 
 % There are reserved type-related names (atoms), which correspond to:
 %  - built-in types: atom, integer, float, boolean, string, any, none
-%  - type constructs: list, map, tuple, union
+%  - type constructs: maybe, list, table, tuple, union
 
 
 % A type signature is made from the type name and from a list of the type names
@@ -92,8 +109,9 @@ parse-transforms, etc.
 % have for signature "T(T1, T2, ..., Tk)".
 
 
-% Let D( type_signature() ) -> type() be a pseudo-function returning the
-% explicit type definition (as a term) of a type (designated by its signature).
+% Let Rep(type_signature()) -> resolved_type() be a pseudo-function returning
+% the explicit type definition (as a term) of a type (designated by its
+% signature).
 
 
 
@@ -102,7 +120,7 @@ parse-transforms, etc.
 
 
 % The type 'atom' designates the set of (possibly user-defined) symbols (e.g.
-% 'true' or 'foo'). In a type definition, such a symbol consists on the atom
+% 'true' or 'foo'). In a type definition, such a symbol consists in the atom
 % itself, and is always written enclosed in single quotes ("'foo'"), in order to
 % distinguish it from the user-defined types (as one may define a type named
 % foo). So 'foo' can be considered here both as a type name and a value.
@@ -115,20 +133,22 @@ parse-transforms, etc.
 
 % The type 'boolean' designates a truth value, either 'true' or 'false'.
 
-% The type 'string' designates a string of characters (a text). A value of that
-% type is for example "Yellow submarine".
+% The type 'string' designates a string of characters (more precisely a UTF8
+% text). A value of that type is for example "Yellow submarine".
 
 % The type 'any' designates a value of any type (hence all values may be seen as
 % being of the 'any' type). Of course the actual, most precise type shall be
 % preferred wherever possible; this type is defined mostly for formal reasons
-% (completeness of the language of types)
+% (completeness of the language of types).
 
-% The type 'none' designates a value not having a type, which cannot happen
-% operationally (defined also on formal grounds, for completeness).
+% The type 'none' designates a value not having a type; this cannot happen
+% operationally (all expressions have a value, and all values have a type), but
+% means that the actual value is not of interest, i.e. is to be ignored (defined
+% also on formal grounds, for completeness).
 
 % Finally, for a built-in type T (designated as a whole - as opposed to defining
-% immediate values of it, as discussed in next section), D(T) = T. For example,
-% D(atom) = atom, or D(my_type) = my_type.
+% immediate values of it, as discussed in next section), Rep(TAsString) = T. For
+% example, Rep("atom") = atom, or Rep("my_type") = my_type.
 
 
 
@@ -140,34 +160,52 @@ parse-transforms, etc.
 
 % Let T1 be a type defined from an immediate value V of a type that is named T2
 % (hence T1 is a type comprising a single value); T1 is specified as "V"
-% (knowing that T2 can be inferred from V), and D(T1) = {T2, V}.
+% (knowing that T2 can be inferred from V), and Rep(T1) = {T2, V}.
 %
 % So, for example:
 %
-% - let A be a type corresponding to an immediate value of type atom; D(A) =
-% {atom, A}; for example, D(foo) = {atom, 'foo'}
+% - let A be a type corresponding to an immediate value of type atom;
+% Rep(AAsString) = {atom, A}; for example, Rep("foo") = {atom, 'foo'}
 %
-% - let I be a type corresponding to an immediate value of type integer; D(I) =
-% {integer, I}; for example, D(4) = {integer, 4}
+% - let I be a type corresponding to an immediate value of type integer;
+% Rep(IAsString) = {integer, I}; for example, Rep("4") = {integer, 4}
 %
-% - let F be a type corresponding to an immediate value of type float; D(F) =
-% {float, F}; for example, D(3.14) = {float, 3.14}
+% - let F be a type corresponding to an immediate value of type float;
+% Rep(FAsString) = {float, F}; for example, Rep("3.14") = {float, 3.14}
 %
-% - let S be a type corresponding to an immediate value of type string; D(S) =
-% {string, S}; for example, D("Yellow submarine") = {string, "Yellow submarine"}
+% - let S be a type corresponding to an immediate value of type string; Rep(S) =
+% {string, S}; for example, Rep("Yellow submarine") = {string, "Yellow
+% submarine"}
 
 
 
 
 % On type constructs.
 %
+% For a type T, let's denote its representation as a term as Rep(T).
+%
 % The supported type constructs are:
-%  - list
-%  - map
-%  - tuple
-%  - union
+%
+%  - maybe/1, i.e. optional values, to express option(T), i.e. T | 'undefined';
+%  represented as a term as {maybe, Rep(T)}
+%
+%  - list/1, i.e. homogeneous lists whose elements are of type T, represented as
+%  a term as {list, Rep(T)}; thus to be used for example as '{list, float}' to
+%  express [float()]; to designate heterogenous lists, i.e. list() (or [any()]),
+%  {list, any} is used.
+%
+%  - table/2, i.e. associative key/value tables, e.g. '{table,atom,string}' for
+%  table(atom(), ustring())
+%
+%  - tuple/*, i.e. fixed-size tuples of possibly heterogeneous types, e.g
+%  '{tuple, [boolean, T, float]}' (a value of that type being thus {true,
+%  ValueOfTypeT, 3.14}
+%
+%  - union/*, i.e. sets of possible types, e.g '{union, [boolean, T, float]}'
 %
 % Note: they can also be seen as built-in polymorphic types.
+%
+% Could be added later: integer ranges, records, functions (fun expressions).
 
 
 % On lists:
@@ -175,23 +213,23 @@ parse-transforms, etc.
 % Let L be a type corresponding to an (homogeneous, ordered) list (variable-size
 % container) whose all elements are of type T.
 %
-% L is written "[T]" and defined as D([T]) = {list, D(T)}.
+% L is written "[T]" and defined as Rep([T]) = {list, Rep(T)}.
 %
 % For example, if my_integer_list_type is defined as "[integer]", then
-% D(my_integer_list_type) = D([integer]) = {list, integer}
+% Rep(my_integer_list_type) = Rep([integer]) = {list, integer}
 %
 % A value of that type may be [] or [4, 9, 147, 5, 9].
 
 
-% On maps / (associative) tables:
+% On (associative) tables (corresponding to maps in Erlang):
 %
 % Let T be an associative table whose keys are of type Tk and values are of type
 % Tv.
 %
-% D(T) = {table, [D(Tk),D(Tv)]}.
+% Rep(T) = {table, [Rep(Tk),Rep(Tv)]}.
 %
-% For example, if my_table_type is defined as "table(integer, string)" then
-% D(my_table_type)= {table, [integer, string]}.
+% For example, if the my_table_type type is defined as "table(integer, string)"
+% then Rep(my_table_type)= {table, [integer, string]}.
 %
 % Values of that type are opaque (their translation as terms should remain
 % unbeknownst to the user, as if they were black boxes); such terms are to be
@@ -201,7 +239,7 @@ parse-transforms, etc.
 % table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([{1,
 % "One"}, {2, "Two"}, {5, "Five"}]).
 %
-% Note: maps/tables are not yet supported.
+% Note: tables are not yet supported.
 
 
 % On tuples:
@@ -209,11 +247,11 @@ parse-transforms, etc.
 % Let T be a type corresponding to a fixed-size, ordered container whose
 % elements are respectively of type T1, T2, Tk.
 %
-% D(T) = {tuple, [D(T1), D(T2), ..., D(Tk)]}.
+% Rep(T) = {tuple, [Rep(T1), Rep(T2), ..., Rep(Tk)]}.
 %
-% For example, if my_tuple_type is defined as "{integer,boolean|float,[atom]}"
-% then D(my_tuple_type)= {list, [integer, {union, [boolean, float]},
-% {list,atom}]}.
+% For example, if the my_tuple_type type is defined as "{integer,
+% union(boolean,float), [atom]}" then Rep(my_tuple_type)= {list, [integer,
+% {union, [boolean, float]}, {list,atom}]}.
 %
 % Values of that type may be {1, true, []} or {42,8.9,[joe,dalton]}.
 
@@ -223,11 +261,12 @@ parse-transforms, etc.
 % Let U be a type corresponding to the union of a set of types T1, T2, Tk; a
 % value of type U is thus of at least one of the types of that union.
 %
-% U is written as "T1|T2|...|Tk" and defined as D(U) = {union,
-% [D(T1),D(T2),...,D(Tk)]}.
+% U is written as "union(T1, T2, ..., Tk)" (or, in the future, "T1|T2|...|Tk")
+% and defined as Rep(U) = {union, [Rep(T1),Rep(T2),...,Rep(Tk)]}.
 %
-% For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
-% = {union, [foo, {atom,'kazoo'}, {list,integer}]}.
+% For example, if the my_type type is defined as "union(foo(), kazoo,
+% [integer()]", then Rep(my_type) = {union, [foo, {atom,'kazoo'},
+% {list,integer}]}.
 %
 % Values of that types may be 'kazoo', [3,3] of any value of type foo (whatever
 % it may be).
@@ -278,9 +317,17 @@ parse-transforms, etc.
 
 
 
+% Design notes:
+
+% - a type may be identified solely based on its name and arity
+%
+% - non-builtin types and atoms must be encoded differently, e.g., respectively,
+% [foo()] / {list, {foo,0}} versus [foo] / {list,{atom,foo}}
+
+
 -doc """
-Describes the name of a type (without the names of the types it depends on, for
-polymorphic ones).
+Describes the name of a type (without for polymorphic ones, the names of the
+types it depends on,).
 
 For example `my_count`.
 """.
@@ -289,7 +336,7 @@ For example `my_count`.
 
 
 -doc """
-Number of types a (possibly polymorphic) type depends on (possibly zero for
+A number of types a (possibly polymorphic) type depends on (possibly zero for
 plain types).
 """.
 -type type_arity() :: count().
@@ -298,6 +345,57 @@ plain types).
 
 -doc "Analoguous to `function_id/0`.".
 -type type_id() :: { type_name(), type_arity() }.
+
+
+
+-doc """
+A type-as-a-string, i.e. a textual specification of a type, possibly entered
+from a user interface; corresponds to the F1 form.
+
+Designed not to be Erlang-specific, for example to be used to specify the
+content of any networked messages, yet inspired from the syntax used for the
+(Erlang) type specifications
+([http://erlang.org/doc/reference_manual/typespec.html]).
+
+For example: `"[{float(), boolean()}]"` or `"foo()|bar|[integer()]"`, where
+`foo` is a (monomorphic) type (expected to be defined in the context) and `bar`
+is an atom.
+""".
+-type text_type() :: ustring().
+
+
+
+-doc """
+A type-as-a-contextual-term, i.e. an Erlang term that defines a type, yet may
+still be contextual (i.e. it may depend on other non-builtin types).
+
+This corresponds to the F2 form, and is relatively in the same spirit as the
+[Erlang Abstract Format](https://www.erlang.org/doc/apps/erts/absform.html),
+albeit this current form only deals with types (not programs, values, etc.).
+
+The same example of the `"foo()|bar|[integer]"` text_type() may then be defined
+here as the `{union, [{foo,[]}, {atom,bar}, {list, {integer,[]}}]}` contextual
+type (hence a term), where the `foo/0` type is expected to be defined in the
+context.
+""".
+-type contextual_type() :: term().
+
+
+
+-doc """
+An explicit, fully-resolved type, i.e. a self-standing, Erlang-level term
+defining a type (therefore relying only on built-in types and type constructs,
+all initial types having been fully resolved into them); corresponds to the F3
+form.
+
+For example, supposing that the type `foo()` is an alias for `float()`, and that
+the type `buzz()` is specified as `"hello|goodbye"`, a
+`"foo()|buzz()|[integer]"` text_type() translates to the following resolved
+type: `{union, [float, {union, [{atom,hello}, {atom,goodbye}]},
+{list,integer}]}`.
+""".
+-type resolved_type() :: term().
+
 
 
 
@@ -323,27 +421,51 @@ The description of any given type is based on `primitive_type_description/0`,
 and can be done in two complementary forms: the textual one, and the internal
 one, which are relatively different.
 """.
--type primitive_type_description() :: 'atom'
-									| 'binary'
-									| 'boolean'
-									| 'float'
-									| 'integer'
-									| 'pid'
-									| 'port'
-									| 'reference'.
+-type primitive_type_description() ::
+    'atom'
+  | 'binary'
+  | 'boolean'
+  | 'float'
+  | 'integer'
+  | 'pid'
+  | 'port'
+  | 'reference'.
 
 
 -doc """
-Describes a compounding type.
+For primitive types, the specification is the same of the description.
+""".
+-type primitive_type_spec() :: primitive_type_description().
+
+
+
+-doc """
+Describes a compounding type, i.e. a type possibly involving/aggregating other
+types.
 
 They can be nested (i.e. they can operate on primitive and/or compounding
 types).
-"""
--type compounding_type_description() :: 'function'
-                                      | 'list'
-                                      | 'table' % (preferred to 'map')
-                                      | 'record'
-                                      | 'tuple'.
+""".
+-type compounding_type_description() ::
+    % Some day maybe: 'function', 'record'
+      'list'
+    | 'table' % (preferred to 'map')
+    | 'tuple'
+    | 'union'.
+
+
+
+-doc """
+Specification of a compounding type.
+""".
+-type compounding_type_spec() ::
+    { 'list', type() }
+  | { 'table', type(), type() }
+  | { 'tuple', [ type() ] }
+  | { 'union', [ type() ] }.
+
+
+
 
 
 -doc """
@@ -355,39 +477,39 @@ given value matches one of these types (see `is_value_matching/2`).
 
 See also `get_ast_simple_builtin_types/0`.
 """.
--type value_description() :: 'atom'
-						   | 'binary'
-						   | 'bitstring'
-						   | 'boolean'
-						   | 'float'
-						   | 'function'
-						   | 'atom_or_function'
+-type value_description() ::
+    'atom'
+  | 'binary'
+  | 'bitstring'
+  | 'boolean'
+  | 'float'
+  | 'function'
+  | 'atom_or_function'
 
-						   | 'byte'
-						   | 'char'
+  | 'byte'
+  | 'char'
 
-						   | 'string' % Plain one
-						   | 'nonempty_string'
+  | 'string' % Plain one
+  | 'nonempty_string'
 
-						   | 'string_like' % Plain, binary strings, atoms, lists
-										   % of them, etc.: iolist/0 or
-										   % unicode:chardata/0
+  | 'string_like' % Plain, binary strings, atoms, lists of them, etc.: iolist/0
+                  % or unicode:chardata/0
 
-						   | 'integer'
-						   | 'pos_integer'
-						   | 'neg_integer'
-						   | 'non_neg_integer'
+  | 'integer'
+  | 'pos_integer'
+  | 'neg_integer'
+  | 'non_neg_integer'
 
-						   | 'number'
+  | 'number'
 
-						   | 'list'
-						   | 'map' % Could have been 'table'
-						   | 'pid'
-						   | 'port'
-						   | 'record'
-						   | 'reference'
-						   | 'tuple'
-						   | 'term'.
+  | 'list'
+  | 'table' % Could have been 'map'
+  | 'pid'
+  | 'port'
+  | 'record'
+  | 'reference'
+  | 'tuple'
+  | 'term'.
 
 
 
@@ -417,8 +539,8 @@ the bracket depth (i.e. the same principle, for `"[]"` instead of for `"()"`).
 
 -doc """
 Internal, "formal", actual programmatic description of a type according to our
-conventions: type-as-a-term (either contextual or explicit, F2 or F3), relying
-on a translated version of the textual type (which is for example:
+conventions: type-as-a-term (either contextual or explicit, i.e. F2 or F3),
+relying on a translated version of the textual type (which is for example:
 `"[{float,boolean}]"`).
 
 This "internal type language of the Myriad layer" is largely inspired from the
@@ -482,7 +604,8 @@ We can therefore describe this way arbitrary types as valid terms.
 Next steps:
 
 - define and document the full type language (elementary datatypes - like
-boolean, integer, float, atoms - and constructs - like list, map, tuple, union)
+boolean, integer, float, atoms - and constructs - like list, table, tuple,
+union)
 
 - support it, notably define functions to tell whether a given term is an
 instance of a specified type
@@ -512,10 +635,12 @@ what the `count()` type is.
 The fully explicit types (F3) can be obtained by composing the primitive types
 (see `primitive_type_description/0`) with the compounding, polymorphic
 construction types (see `compounding_type_description/0`).
+
+It is ultimately a recursive type.
 """.
 %-type type() :: term().
 -type type() ::
-    tuploid( primitive_type_description() | compounding_type_description() ).
+    tuploid( primitive_type_spec() | compounding_type_spec() ).
 
 
 
@@ -738,7 +863,8 @@ We name tuploid a pseudo-tuple, that is a value that is either an actual tuple
 or a single, standalone term, designated as a "basic tuploid".
 
 That is, a tuploid is a tuple of any size, except that the tuploid of size 1 is
-`MyTerm`, not `{MyTerm}`.
+`MyTerm`, not the rather useless `{MyTerm}`. Note that if `MyTerm` can itself be
+a tuple, this is bound to lead to ambiguities.
 """.
 -type tuploid() :: tuploid( term() ).
 
@@ -773,7 +899,7 @@ elements are all of the type T.
 -type counters() :: tuple( count() ).
 
 
-% Not needed or useful as map/0() is a built-in type:
+% Not needed or useful, as map/0 is a built-in type:
 %-type map() :: map( any(), any() ).
 
 
@@ -790,8 +916,8 @@ As `(maps:)map/2 `does not even exist apparently, at least not since 18.0.
 
 -doc """
 Designates values that are permanent, meaning that are context-free, not
-runtime-specific and can be reproduced (e.g. serialised); and for example PIDs
-are transient terms, not permanent ones.
+runtime-specific and can be reproduced (e.g. serialised); for example PIDs are
+transient terms, not permanent ones.
 
 As for compound datatypes (lists, tuples and thus records, maps), they are also
 permanent iff all the terms that they aggregate are themselves permanent terms.
@@ -823,7 +949,8 @@ Transient terms are the opposite of permanent ones.
 
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
-			   primitive_type_description/0,
+			   primitive_type_description/0, primitive_type_spec/0,
+               compounding_type_description/0, compounding_type_spec/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   void/0, low_level_type/0,
 
@@ -867,7 +994,7 @@ Transient terms are the opposite of permanent ones.
 		  get_low_level_type_size/1,
 		  is_transient/1, is_byte/1,
 		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
-          coerce_string_to_term/2 ]).
+          coerce_stringified_to_type/2 ]).
 
 
 
@@ -984,6 +1111,8 @@ Transient terms are the opposite of permanent ones.
 -type array() :: array:array().
 
 -type ustring() :: text_utils:ustring().
+-type any_string() :: text_utils:any_string().
+
 
 -type byte_size() :: system_utils:byte_size().
 
@@ -1195,7 +1324,7 @@ get_type_of( Term ) when is_list( Term ) ->
 	end;
 
 get_type_of( Term ) when is_map( Term ) ->
-	'map';
+	'table';
 
 get_type_of( Term ) when is_port( Term ) ->
 	'port';
@@ -1311,7 +1440,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 					   MaxNestingLevel ) when is_map( Term ) ->
-	text_utils:format( "map of ~B entries", [ maps:size( Term ) ] );
+	text_utils:format( "table of ~B entries", [ maps:size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 				when is_map( Term ) ->
@@ -1323,7 +1452,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 										 MaxNestingLevel ) ] )
 						|| { K, V } <- maps:to_list( Term ) ],
 
-	text_utils:format( "map of ~B entries: ~ts", [ maps:size( Term ),
+	text_utils:format( "table of ~B entries: ~ts", [ maps:size( Term ),
 		text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
 
 
@@ -1450,19 +1579,34 @@ is_type( ElemType ) ->
 
 
 
--doc """
-Tells whether the specified term is of the specified type (predicate).
-
-Note: currently only a very partial checking is made, based on top-level
-primitive types; later the type will be recursed into, in order to check whether
-the term complies with this expected structure.
-""".
+-doc "Tells whether the specified term is of the specified type (predicate).".
 -spec is_of_type( term(), type() ) -> boolean().
+% First, our own simple types:
 is_of_type( _Term, _Type='any' ) ->
 	true;
 
 is_of_type( Term, _Type='string' ) when is_list( Term ) ->
 	text_utils:is_string( Term );
+
+is_of_type( ListTerm, _Type={ list, ElemType } ) when is_list( ListTerm ) ->
+	lists:all( _Pred=fun( E ) -> is_of_type( E, ElemType ) end,
+               ListTerm );
+
+is_of_type( TableTerm, _Type={ table, KeyType, ValueType } ) ->
+    Entries = table:enumerate( TableTerm ),
+    lists:all( _Pred=fun( { K, V } ) ->
+        is_of_type( K, KeyType ) andalso is_of_type( V, ValueType )
+                     end, Entries );
+
+is_of_type( TupleTerm, _Type={ tuple, Types } ) when is_tuple( TupleTerm ) ->
+    Elems = tuple_to_list( TupleTerm ),
+
+
+
+
+
+
+
 
 is_of_type( Term, Type ) ->
 	get_type_of( Term ) =:= Type.
@@ -1470,7 +1614,7 @@ is_of_type( Term, Type ) ->
 
 
 -doc """
-Tells whether the specified term is of specified textually-described type.
+Tells whether the specified term is of the specified textually-described type.
 
 Note: currently no checking is made and the test always succeeds.
 """.
@@ -1718,34 +1862,46 @@ is_neg_integer( _Other ) ->
 
 -doc """
 Converts the term specified as a string to the actual value that corresponds to
-its specified type.
+the specified type.
 
-For example: `coerce_string_to_term("[4,3]", {list, [integer]})
+For example: `coerce_stringified_to_type("[4,3]", {list,integer}) = [4,3]`.
 """.
--spec coerce_string_to_term( any_string(), type() ) -> term().
-% Identity on binaries:
-coerce_string_to_term( BinStr, _Type=binary ) when is_binary( BinStr ) ->
-    BinStr;
-
+-spec coerce_stringified_to_type( any_string(), type() ) -> term().
 % To have a plain string in all cases:
-coerce_string_to_term( BinStr, Type ) when is_binary( BinStr ) ->
-    coerce_string_to_term( text_utils:binary_to_string( BinStr ), Type );
+coerce_stringified_to_type( BinStr, Type ) when is_binary( BinStr ) ->
+    coerce_stringified_to_type( text_utils:binary_to_string( BinStr ), Type ). %;
 
-% Now a plain string; first, simple, built-in types:
-coerce_string_to_term( Str, _Type=atom ) when is_list( Str ) ->
-    text_utils:string_to_atom( Str );
+% Now a plain string;
+coerce_stringified_to_type( ValueStr, Type ) when is_binary( BinStr ) ->
+    Value = ast_utils:string_to_value( ValueStr ),
 
-coerce_string_to_term( Str, _Type=boolean ) when is_list( Str ) ->
-    Atom = text_utils:string_to_atom( Str ),
-    case is_boolean( Atom ) of
+    case is_of_type( Value, Type ) of
 
         true ->
-            Atom;
+            Value;
 
         false ->
-            throw( { not_boolean, Str } )
+            throw( { value_not_matching_type, ValueStr, Value, Type } )
 
-    end;
+    end.
+
+
+
+%% first, simple, built-in types:
+%% coerce_stringified_to_type( Str, _Type=atom ) when is_list( Str ) ->
+%%     text_utils:string_to_atom( Str );
+
+%% coerce_stringified_to_type( Str, _Type=boolean ) when is_list( Str ) ->
+%%     Atom = text_utils:string_to_atom( Str ),
+%%     case is_boolean( Atom ) of
+
+%%         true ->
+%%             Atom;
+
+%%         false ->
+%%             throw( { not_boolean, Str } )
+
+%%     end;
 
 % Currently compounding constructs like list, map, tuple, union are not
 % supported.
