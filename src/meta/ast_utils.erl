@@ -36,8 +36,8 @@ could change over time (a bit like the erl_syntax standard module, albeit with a
 different set of conventions).
 
 See also:
-- the meta_utils module, for meta primitives less directly linked with syntax
-- the ast_scan module, to perform a full, strict traversal of an AST
+- the `meta_utils` module, for meta primitives less directly linked with syntax
+- the `ast_scan` module, to perform a full, strict traversal of an AST
 """.
 
 
@@ -89,7 +89,7 @@ See also:
 -doc """
 Full information about a compilation-related issue.
 
-The module is the one emitting that issue (e.g. erl_lint).
+The module is the one emitting that issue (e.g. `erl_lint`).
 """.
 % Probably corresponds to for example erl_parse:error_info/0:
 -type issue_info() :: { stream_loc(), module(), issue_description() }.
@@ -97,7 +97,8 @@ The module is the one emitting that issue (e.g. erl_lint).
 
 
 -doc """
-A warning regarding a source file, corresponding to a list of error information.
+A warning regarding a source file, corresponding to a list of error information
+elements.
 """.
 -type issue_report() :: { file_name(), [ issue_info() ] }.
 
@@ -123,7 +124,8 @@ A warning regarding a source file, corresponding to a list of error information.
 
 % Converting:
 -export([ erl_to_ast/1, erl_to_ast/2,
-		  beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
+		  beam_to_ast/1, term_to_form/1,
+          variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
 		  string_to_expressions/1, string_to_expressions/2,
 		  string_to_value/1 ]).
@@ -451,13 +453,13 @@ check_arity( Other, Context ) ->
 
 
 -doc """
-Reads specified Erlang source file (*.erl) and returns the corresponding AST,
-based on default preprocessor options.
+Reads the specified Erlang source file (`*.erl`) and returns the corresponding
+AST, based on the default preprocessor options.
 
 For example useful to debug a parse transform first separately from the compile
 pipe-line, relying here on the usual, convenient error management instead of
-having little informative messages like: 'undefined parse transform 'foobar'' as
-soon as a call to a non-existing module:function/arity is made.
+having little informative messages like: `undefined parse transform 'foobar'` as
+soon as a call to a non-existing `module:function/arity` is made.
 """.
 -spec erl_to_ast( file_name() ) -> ast().
 erl_to_ast( ErlSourceFilename ) ->
@@ -466,13 +468,13 @@ erl_to_ast( ErlSourceFilename ) ->
 
 
 -doc """
-Reads specified Erlang source file (*.erl) and returns the corresponding AST,
-based on specified preprocessor (eep) options.
+Reads the specified Erlang source file (`*.erl`) and returns the corresponding
+AST, based on the specified preprocessor (eep) options.
 
 For example useful to debug a parse transform first separately from the compile
 pipe-line, relying here on the usual, convenient error management instead of
-having little informative messages like: 'undefined parse transform 'foobar'' as
-soon as a call to a non-existing module:function/arity is made.
+having little informative messages like: `undefined parse transform 'foobar'` as
+soon as a call to a non-existing `module:function/arity` is made.
 """.
 -spec erl_to_ast( file_name(), [ preprocessor_option() ] ) -> ast().
 erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
@@ -572,8 +574,10 @@ beam_to_ast( BeamFilename ) ->
 
 
 -doc """
-Converts the specified Erlang term (e.g. the float '42.0') into a corresponding
-form (e.g. '{float, _StreamLoc={0,1}, 42.0}').
+Converts the specified Erlang term (e.g. the float `42.0`) into a corresponding
+form (e.g. `{float, _StreamLoc={0,1}, 42.0}`).
+
+See `ast_generation:form_to_term/1` for the reciprocal operation.
 """.
 -spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
@@ -600,7 +604,7 @@ term_to_form( Term ) ->
 Converts a list of names of variables into the corresponding AST, at the
 specified in-stream location.
 
-For example if wanting to specify '[V1, Alpha, A]', we have:
+For example if wanting to specify `[V1, Alpha, A]`, we have:
 ```
 variable_names_to_ast(["V1", "Alpha", "A"], _StreamLoc=0) = [ {cons,0,
 {var,0,'V1'}, {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0}}}}]
@@ -623,7 +627,7 @@ Converts the specified source code of a form (as a string) into its
 corresponding abstract form (using the default in-stream location applying to
 generated code).
 
-For example string_to_form("f() -> hello_world.") may return
+For example `string_to_form("f() -> hello_world.")` may return
 ```
    {function, {0,1}, f, 0, [{clause, {0,1}, [], [],
 	   [ {atom, {0,1}, hello_world} ] } ] }
@@ -640,7 +644,7 @@ Converts the specified source code of a form (that is, a string) into its
 corresponding abstract form, at the specified in-stream location.
 
 For example `string_to_form("f() -> hello_world.", 42)` may return
-   `{function, 42, f, 0, [{clause, 42, [], [], [{atom,42,hello_world}]}]}`
+   `{function, 42, f, 0, [{clause, 42, [], [], [{atom,42,hello_world}]}]}`.
 """.
 -spec string_to_form( ustring(), stream_loc() ) -> form().
 string_to_form( FormString, StreamLoc ) ->
@@ -687,8 +691,8 @@ For example `string_to_expressions("[{a, 1}, foobar]")` may return:
 """.
 
 -spec string_to_expressions( ustring() ) -> ast().
-string_to_expressions( ExpressionString ) ->
-	string_to_expressions( ExpressionString,
+string_to_expressions( ExprStr ) ->
+	string_to_expressions( ExprStr,
 						   _FileLoc=?default_generation_location ).
 
 
@@ -699,16 +703,16 @@ into the corresponding abstract form.
 
 For example `string_to_expressions("[{a, 1}, foobar]", _Loc=42)` may return
 ```
-[ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
-  {cons, 42, {atom,42,foobar}, {nil,42} }}]
+[{cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
+ {cons, 42, {atom,42,foobar}, {nil,42} }}]
 ```
-Note: at least with OTP24, apparently FileLoc cannot include a column
+Note: at least with OTP-24, apparently FileLoc cannot include a column.
 """.
 -spec string_to_expressions( ustring(), file_loc() ) -> ast().
-string_to_expressions( ExpressionString, FileLoc ) ->
+string_to_expressions( ExprStr, FileLoc ) ->
 
 	% First get Erlang tokens from that string:
-	Tokens = case erl_scan:string( ExpressionString, FileLoc ) of
+	Tokens = case erl_scan:string( ExprStr, FileLoc ) of
 
 		% For example [ {'[',42}, {'{',42}, {atom,42,a}, {',',42},
 		% {integer,42,1}, {'}',42}, {',',42}, {atom,42,foobar}, {']',42}]
@@ -718,7 +722,7 @@ string_to_expressions( ExpressionString, FileLoc ) ->
 			Toks;
 
 		ErrorTok ->
-			throw( { expression_tokenizing_error, ExpressionString, ErrorTok } )
+			throw( { expression_tokenizing_error, ExprStr, ErrorTok } )
 
 	end,
 
@@ -730,7 +734,7 @@ string_to_expressions( ExpressionString, FileLoc ) ->
 			ParseTree;
 
 		ErrorPar ->
-			throw( { expression_parsing_error, ExpressionString, ErrorPar } )
+			throw( { expression_parsing_error, ExprStr, ErrorPar } )
 
 	end.
 
@@ -740,19 +744,28 @@ string_to_expressions( ExpressionString, FileLoc ) ->
 Converts the specified source code of a term (that is, a string) into its
 corresponding value.
 
+May throw an exception.
+
 For example `string_to_value("[{tiger,[lion,leopard]}]")` returns the `[{tiger,
 [lion,leopard]}]` term.
 """.
 -spec string_to_value( ustring() ) -> term().
-string_to_value( ExpressionString ) ->
+string_to_value( ExprStr ) ->
 
-	% We automatically add the necessary final dot:
-	[ Expr ] = string_to_expressions( ExpressionString ++ "." ),
+	% Automatically add the necessary final dot:
+	case string_to_expressions( ExprStr ++ "." ) of
 
-	{ value, Result, _NewBindings } = erl_eval:expr( Expr, _Bindings=[] ),
+        [ Expr ] ->
+            % No other pattern to expect apparently:
+            { value, Result, _NewBindings } =
+                erl_eval:expr( Expr, _Bindings=[] ),
 
-	Result.
+            Result;
 
+        _Exprs ->
+            throw( { multiple_expressions, ExprStr } )
+
+    end.
 
 
 
@@ -856,7 +869,7 @@ display_emergency( FormatString, Values ) ->
 
 
 
--doc "Notifies a warning, with specified context.".
+-doc "Notifies a warning, with the specified context.".
 -spec notify_warning( [ term() ], form_context() ) -> void().
 notify_warning( Elements, Context ) ->
 
@@ -903,7 +916,6 @@ term (often, a list of error elements).
 
 Used to be a simple throw, but then for parse transforms the error message was
 garbled in messages like:
-
 ```
 internal error in lint_module;
 crash reason: function_clause
@@ -914,7 +926,6 @@ table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
 ```
 
 Note:
-
 - this function is used to report errors detected by Myriad itself (not by the
 Erlang toolchain)
 
@@ -943,14 +954,12 @@ raise_error( ErrorTerm ) ->
 Raises an error, with the specified context, thanks to the specified term
 (often, a list of error elements), from the Myriad layer.
 
-For example raise_error([invalid_module_name, Other], _Context=112) shall result
-in throwing {invalid_module_name, Other, {line, 112}}.
+For example `raise_error([invalid_module_name, Other], _Context=112)` shall
+result in throwing `{invalid_module_name, Other, {line, 112}}`.
 
 Note:
-
 - this function is used to report errors detected by Myriad itself (not by the
 Erlang toolchain)
-
 - prefer using raise_usage_error/* to report errors in a more standard,
 convenient way
 """.
@@ -964,9 +973,9 @@ raise_error( ErrorTerm, Context ) ->
 Raises an error, with the specified context, from the specified layer (expected
 to be above Myriad).
 
-For example raise_error([invalid_module_name, Other], _Context=112,
-_OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other,
-{line, 112}}.
+For example `raise_error([invalid_module_name, Other], _Context=112,
+_OriginLayer="FooLayer")` shall result in throwing `{invalid_module_name, Other,
+{line, 112}}`.
 
 Note:
 - this function is used to report errors detected by Myriad itself (not by the
@@ -1108,9 +1117,9 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 
 
 -doc """
-Raises a (compile-time, relatively standard) user-related error, with specified
-source context, to stop the build on failure and report adequately the actual
-error to the user.
+Raises a (compile-time, relatively standard) user-related error, with the
+specified source context, to stop the build on failure and report adequately the
+actual error to the user.
 """.
 -spec raise_usage_error( format_string(), format_values(),
 						 file_name() | module_name() ) -> no_return().
@@ -1155,7 +1164,7 @@ applying a parse transform, to stop the build on failure and report the actual
 error.
 
 The specified error term will be transformed by the specified module into a
-(textual) error message (see format_error/1), and then will be reported as
+(textual) error message (see `format_error/1`), and then will be reported as
 originating from the specified location in the source file of the module being
 compiled.
 """.
@@ -1192,11 +1201,7 @@ format_error( ErrorTerm ) ->
 
 
 
--doc """
-Returns error/warning elements including the specified context.
-
-(helper)
-""".
+-doc "Returns error/warning elements including the specified context.".
 -spec get_elements_with_context( [ term() ], option( source_context() ) ) ->
 										[ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
