@@ -338,7 +338,7 @@ Describes a compounding type.
 
 They can be nested (i.e. they can operate on primitive and/or compounding
 types).
-"""
+""".
 -type compounding_type_description() :: 'function'
                                       | 'list'
                                       | 'table' % (preferred to 'map')
@@ -984,6 +984,7 @@ Transient terms are the opposite of permanent ones.
 -type array() :: array:array().
 
 -type ustring() :: text_utils:ustring().
+-type any_string() :: text_utils:any_string().
 
 -type byte_size() :: system_utils:byte_size().
 
@@ -1745,7 +1746,7 @@ coerce_string_to_term( Str, _Type=boolean ) when is_list( Str ) ->
         false ->
             throw( { not_boolean, Str } )
 
-    end;
+    end.
 
 % Currently compounding constructs like list, map, tuple, union are not
 % supported.

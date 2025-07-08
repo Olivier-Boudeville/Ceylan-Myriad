@@ -924,7 +924,7 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 	?debug_fmt( "Examining application specification in '~ts'.",
 				[ AppFilePath ] ),
 
-	case file_utils:read_terms( AppFilePath ) of
+	case file_utils:read_etf_file( AppFilePath ) of
 
 		[ { application, AppName, Entries } ] ->
 

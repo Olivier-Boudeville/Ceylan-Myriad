@@ -3595,7 +3595,7 @@ read_cache_file( CacheFilePath, UserState ) ->
 
 	trace_debug( "Reading cache file '~ts'.", [ CacheFilePath ], UserState ),
 
-	try file_utils:read_terms( CacheFilePath ) of
+	try file_utils:read_etf_file( CacheFilePath ) of
 
 		[ _HostInfo={ hostname, BinFQDN },
 		  _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
@@ -4638,7 +4638,7 @@ sizes match as well.
 quick_cache_check( CacheFilePath, ContentFiles, BinTreePath, AnalyzerRing,
 				   UserState ) ->
 
-	try file_utils:read_terms( CacheFilePath ) of
+	try file_utils:read_etf_file( CacheFilePath ) of
 
 		[ _HostInfo={ hostname, BinFQDN },
 		  _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
