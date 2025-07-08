@@ -32,7 +32,7 @@ Gathering of various **cipher-related facilities**.
 
 We focus on symmetric ciphering here.
 
-See cipher_utils_test.erl for testing.
+See `cipher_utils_test.erl` for testing.
 """.
 
 
@@ -103,7 +103,7 @@ supported formats (see compress_format/0).
 
 -doc """
 The stream content is replaced by a decompressed version thereof, using one of
-the supported formats (see compress_format/0).
+the supported formats (see `compress_format/0`).
 """.
 -type decompress_transform() :: { 'decompress', compression_format() }.
 
@@ -121,9 +121,9 @@ thanks to offsets, a random value in [0,255] is inserted.
 
 -doc """
 Based on the specified seed and on the specified range R, a series of strictly
-positive values is uniformly drawn in [1,R]; these values are offsets relative
+positive values is uniformly drawn in `[1,R]`; these values are offsets relative
 to the last random insertion (initial one is 0); at each position determined
-thanks to offsets, a random value in [0,255] is extracted.  
+thanks to offsets, a random value in `[0,255]` is extracted.
 """.
 -type extract_random_transform() :: { 'extract_random', seed(), count() }.
 
@@ -131,12 +131,12 @@ thanks to offsets, a random value in [0,255] is extracted.
 
 -doc """
 A byte Bk+1 is replaced by its difference with the previous byte, with B0=128;
-hence Bk+1 is replaced by Bk+1 - Bk (Bk having obeyed the same rule).
+hence Bk+1 is replaced by `Bk+1 - Bk` (Bk having obeyed the same rule).
 """.
 -type delta_combine_transform() :: 'delta_combine'.
 
 
--doc "Reverse operation of delta_combine_transform/0.".
+-doc "Reverse operation of `delta_combine_transform/0`.".
 -type delta_combine_reverse_transform() :: 'delta_combine_reverse'.
 
 
@@ -149,7 +149,7 @@ uniformly shuffled.
 
 
 
--doc "Reverse operation of shuffle_transform/0.".
+-doc "Reverse operation of `shuffle_transform/0`.".
 -type reciprocal_shuffle_transform() ::
 		{ 'reciprocal_shuffle', seed(), count() }.
 
@@ -180,7 +180,7 @@ A cell of any inner array, each of these arrays being relative to a given input
 letter and being indexed by the possible machine states.
 """.
 -type cell() :: { state(), letter() }.
- 
+
 
 
 -doc """
@@ -193,10 +193,10 @@ by states.
 
 -doc """
 A Mealy table can be seen as a two-dimensional array, whose first dimension is
-the states of the Machine (in [1,StateCount]) and second is the input alphabet
-(here letters are bytes, in [0,255]).
+the states of the Machine (in `[1,StateCount]`) and second is the input alphabet
+(here letters are bytes, in `[0,255]`).
 
-Each cell is a {NextState, OutputLetter} pair.
+Each cell is a `{NextState, OutputLetter}` pair.
 
 The Mealy table is implemented (easier to build) as a fixed-size array, one
 element per possible state (corresponding to a column of the 2D array).
@@ -214,12 +214,12 @@ Each element of these inner arrays corresponds to the aforementioned cell.
 
 
 -doc """
-Based on specified state-transition data, the content of the file is modified
-accordingly; the input and output alphabet are the same, B, the set of all bytes
-(i.e. integers in [0,255]), while the states are strictly positive integers; the
-transition and output function are coalesced into a single function: f({
-CurrentState, InputByte }) -> {NewState, OutputByte}; for more information:
-<https://en.wikipedia.org/wiki/Mealy_machine>.
+The content of a target stream can be modified according to the specified
+state-transition data, ; the input and output alphabet are the same, B, the set
+of all bytes (i.e. integers in `[0,255]`), while the states are strictly
+positive integers; the transition and output function are coalesced into a
+single function: `f({ CurrentState, InputByte }) -> {NewState, OutputByte}`; see
+[this page](https://en.wikipedia.org/wiki/Mealy_machine) for more information.
 """.
 -type mealy_transform() :: { 'mealy', mealy_state(), mealy_table() }.
 
@@ -273,7 +273,7 @@ User may specify either some licit transform, or possibly mistakes.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -409,7 +409,7 @@ decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 	ReverseKey = get_reverse_key_from( KeyInfos ),
 
 	io:format( "Determined reverse key:~n~ts~n",
-			   [ key_to_string( ReverseKey ) ] ),
+               [ key_to_string( ReverseKey ) ] ),
 
 	TempFilePath = apply_key( ReverseKey, SourceFilePath ),
 
@@ -421,18 +421,14 @@ decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 % Helper section.
 
 
--doc """
-Reads a key from the specified filename, and returns it.
-
-(helper)
-""".
+-doc "Reads a key from the specified filename, and returns it.".
 -spec read_key( file_path() ) -> [ user_specified_transform() ].
 read_key( KeyFilePath ) ->
 
 	case file_utils:is_existing_file_or_link( KeyFilePath ) of
 
 		true ->
-			case file_utils:read_terms( KeyFilePath ) of
+			case file_utils:read_etf_file( KeyFilePath ) of
 
 				[] ->
 					throw( { empty_key, KeyFilePath } );
@@ -452,11 +448,7 @@ read_key( KeyFilePath ) ->
 
 
 
--doc """
-Returns the reverse key of the specified one.
-
-(helper)
-""".
+-doc "Returns the reverse key of the specified one.".
 -spec get_reverse_key_from( [ user_specified_transform() ] ) ->
 									[ any_transform() ].
 get_reverse_key_from( KeyInfos ) ->
@@ -573,7 +565,7 @@ apply_cipher( delta_combine, SourceFilePath, CipheredFilePath ) ->
 	DeltaFun = fun( InputByte, CypherState ) ->
 						OutputByte = InputByte - CypherState,
 						{ OutputByte, InputByte }
-				end,
+               end,
 
 	apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
 							 _Transform=DeltaFun, _InitialCipherState=100 );
@@ -586,7 +578,7 @@ apply_cipher( delta_combine_reverse, SourceFilePath, CipheredFilePath ) ->
 	ReverseDeltaFun = fun( InputByte, CypherState ) ->
 						OutputByte = InputByte + CypherState,
 						{ OutputByte, OutputByte }
-				end,
+                      end,
 
 	apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
 					_Transform=ReverseDeltaFun, _InitialCipherState=100 );
@@ -769,7 +761,7 @@ decompress_cipher( CipheredFilePath, TargetFilePath, CompressFormat ) ->
 
 
 insert_random_cipher( SourceFilePath, CipheredFilePath, Range )
-							when Range > 1 ->
+                                            when Range > 1 ->
 
 	SourceFile = file_utils:open( SourceFilePath, ?bin_read_opts ),
 
@@ -816,7 +808,7 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 
 
 extract_random_cipher( CipheredFilePath, TargetFilePath, Range )
-                                        when Range > 1 ->
+                                            when Range > 1 ->
 
 	CipheredFile = file_utils:open( CipheredFilePath, ?bin_read_opts ),
 
