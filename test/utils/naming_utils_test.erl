@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **naming utils** toolbox.
 
-See the naming_utils.erl tested module.
+See the `naming_utils` tested module.
 """.
 
 
@@ -54,7 +54,8 @@ run() ->
 
 	catch
 
-		{ neither_registered_locally_nor_globally, UnregisteredName } ->
+        { registration_lookup_failed, test_non_registered,
+          local_otherwise_global} ->
 			ok
 
 	end,
