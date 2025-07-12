@@ -77,6 +77,10 @@ run() ->
 	test_facilities:display( "Testing the display of a ~ts test message.",
 							 [ dynamic ] ),
 
+    % To check that a ill-formatted message is caught at compilation time:
+	%test_facilities:display( "I am a faulty message: ~B and ~B.",
+    %                         [ _SingleValue=1 ] ),
+
 	basic_utils:checkpoint( 1 ),
 
 	basic_utils:checkpoint( 2 ),

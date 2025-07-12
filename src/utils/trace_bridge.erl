@@ -30,26 +30,26 @@
 -moduledoc """
 The **trace bridge** allows modules to depend only on the Ceylan-Myriad layer,
 yet to rely optionally on a non-Myriad code for traces/logs (possibly the
-Ceylan-Traces layer, refer to <http://traces.esperide.org/>) at runtime for
+Ceylan-Traces layer, refer to [http://traces.esperide.org/]) at runtime for
 **its logging**, so that in all cases exactly one (and the most appropriate)
 logging system is used, even when lower-level libraries are involved (they have
 to be designed to operate with or without an advanced trace system), and with no
 change in the source code of these user modules to be operated.
 
 It is useful to provide native, integrated, higher-level logging to basic
-libraries (e.g. Ceylan-LEEC, see <http://leec.esperide.org> or Ceylan-Oceanic,
-see <http://oceanic.esperide.org>), should their user require it - while being
+libraries (e.g. Ceylan-LEEC, see [http://leec.esperide.org] or Ceylan-Oceanic,
+see [http://oceanic.esperide.org]), should their user require it - while being
 able to remain lean and mean if wanted (e.g while keeping the dependency to
 Ceylan-Traces optional).
 
 Switching to a more advanced trace system (typically Ceylan-Traces) is then just
-a matter of having the process of interest call the register/3 function below.
+a matter of having the process of interest call the `register/3` function below.
 
 For usage examples, refer to:
-- Ceylan-Myriad: trace_bridge_test.erl (directly tracing through basic
-  trace_utils)
-- Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace system);
-  for example:
+- Ceylan-Myriad: `trace_bridge_test.erl` (directly tracing through basic
+  `trace_utils`)
+- Ceylan-Traces: `trace_bridging_test.erl` (using then our advanced trace
+  system); for example:
 ```
 BridgeSpec = trace_bridge:get_bridge_spec(_MyEmitterName="MyBridgeTester",
   _MyCateg="MyTraceCategory",
@@ -57,7 +57,7 @@ BridgeSpec = trace_bridge:get_bridge_spec(_MyEmitterName="MyBridgeTester",
 
 trace_bridge:register(BridgeSpec), [...]
 ```
-- Ceylan-LEEC: most modules, including leec.erl
+- Ceylan-LEEC: most modules, including `leec`
 """.
 
 
@@ -67,7 +67,7 @@ trace_bridge:register(BridgeSpec), [...]
 
 
 
--doc "Possibly a class_TraceAggregator:aggregator_pid().".
+-doc "Possibly a `class_TraceAggregator:aggregator_pid()`.".
 -type bridge_pid() :: pid().
 
 
@@ -136,7 +136,7 @@ trace_bridge:register(BridgeSpec), [...]
 Typically the information transmitted by a trace emitter when creating a
 lower-level process that may or may not use advanced logging.
 
-Note that this type is opaque; use get_bridge_spec/{2,3} to obtain an instance
+Note that this type is opaque; use `get_bridge_spec/{2,3}` to obtain an instance
 thereof.
 """.
 -opaque bridge_spec() :: { TraceEmitterName :: bin_string(),
@@ -181,7 +181,7 @@ corresponding trace bridge and use it automatically from then.
 With Ceylan-Traces, BridgePid is typically obtained thanks to
 `class_TraceAggregator:get_aggregator()`.
 
-Allows not to break the opaqueness of the bridge_spec() type.
+Allows not to break the opaqueness of the `bridge_spec()` type.
 """.
 -spec get_bridge_spec( any_string(), any_string(), bridge_pid() ) ->
 							bridge_spec().
@@ -198,7 +198,7 @@ To be called by the process wanting to use such a trace bridge.
 
 Throws an exception of a bridge is already set.
 
-See also: register_if_not_already/1.
+See also: `register_if_not_already/1`.
 """.
 -spec register( option( bridge_spec() ) ) -> void().
 register( _MaybeBridgeSpec=undefined ) ->
@@ -297,7 +297,7 @@ get_bridge_info() ->
 Sets the specified bridge information for the current process.
 
 May be useful for example for a spawned process to adopt the same bridge as the
-one of its caller (obtained thanks to get_bridge_info/0).
+one of its caller (obtained thanks to `get_bridge_info/0`).
 
 Any local pre-existing bridge information will be overwritten.
 """.
@@ -496,6 +496,9 @@ send( SeverityType, Message ) ->
 -spec send( trace_severity(), format_string(), format_values() ) -> void().
 send( SeverityType, MessageFormat, MessageValues ) ->
 
+    %io:format( "Sending ~ts message of format '~ts' and values ~p.",
+    %           [ SeverityType, MessageFormat, MessageValues ] ),
+
 	Message = text_utils:format( MessageFormat, MessageValues ),
 
 	case process_dictionary:get( ?myriad_trace_bridge_key ) of
@@ -567,8 +570,6 @@ send_bridge( SeverityType, Message,
 
 -doc """
 Waits for the bridge to report that a trace synchronisation has been completed.
-
-(helper)
 """.
 -spec wait_bridge_sync() -> void().
 wait_bridge_sync() ->

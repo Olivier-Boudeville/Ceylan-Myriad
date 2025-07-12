@@ -28,16 +28,17 @@
 -module(ui).
 
 -moduledoc """
-Aggregates all code **transverse to the various actual UI backends**. This
-module shall be, if possible, directly used by programs, so that they can at
-runtime select the best available UI backend for the context at hand.
+Aggregates all code **transverse to the various actual UI backends**.
+
+This module shall be, if possible, directly used by programs, so that they can
+at runtime select the best available UI backend for the context at hand.
 
 See:
 - `text_ui_test.erl` for the test of the most basic text interface
 - `term_ui.erl` for a more advanced text interface (ncurses-based)
 - `gui.erl` for a graphical counterpart thereof
 
-See also: `trace_utils.erl` for another kind of output.
+See also `trace_utils.erl` for another kind of output.
 """.
 
 
@@ -114,7 +115,7 @@ See also: `trace_utils.erl` for another kind of output.
 -doc """
 Any text, as a plain or binary (Unicode, UTF-8) string.
 
-Used to be a rather restrictive any_string(), now is more general (notably as
+Used to be a rather restrictive `any_string()`, now is more general (notably as
 recursive lists are such elements).
 """.
 -type text() :: unicode:chardata().
@@ -316,7 +317,7 @@ Useful to define the interface wanted and to interpret its outcome.
 
 
 
--doc " Typically text_ui_state() | term_ui_state() | gui_state() | ...".
+-doc "Typically `text_ui_state() | term_ui_state() | gui_state() | ...`.".
 -type ui_state() :: any().
 
 

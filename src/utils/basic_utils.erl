@@ -541,7 +541,7 @@ eliminate afterwards).
 -type set( T ) :: set_utils:set( T ).
 
 -type format_string() :: text_utils:format_string().
--type format_values() :: text_utils: format_values().
+-type format_values() :: text_utils:format_values().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().

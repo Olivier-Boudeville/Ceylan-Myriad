@@ -31,10 +31,10 @@
 Unit tests for the `trace_bridge` toolbox, when no specific bridge is
 registered.
 
-See the trace_bridge.erl tested module.
+See the `trace_bridge` tested module.
 
 For a test with a bridge registered, refer, in Ceylan-Traces, to
-trace_bridging_test.erl.
+`trace_bridging_test.erl`.
 """.
 
 
@@ -53,6 +53,10 @@ emit_traces() ->
 
 	trace_bridge:debug( "I am a debug simple message." ),
 	trace_bridge:debug_fmt( "I am a debug ~ts message.", [ "formatted" ] ),
+
+    % To check that a ill-formatted trace is caught at compilation time:
+	%trace_bridge:debug_fmt( "I am a faulty message: ~B and ~B.",
+    %                        [ _SingleValue=1 ] ),
 
 	trace_bridge:set_application_timestamp( "My applicative timestamp" ),
 

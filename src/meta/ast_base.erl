@@ -45,15 +45,13 @@ notably in order to transform them (meta-programming).
 % Section about general locations in AST, sources, etc.
 
 
-
 -doc """
 So that forms can be independently managed while being able to be reordered
 later, according to their original position in a source AST.
 
-Higher-level location, not to be mixed up with {stream,file}_loc/0.
+Higher-level location, not to be mixed up with `{stream,file}_loc/0`.
 """.
 -type form_location() :: id_utils:sortable_id().
-
 
 
 -doc """
@@ -63,12 +61,10 @@ In-file reference, typically like:
 -type file_reference() :: option( file_path() ).
 
 
-
 -doc """
 Line location (that is: line number, starting at 0) of a form in a source file.
 """.
 -type line() :: erl_anno:line().
-
 
 
 -doc """
@@ -76,7 +72,6 @@ Column location (that is: column number, starting at 1) of a form in a source
 file.
 """.
 -type column() :: erl_anno:column().
-
 
 
 -doc """
@@ -88,7 +83,6 @@ The (newer) pair form shall now be preferred.
 -type stream_loc() :: erl_anno:location().
 
 
-
 -doc """
 Line-related location in a source file (either `line()` or `{line(),
 column()}`).
@@ -98,11 +92,8 @@ The (newer) pair form shall now be preferred.
 -type file_loc() :: stream_loc().
 
 
-
-
 -doc "Context (if any) of a form.".
 -type form_context() :: option( stream_loc() ).
-
 
 
 -doc """
@@ -126,7 +117,6 @@ In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}`.
 -type ast_element() :: tuple().
 
 
-
 -doc """
 Abstract form, part of an AST (e.g. `{attribute,40,file,{"foo.erl",40}}`).
 """.
@@ -147,10 +137,10 @@ Defined as `erl_parse_tree()`.
 
 See also:
 
-- for the type: <http://erlang.org/doc/man/erl_parse.html#type-erl_parse_tree>
+- for the type: [http://erlang.org/doc/man/erl_parse.html#type-erl_parse_tree]
 
 - for the overall logic and structure:
-<http://erlang.org/doc/apps/erts/absform.html>
+[http://erlang.org/doc/apps/erts/absform.html]
 """.
 -type ast() :: [ form() ].
 

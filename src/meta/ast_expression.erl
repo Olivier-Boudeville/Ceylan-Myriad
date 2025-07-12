@@ -30,7 +30,7 @@
 -moduledoc """
 Module in charge of handling **expressions defined with an AST**.
 
-See <http://erlang.org/doc/apps/erts/absform.html> for more information.
+See [http://erlang.org/doc/apps/erts/absform.html] for more information.
 """.
 
 
@@ -140,7 +140,7 @@ list-comprehension generator or a bitstring generator.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type file_loc() :: ast_base:file_loc().
 
@@ -201,7 +201,7 @@ list-comprehension generator or a bitstring generator.
 -doc """
 Transforms specified expression into a list of expressions.
 
-See section "7.4 Expressions" in <http://erlang.org/doc/apps/erts/absform.html>.
+See section `7.4 Expressions` in [http://erlang.org/doc/apps/erts/absform.html].
 """.
 -spec transform_expression( ast_expression(), ast_transforms() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
@@ -1359,7 +1359,7 @@ transform_call( FileLoc, FunctionRef, Params, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to an 'if' into another one (exactly).
+Transforms an expression corresponding to an `if` into another one (exactly).
 
 (default traversal implementation)
 """.
@@ -1377,7 +1377,7 @@ transform_if( FileLoc, Clauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a 'case' into another one (exactly).
+Transforms an expression corresponding to a `case` into another one (exactly).
 
 (default traversal implementation)
 """.
@@ -1398,7 +1398,7 @@ transform_case( FileLoc, TestExpression, CaseClauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a 'match' into another one (exactly).
+Transforms an expression corresponding to a `match` into another one (exactly).
 
 (default traversal implementation)
 """.
@@ -1425,7 +1425,7 @@ transform_match( FileLoc, MatchPattern, MatchExpression,
 
 
 -doc """
-Transforms an expression corresponding to a simple 'receive' into another one
+Transforms an expression corresponding to a simple `receive` into another one
 (exactly).
 
 (default traversal implementation)
@@ -1445,7 +1445,7 @@ transform_simple_receive( FileLoc, ReceiveClauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a simple 'receive' into another one
+Transforms an expression corresponding to a simple `receive` into another one
 (exactly).
 
 (default traversal implementation)
@@ -1479,7 +1479,7 @@ transform_receive_with_after( FileLoc, ReceiveClauses, AfterTest,
 
 
 -doc """
-Transforms an expression corresponding to a 'try' into another one (exactly).
+Transforms an expression corresponding to a `try` into another one (exactly).
 
 (default traversal implementation)
 """.
@@ -1509,7 +1509,7 @@ transform_try( FileLoc, TryBody, TryClauses, CatchClauses, AfterBody,
 
 
 -doc """
-Transforms an expression corresponding to a 'catch' into another one (exactly).
+Transforms an expression corresponding to a `catch` into another one (exactly).
 
 (default traversal implementation)
 """.
@@ -1552,10 +1552,8 @@ transform_expressions( Expressions, Transforms ) ?rec_guard ->
 Removes a single depth of nesting (not an arbitrary flattening) regarding
 expressions.
 
-(helper)
-
-Note: directly inspired from list_utils:flatten_once/1, yet we do not want to
-bootstrap the full list_utils module just for that.
+Note: directly inspired from `list_utils:flatten_once/1`, yet we do not want to
+bootstrap the full `list_utils` module just for that.
 """.
 merge_expression_lists( List ) ->
 	%ast_utils:display_trace( "merging expression list ~p", [ List ] ),
@@ -1583,7 +1581,7 @@ Transforms the specified qualifiers.
 
 Allows filters to be both guard tests and general expressions.
 
-See also: lc_bc_quals/1 in erl_id_trans
+See also `lc_bc_quals/1` in `erl_id_trans`.
 """.
 -spec transform_qualifiers( [ ast_qualifier() ], ast_transforms() ) ->
 									{ [ ast_qualifier() ], ast_transforms() }.
@@ -1758,8 +1756,8 @@ transform_record_field_update( { 'record_field', FileLocField, FieldNameExpr,
 -doc """
 Remote call expression found.
 
-"If E is a function call E_m:E_0(E_1, ..., E_k), then Rep(E) = {call, FILE_LOC,
-{remote, FILE_LOC, Rep(E_m), Rep(E_0)}, [Rep(E_1), ..., Rep(E_k)]}.
+`"If E is a function call E_m:E_0(E_1, ..., E_k), then Rep(E) = {call, FILE_LOC,
+{remote, FILE_LOC, Rep(E_m), Rep(E_0)}, [Rep(E_1), ..., Rep(E_k)]}`.
 
 Remote call expression found, with an immediate name for both the module and the
 function.

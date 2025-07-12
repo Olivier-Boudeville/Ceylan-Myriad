@@ -48,7 +48,7 @@ from ASTs**.
 
 -doc "Description of a module name.".
 -type module_entry() ::
-	type_utils:option( { basic_utils:module_name(), ast_info:located_form() } ).
+	type_utils:option( { basic_utils:module_name(), located_form() } ).
 
 
 
@@ -75,7 +75,7 @@ Thanks to locations (which order forms appropriately, including the ones
 regarding file references), once forms have been recomposed, by design stored
 lines and columns are always relative to the current file.
 
-'locate_at' means that the corresponding form is yet to be located just after
+`locate_at` means that the corresponding form is yet to be located just after
 the location pointed at by the specified marker in the AST stream (thus a
 transformation pass is still to be applied before it becomes an actual sortable
 identifier). Such a relative location allows for example to place forms just
@@ -85,7 +85,7 @@ We try to translate section markers in actual locations rather sooner than
 later, as markers are not expected to move, and it would probably be more
 difficult to recreate a consistency at later stages.
 
-Similarly, 'locate_after' means that a form is yet to be located after the
+Similarly, `locate_after` means that a form is yet to be located after the
 specified form.
 
 There is no specific order enforced between the possibly several forms located
@@ -100,8 +100,8 @@ at a given marker or after a given form.
 -doc """
 When processing an AST (e.g. read from a BEAM file), the order of the forms
 matters (for example to report compile errors, which are relative to a context
-defined by the last '-file' attribute previously encountered, i.e. like
-{attribute,40,file,{"foo.erl",40}}). So even if we store forms in tables
+defined by the last `-file` attribute previously encountered, i.e. like
+`{attribute,40,file,{"foo.erl",40}}`). So even if we store forms in tables
 according to their type, when (re)generating the AST we have to recreate the
 same order.
 
@@ -197,11 +197,12 @@ generated, i.e. that have not been directly obtained that the initial scan
 
 -doc """
 In some cases (at least when it is specified from the command-line), a
-compilation option is a triplet (e.g. -Dmy_other_test_token=51 is translated, in
-terms of a parse-transform option, as: {d,my_other_test_token,51}; same for the
-feature triplets).
+compilation option is a triplet (e.g. `-Dmy_other_test_token=51` is translated,
+in terms of a parse-transform option, as: `{d,my_other_test_token,51}`; same for
+the feature triplets).
 
-The value associated to the option name ('d') is then: {my_other_test_token,51}.
+The value associated to the option name (`d`) is then:
+`{my_other_test_token,51}`.
 """.
 -type compile_option_value() :: term().
 
@@ -216,8 +217,8 @@ The value associated to the option name ('d') is then: {my_other_test_token,51}.
 -doc """
 For easy access to compilation information:
 
-Note that an option specified without a value (e.g. -Dmy_token on the command
-line) will be associated to the 'undefined' value.
+Note that an option specified without a value (e.g. `-Dmy_token` on the command
+line) will be associated to the `undefined` value.
 """.
 -type compile_option_table() ::
 	?table:?table( compile_option_name(),
@@ -226,14 +227,14 @@ line) will be associated to the 'undefined' value.
 
 
 -doc """
-The name of a (parse-level) attribute (e.g. '-my_attribute( my_value ).').
+The name of a (parse-level) attribute (e.g. `-my_attribute( my_value ).`).
 """.
 -type attribute_name() :: atom().
 
 
 
 -doc """
-The value of a (parse-level) attribute (e.g. '-my_attribute( my_value ).').
+The value of a (parse-level) attribute (e.g. `-my_attribute( my_value ).`).
 """.
 -type attribute_value() :: term().
 
@@ -248,8 +249,8 @@ The value of a (parse-level) attribute (e.g. '-my_attribute( my_value ).').
 For easy access to the values and AST forms associated to a parse attribute,
 from its name.
 
-For example, to the 'dialyzer' key will be associated the values and located
-forms of the various '-dialyzer( XXX ).' found in a source file.
+For example, to the `dialyzer` key will be associated the values and located
+forms of the various `-dialyzer( XXX ).` defines found in a source file.
 """.
 -type attribute_table() :: ?table:?table( attribute_name(),
 								[ { attribute_value(), located_form() } ] ).
@@ -264,9 +265,9 @@ identifiers of the types to declare exported there.
 Note:
 
 - this table must be explicitly updated whenever adding or removing a type
-in a module_info'types' field; see: add_type/2 and remove_type/2
+in a module_info `types` field; see: `add_type/2` and `remove_type/2`
 
-- [ type_id() ] used, not a set, to better preserve order
+- `[type_id()]` used, not a set, to better preserve order
 """.
 -type type_export_table() ::
 		?table:?table( ast_location(), { file_loc(), [ type_id() ] } ).
@@ -323,10 +324,10 @@ identifiers of the functions to declare exported there.
 
 Note:
 - this table must be explicitly updated whenever adding or removing a function
-in a module_info 'functions' field; see: meta_utils:add_function/2 and
-meta_utils:remove_function/2
-- a list of function_id() is used, not a set, to better preserve order
-- the 'export_all' compile attribute may also have been set in compile options
+in a module_info `functions` field; see: `meta_utils:add_function/2` and
+`meta_utils:remove_function/2`
+- a list of `function_id/0` is used, not a set, to better preserve order
+- the `export_all` compile attribute may also have been set in compile options
 """.
 -type function_export_table() ::
 		?table:?table( ast_location(), { file_loc(), [ function_id() ] } ).
@@ -350,9 +351,9 @@ markers.
 
 
 -doc """
-All relevant information about an error found in an AST:
+All relevant information about an error found in an AST.
 
-(note: includes warnings)
+Includes warnings.
 """.
 -type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 
@@ -559,7 +560,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ ASTLoc | T ],
 -doc """
 Returns a textual description of the specified located AST.
 
-Note: relies on text_utils.
+Note: relies on `text_utils`.
 """.
 -spec located_ast_to_string( located_ast() ) -> ustring().
 located_ast_to_string( AST ) ->
@@ -642,7 +643,7 @@ extract_module_info_from_ast( AST ) ->
 
 
 -doc """
-Returns a new, blank instance of the module_info record, typically to be fed
+Returns a new, blank instance of the `module_info` record, typically to be fed
 with an input AST afterwards.
 """.
 -spec init_module_info() -> module_info().
@@ -662,7 +663,7 @@ init_module_info() ->
 
 
 
--doc "Checks the correctness of specified module information.".
+-doc "Checks the correctness of the specified module information.".
 -spec check_module_info( module_info() ) -> void().
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( "no '-module' define found" );
@@ -1133,14 +1134,12 @@ insert_after_located_forms( LocAfter, LocForms,
 -doc """
 Splits the specified forms at the specified location.
 
-Returns {RevUnlocPrefix, BaseForm, LocSuffix} so that:
+Returns `{RevUnlocPrefix, BaseForm, LocSuffix}` so that:
 ```
 InputLocForms = (reversed, located version of RevUnlocPrefix) ++
 	[{Loc,BaseForm} | LocSuffix]
 ```
 The specified location is expected to be found in the specified (ordered) AST.
-
-(helper)
 """.
 -spec split_at_location( ast_location(), located_ast() ) ->
 							{ located_ast(), form(), located_ast() }.
@@ -1493,7 +1492,7 @@ module_info_to_string( #module_info{
 Returns a textual representation of the specified forms, if requested, and using
 specified indentation level.
 
-(helper used by the various *_to_string functions)
+(helper used by the various `*_to_string` functions)
 """.
 -spec forms_to_string( [ located_form() ], boolean(), indentation_level() ) ->
 								ustring().
@@ -1565,7 +1564,7 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms ) ->
 
 
 -doc """
-Returns a textual representation of compilation options, with specified
+Returns a textual representation of compilation options, with the specified
 indentation level.
 """.
 -spec compilation_options_to_string( compile_option_table(), [ located_form() ],
@@ -1634,7 +1633,7 @@ parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms ) ->
 
 -doc """
 Returns a textual representation of the specified parse-attribute table, with
-specified indentation level.
+the specified indentation level.
 """.
 -spec parse_attribute_table_to_string( attribute_table(), boolean(),
 									   indentation_level() ) -> ustring().
@@ -1684,7 +1683,7 @@ parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
 
 -doc """
 Returns a textual representation of the specified definitions of remote
-specifications, with specified indentation level.
+specifications, with the specified indentation level.
 """.
 -spec remote_spec_definitions_to_string( [ located_form() ], boolean(),
 										 indentation_level() ) -> ustring().
@@ -1716,7 +1715,7 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
 
 
 -doc """
-Returns a textual representation of the specified includes, with specified
+Returns a textual representation of the specified includes, with the specified
 indentation level.
 """.
 -spec includes_to_string( [ bin_file_path() ], [ located_form() ], boolean(),
@@ -1751,8 +1750,8 @@ type_exports_to_string( TypeExportTable, DoIncludeForms ) ->
 
 
 -doc """
-Returns a textual representation of the specified type exports, with specified
-indentation level.
+Returns a textual representation of the specified type exports, with the
+specified indentation level.
 """.
 -spec type_exports_to_string( type_export_table(), boolean(),
 							  indentation_level() ) -> ustring().
@@ -1787,7 +1786,7 @@ type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
 
 
 -doc """
-Returns a textual representation of the specified type table, with specified
+Returns a textual representation of the specified type table, with the specified
 indentation level.
 """.
 -spec types_to_string( type_table(), boolean(), indentation_level() ) ->
@@ -1825,7 +1824,7 @@ records_to_string( RecordTable ) ->
 
 
 -doc """
-Returns a textual representation of the specified records, with specified
+Returns a textual representation of the specified records, with the specified
 indentation level.
 
 Note: no available form to display.
@@ -1868,7 +1867,7 @@ records_to_string( RecordTable, IndentationLevel ) ->
 
 -doc """
 Returns a textual representation of the specified function imports, with
-specified indentation level.
+the specified indentation level.
 """.
 -spec function_imports_to_string( function_import_table(), [ located_form() ],
 								  boolean(), indentation_level() ) -> ustring().
@@ -1906,7 +1905,7 @@ function_imports_to_string( FunctionImportTable, FunctionImportDefs,
 
 
 -doc """
-Returns a textual representation of the specified functions, with specified
+Returns a textual representation of the specified functions, with the specified
 indentation level.
 """.
 -spec functions_to_string( function_table(), boolean(), indentation_level() ) ->
@@ -1982,14 +1981,14 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 				[ length( MarkPairs ), text_utils:strings_to_string(
 			[ text_utils:format( "marker '~ts' pointing to ~ts",
 				[ Marker, id_utils:sortable_id_to_string( Loc ) ] )
-			  || { Marker, Loc } <- SortedMarkPairs ],
+                    || { Marker, Loc } <- SortedMarkPairs ],
 											IndentationLevel ) ] )
 
 	end.
 
 
 
--doc "Returns a textual representation of specified errors.".
+-doc "Returns a textual representation of the specified errors.".
 -spec errors_to_string( [ error() ], indentation_level() ) -> ustring().
 errors_to_string( _Errors=[], _IndentationLevel ) ->
 	"no error to report";
@@ -2004,7 +2003,7 @@ errors_to_string( Errors, IndentationLevel ) ->
 
 
 
--doc "Returns a textual representation of specified unhandled forms.".
+-doc "Returns a textual representation of the specified unhandled forms.".
 -spec unhandled_forms_to_string( [ located_form() ], boolean(),
 								 indentation_level() ) -> ustring().
 unhandled_forms_to_string( _UnhandledForms=[], _DoIncludeForms=false,
@@ -2029,7 +2028,7 @@ unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
 
 -doc """
 Returns a list of textual representations for each of the record fields in
-specified table.
+the specified table.
 """.
 -spec fields_to_strings( field_table() ) -> [ ustring() ].
 fields_to_strings( FieldTable ) ->
@@ -2039,11 +2038,7 @@ fields_to_strings( FieldTable ) ->
 
 
 
--doc """
-Returns a textual representation of specified record field.
-
-(helper)
-""".
+-doc "Returns a textual representation of the specified record field.".
 field_to_string( FieldName, FieldType, DefaultValue ) ->
 
 	TypeString = case FieldType of
@@ -2162,7 +2157,7 @@ function_info_to_string( #function_info{ name=Name,
 	end,
 
 	BaseString = text_utils:format( "function ~ts/~B, ~ts, ~ts and ~ts",
-						[ Name, Arity, ExportString, DefString, SpecString ] ),
+		[ Name, Arity, ExportString, DefString, SpecString ] ),
 
 	case DoIncludeForms of
 
@@ -2276,7 +2271,8 @@ ensure_type_exported( TypeId, _ExportLocs=[ ASTLoc | T ], ModuleInfo,
 
 
 -doc """
-Ensures that specified type is not exported at the specified AST location(s).
+Ensures that the specified type is not exported at the specified AST
+location(s).
 """.
 -spec ensure_type_not_exported( type_id(), [ ast_location() ],
 								type_export_table() ) -> type_export_table().
