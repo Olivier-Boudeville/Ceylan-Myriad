@@ -197,6 +197,8 @@ where the specified reference is nothing more than the corresponding Git commit 
 
 Myriad-based projects should better execute their (inherited, more robust/integrated) ``rebar3-upgrade-lock`` make target instead.
 
+See also our (Ceylan) `Release Conventions`_.
+
 
 :raw-html:`<a name="otp"></a>`
 
