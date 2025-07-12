@@ -347,7 +347,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar, hex
 # and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
-MYRIAD_VERSION := 1.0.39
+MYRIAD_VERSION := 1.0.40
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
