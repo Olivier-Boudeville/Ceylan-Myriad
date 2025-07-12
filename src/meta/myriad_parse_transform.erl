@@ -89,8 +89,13 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 
 % Local type shorthands:
 
+-type format_string() :: text_utils:format_string().
+
+-type file_name() :: file_utils:file_name().
+
 -type ast() :: ast_base:ast().
 -type file_loc() :: ast_base:file_loc().
+-type form() :: ast_base:form().
 
 -type module_info() :: ast_info:module_info().
 -type module_name() :: basic_utils:module_name().
@@ -109,8 +114,6 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 
 -type parse_transform_options() :: meta_utils:parse_transform_options().
 
--type file_name() :: file_utils:file_name().
--type format_string() :: text_utils:format_string().
 
 
 % Implementation notes:
@@ -157,6 +160,10 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 		  transform_module_info/1 ]).
 
 
+% Silencing:
+-export([ handle_formatting_call_3p/5 ]).
+
+
 
 -doc """
 Runs the Myriad parse transform defined here in a standalone way (that is
@@ -165,7 +172,7 @@ specific option.
 
 This allows to benefit from all compilation error and warning messages, whereas
 they are seldom available from a code directly run as a parse transform
-(e.g. 'undefined parse transform 'foobar'' as soon as a function or a module is
+(e.g. `undefined parse transform 'foobar'` as soon as a function or a module is
 not found).
 """.
 -spec run_standalone( file_name() ) -> { ast(), module_info() }.
@@ -217,11 +224,11 @@ Options = [report_warnings, {d,myriad_debug_mode}, beam, report_errors,
 		  encrypt_debug_info, {debug_info_key,"Ceylan-Myriad"} ]
 ```
 
-Notably, short of managing specifically 'debug_info' et al., apparently in the
-resulting BEAM files there is no Core Erlang code (see the output of 'make
-generate-local-plt' for more information, like: 'Could not get Core Erlang code
+Notably, short of managing specifically `debug_info` et al., apparently in the
+resulting BEAM files there is no Core Erlang code (see the output of `make
+generate-local-plt` for more information, like: `Could not get Core Erlang code
 for: foo/baz.beam; Recompile with +debug_info or analyze starting from source
-code').
+code`).
 """.
 -spec parse_transform( ast(), parse_transform_options() ) -> ast().
 parse_transform( InputAST, Options ) ->
@@ -344,8 +351,6 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 -doc """
 Returns a transforms record describing the AST changes defined by this Myriad
 layer.
-
-(helper)
 """.
 -spec get_myriad_ast_transforms_for( module_info() ) -> ast_transforms().
 get_myriad_ast_transforms_for( #module_info{
@@ -498,22 +503,22 @@ Returns the table specifying the transformation of the local types.
 
 Regarding local types, we want to replace:
 
-- void() with type_utils:void() (i.e. prefixed with type_utils)
+- `void()` with `type_utils:void()` (i.e. prefixed with `type_utils`)
 
-- option(T) with type_utils:option(T)
+- `option(T)` with `type_utils:option(T)`
 
-- safe_option(T) with type_utils:safe_option(T)
+- `safe_option(T)` with `type_utils:safe_option(T)`
 
-- fallible(T) with basic_utils:fallible(T)
+- `fallible(T)` with `basic_utils:fallible(T)`
 
-- fallible(TSuccess, TFailure) with basic_utils:fallible(TSuccess, TFailure)
+- `fallible(TSuccess, TFailure)` with `basic_utils:fallible(TSuccess, TFailure)`
 
-- diagnosed_fallible(TSuccess, TFailure) with
-	basic_utils:diagnosed_fallible(TSuccess, TFailure)
+- `diagnosed_fallible(TSuccess, TFailure)` with
+  `basic_utils:diagnosed_fallible(TSuccess, TFailure)`
 
-- table/N (e.g. table() or table(K,V)) with DesiredTableType/N (e.g.
-DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
-(as if table() was a builtin type)
+- `table/N` (e.g. `table()` or `table(K,V)`) with `DesiredTableType/N` (e.g.
+`DesiredTableType:DesiredTableType()` or
+`DesiredTableType:DesiredTableType(K,V)`) (as if `table()` was a builtin type)
 """.
 -spec get_local_type_transforms( module_name() ) ->
 									ast_transform:local_type_transform_table().
@@ -561,8 +566,8 @@ get_local_type_transforms( DesiredTableType ) ->
 Returns the table specifying the transformation of the remote types.
 
 Regarding remote types, we want to replace:
- - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
- - table:T with DesiredTableType:T (e.g. table:value())
+ - `table:table/N` with `DesiredTableType:DesiredTableType/N` (N=0 or N=2)
+ - `table:T` with `DesiredTableType:T` (e.g. `table:value()`)
 
 (as these substitutions overlap, a lambda function is provided)
 """.
@@ -595,7 +600,7 @@ get_local_call_transforms() ->
 
 -doc """
 Returns the table specifying the transformation of the remote calls (see next
-get_ast_global_transforms/2).
+`get_ast_global_transforms/2`).
 """.
 % None used anymore, superseded by a more powerful AST transform table.
 -spec get_remote_call_transforms() -> remote_call_transform_table().
@@ -614,8 +619,8 @@ We used to define a simple, direct transformation from 'table' to
 DesiredTableType, however the addition of the cond_utils support led to have to
 define a full-blown call transform fun (to perform a more radical
 transformation), instead of a mere mapping, and also instead of a
-remote_call_replacement fun/4 - which would not be able to take into account the
-value of arguments (e.g. the specified token), since being just being
+`remote_call_replacement_fun/4` - which would not be able to take into account
+the value of arguments (e.g. the specified token), since being just being
 parametrised by an arity.
 """.
 -spec get_ast_global_transforms( module_name(), boolean() ) ->
@@ -1231,61 +1236,118 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			{ [ NewExpr ], NewTransforms };
 
 
-		%%%%%%% Section for text_utils %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Section for text formatting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		% Each call to text_utils:format/2, provided that the format string is
-		% directly a string literal, shall be:
+		% Each call to such function (e.g. text_utils:format/2), provided that
+		% the format string is directly a string literal, shall be:
 		%
 		% (1) checked so that the number of specified values is equal to the
-		% number of element of the control sequence in the format string (the
-		% type of these values is not specifically checked)
+		% number of elements of the control sequence in the format string (the
+		% type of these values is not specifically checked here)
 		%
-		% (2) possibly replaced by a direct (yet potentially crashing - so it
-		% may not be a good idea) call to io_lib:format/2
+		% (2) possibly replaced by another function call (here a direct - yet
+		% potentially crashing, so it may not be a good idea - call to
+		% io_lib:format/2)
 
-		( FileLocCall,
-		  _FunctionRef={ remote, FileLoc1,
-						 _ModNameForm={atom,FileLoc2,text_utils},
-						 FunNameForm={atom,_FileLoc3,format} },
+        % The compiler already checks io:format/2 and io_lib:format/2 (with a
+        % warning, e.g. 'the format string requires an argument list with 1
+        % argument, but the argument list contains 2 arguments'), so we focus on
+        % the formatting functions that this layer introduces.
+
+        % Many calls should be caught (use 'ergrep format_values' to spot them,
+        % for example in UI/GUI); at least for the moment we concentrate on the
+        % key / most usual ones.
+
+        % For text_utils:{,bin_,atom_}format/2 and others:
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=text_utils},
+						 FunNameForm={atom,_FileLoc3,FunName} },
 		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
-		  Transforms ) ->
+		  Transforms ) when FunName =:= format orelse FunName =:= bin_format
+                            orelse FunName =:= atom_format
+                            orelse FunName =:= format_ellipsed
+                            orelse FunName =:= ellipse_fmt ->
 
 			%?display_debug( "Call to text_utils:format(~p, ~p) "
 			%   "intercepted.", [ FormatString, FormatValuesForm ] ),
 
-			% Safety preferred over performance:
-			NewMod = text_utils,
-			%NewMod = io_lib,
+			% Safety preferred over performance, keeping text_utils:
+			%NewModName = {atom,FileLoc2,io_lib},
+            NewModNameForm = ModNameForm,
 
-			NewFunctionRef = { remote, FileLoc1,
-							   _NewModNameForm={atom,FileLoc2,NewMod},
-							   FunNameForm },
+            handle_formatting_call_2p( FileLoc2, NewModNameForm, FunNameForm,
+                                       Params, Transforms );
 
-			{ NewParams=[ { string,_FileLoc5,NewFormatString},
-						  NewFormatValuesForm ], NewTransforms } =
-				ast_expression:transform_expressions( Params, Transforms ),
 
-			case NewFormatValuesForm of
+        % For basic_utils:display*/2, etc.:
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=basic_utils},
+						 FunNameForm={atom,_FileLoc3,FunName} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) when FunName =:= notify_user
+                            orelse FunName =:= display
+                            orelse FunName =:= display_timed
+                            orelse FunName =:= display_error
+                            orelse FunName =:= debug ->
 
-				% Generally is directly a list:
-				{ nil, _ } ->
-					check_format_string( NewFormatString, NewFormatValuesForm,
-						FileLocCall, NewFunctionRef, NewParams,
-						NewTransforms );
+            handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
+                                       Params, Transforms );
 
-				{ cons, _, _, _ } ->
-					check_format_string( NewFormatString, NewFormatValuesForm,
-						FileLocCall, NewFunctionRef, NewParams,
-						NewTransforms );
 
-				% For example '{call, ...'; then pass-through, no build-time
-				% checking applies:
-				%
-				_ ->
-					NewExpr = { call, FileLocCall, NewFunctionRef, NewParams },
-					{ [ NewExpr ], NewTransforms }
+        % For test_facilities:display/2:
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=test_facilities},
+						 FunNameForm={atom,_FileLoc3,_FunName=display} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) ->
 
-			end;
+            handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
+                                       Params, Transforms );
+
+        % For file_utils:write_ustring/2:
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=file_utils},
+						 FunNameForm={atom,_FileLoc3,_FunName=write_ustring} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) ->
+
+            handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
+                                       Params, Transforms );
+
+
+        % For app_facilities:display/2 and al:
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=app_facilities},
+						 FunNameForm={atom,_FileLoc3,FunName} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) when FunName =:= display orelse FunName =:= fail ->
+
+            handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
+                                       Params, Transforms );
+
+
+        % For trace_bridge:*_fmt:/2, just checking send/3, on which they all
+        % rely, is not an option: we have to intercept the overall, user-level
+        % calls.
+        %
+		( _FileLocCall,
+		  _FunctionRef={ remote, _FileLoc1,
+						 ModNameForm={atom,FileLoc2,_ModName=trace_bridge},
+						 FunNameForm={atom,_FileLoc3,FunName} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) when FunName =:= debug_fmt orelse FunName =:= info_fmt
+                orelse FunName =:= notice_fmt orelse FunName =:= warning_fmt
+                orelse FunName =:= error_fmt orelse FunName =:= critical_fmt
+                orelse FunName =:= alert_fmt orelse FunName =:= emergency_fmt
+                orelse FunName =:= void_fmt ->
+
+            handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
+                                       Params, Transforms );
 
 
 		% Other calls shall go through:
@@ -1320,6 +1382,90 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			BaseTable
 
 	end.
+
+
+
+-doc """
+Centralises the checking and transformation of all calls akin to
+`text_utils:format/2`, hence with 2 parameters, for Myriad and all the layers
+deriving from it.
+""".
+-spec handle_formatting_call_2p( file_loc(), form(), form(),
+    [ ast_expression() ], ast_transforms() ) ->
+                                { [ ast_expression() ], ast_transforms() }.
+handle_formatting_call_2p( FileLoc, ModNameForm, FunNameForm, ParamExprs,
+                       Transforms ) ->
+
+    NewFunctionRef = { remote, FileLoc, ModNameForm, FunNameForm },
+
+    % We will check the transformed versions:
+    { NewParamExprs=[ { string, _FileLoc, NewFormatString },
+                  NewFormatValuesForm ], NewTransforms } =
+        ast_expression:transform_expressions( ParamExprs, Transforms ),
+
+    case NewFormatValuesForm of
+
+        % Generally is directly a list, either empty (like here) or not:
+		{ nil, _ } ->
+			check_format_string( NewFormatString, NewFormatValuesForm,
+				FileLoc, NewFunctionRef, NewParamExprs, NewTransforms );
+
+        % Here a non-empty list:
+        { cons, _, _, _ } ->
+            check_format_string( NewFormatString, NewFormatValuesForm,
+				FileLoc, NewFunctionRef, NewParamExprs, NewTransforms );
+
+        % Not a direct list, for example '{call, ...'; then pass-through, no
+        % build-time checking/transformation apply:
+		%
+		_ ->
+			NewExpr = { call, FileLoc, NewFunctionRef, NewParamExprs },
+			{ [ NewExpr ], NewTransforms }
+
+    end.
+
+
+
+-doc """
+Centralises the checking and transformation of all calls akin to
+`trace_bridge:send/3`, hence with 3 parameters (the first one being an extra one
+compared to `handle_formatting_call_2p/5`), for Myriad and all the layers
+deriving from it.
+""".
+-spec handle_formatting_call_3p( file_loc(), form(), form(),
+    [ ast_expression() ], ast_transforms() ) ->
+                                { [ ast_expression() ], ast_transforms() }.
+handle_formatting_call_3p( FileLoc, ModNameForm, FunNameForm, ParamExprs,
+                           Transforms ) ->
+
+    NewFunctionRef = { remote, FileLoc, ModNameForm, FunNameForm },
+
+    % We will check the transformed versions:
+    { NewParamExprs=[ _FirstParamForm, { string, _FileLoc, NewFormatString },
+                  NewFormatValuesForm ], NewTransforms } =
+        ast_expression:transform_expressions( ParamExprs, Transforms ),
+
+    case NewFormatValuesForm of
+
+        % Generally is directly a list, either empty (like here) or not:
+		{ nil, _ } ->
+			check_format_string( NewFormatString, NewFormatValuesForm,
+				FileLoc, NewFunctionRef, NewParamExprs, NewTransforms );
+
+        % Here a non-empty list:
+        { cons, _, _, _ } ->
+            check_format_string( NewFormatString, NewFormatValuesForm,
+				FileLoc, NewFunctionRef, NewParamExprs, NewTransforms );
+
+        % Not a direct list, for example '{call, ...'; then pass-through, no
+        % build-time checking/transformation apply:
+		%
+		_ ->
+			NewExpr = { call, FileLoc, NewFunctionRef, NewParamExprs },
+			{ [ NewExpr ], NewTransforms }
+
+    end.
+
 
 
 
@@ -1408,7 +1554,7 @@ check_format_string( FormatString, FormatValuesForm, FileLocCall,
 -doc """
 The transformation function in charge of disabling LCO (Last Call Optimisation)
 by ending each local function call with a remote one to an identity function
-(namely basic_utils:identity/1).
+(namely `basic_utils:identity/1`).
 """.
 -spec lco_disabling_clause_transform_fun( ast_clause(), ast_transforms() ) ->
 									{ ast_clause(), ast_transforms() }.
@@ -1438,8 +1584,8 @@ lco_disabling_clause_transform_fun( _Clause={ 'clause', FileLoc,
 			LastFileLoc = element( _Index=2, OtherExpr ),
 
 			NewLastExpr = { call, LastFileLoc, {remote, LastFileLoc,
-											{atom, LastFileLoc, basic_utils},
-											{atom, LastFileLoc, identity } },
+								{atom, LastFileLoc, basic_utils},
+								{atom, LastFileLoc, identity } },
 							[ OtherExpr ] },
 
 			%ast_utils:display_debug( "Clause not ending with a remote call, "
@@ -1466,11 +1612,7 @@ lco_disabling_clause_transform_fun( _Clause={ 'clause', FileLoc,
 
 
 
--doc """
-Injects the specified expression in the AST.
-
-(helper)
-""".
+-doc "Injects the specified expression in the AST.".
 -spec inject_expression( ast_expression(), ast_transforms(), file_loc() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
 
@@ -1520,9 +1662,7 @@ inject_expression( ExprForm, Transforms, _FileLoc ) ->
 
 -doc """
 Injects an expression checking whether once evaluated the corresponding form
-matches the 'true' atom.
-
-(helper)
+matches the `true` atom.
 """.
 -spec inject_match_expression( ast_expression(), ast_transforms(),
 					file_loc() ) -> { [ ast_expression() ], ast_transforms() }.
