@@ -1706,6 +1706,7 @@ specified token value, and returns it.
 """.
 find_expression_for( TokenValue, Token, FileLocToken,
 					 _TokenExprTableAsList=[] ) ->
+
 	ast_utils:display_error( "The current value '~p' of token '~p' could not "
 		"be found in the switch_set_to/2 table specified at ~ts.",
 		[ TokenValue, Token, ast_utils:file_loc_to_string( FileLocToken ) ] ),
