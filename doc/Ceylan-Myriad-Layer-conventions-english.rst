@@ -292,15 +292,15 @@ Release Conventions
 
 These conventions apply to the release of any Myriad-based package, i.e. either Myriad itself or packages depending, directly or not, from it.
 
-The recommended procedure is (while being at the root of a clone):
+The recommended procedure is (while being at the root of a clone of the package of interest):
 
-#. ensure that your version of Erlang (see `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_), of rebar3 (see `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_) and possibly of erlang_ls (see `this section <https://howtos.esperide.org/Emacs.html#regarding-erlang>`_) are up to date
+#. ensure that your version of ``Erlang`` (see `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_), of ``rebar3`` (see `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_) and possibly of ``erlang_ls`` (see `this section <https://howtos.esperide.org/Emacs.html#regarding-erlang>`_) are up to date
 #. merge all new developments in the ``master`` (or ``main``) branch
 #. possibly update dependencies, then:
 
-   - in the corresponding ``GNUmakevars.inc`` settings
+   - in the corresponding ``GNUmakevars.inc`` settings if needed (for example if adding/removing dependencies)
    - in any ``priv/bin/deploy-*-native-build.sh`` script
-   - in ``conf/rebar.config.template``; in which case then run ``make set-rebar-conf``
+   - in ``conf/rebar.config.template``; in which case then run, still from the root of the package clone, ``make set-rebar-conf``
 #. in ``GNUmakevars.inc``:
 
    - ensure that all debug/check flags (like, for Myriad: ``MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path``) are disabled, and that non-release elements (e.g. ``MYRIAD_LCO_OPT``) and optional ones are disabled as well
