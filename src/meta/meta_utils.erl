@@ -31,7 +31,7 @@
 Gathering of various higher-level, convenient **meta-related facilities**,
 notably regarding metaprogramming, types and parse transforms.
 
-See meta_utils_test.erl for the corresponding test, and ast_info.erl for the
+See `meta_utils_test.erl` for the corresponding test, and `ast_info.erl` for the
 more basic services used by this module.
 
 Note that this module is a prerequisite of at least most of our parse
@@ -39,13 +39,13 @@ transforms, hence it must be bootstrapped *before* they are built, and cannot
 use them.
 
 So, to compile it, just go to the root of this layer and execute for example
-'make all'.
+`make all`.
 
 To determine the other bootstrapped modules (i.e. the subset of our modules that
-this module can use), see the BOOTSTRAP_MODULES variable in GNUmakevars.inc.
+this module can use), see the `BOOTSTRAP_MODULES` variable in `GNUmakevars.inc`.
 
 See also: the type_utils module, about the management of datatypes themselves,
-and the ast* modules for lower-level operations.
+and the `ast*` modules for lower-level operations.
 """.
 
 
@@ -205,27 +205,25 @@ The form corresponding to the definition of a clause of a function, typically
 
 -doc """
 The full type specification (if any) of that function, as an abstract form;
-typically:
-
-`{attribute, L, spec, { {foobar,Arity}, [{type,L,'fun', [{type,L,...`
+typically `{attribute, L, spec, { {foobar,Arity}, [{type,L,'fun', [{type,L,...`
 """.
 -type function_spec() :: form().
 
 
 
--doc "The name of a variable (e.g. 'X', or '_' in some cases).".
+-doc "The name of a variable (e.g. `X`, or `_` in some cases).".
 -type variable_name() :: atom().
 
 
 
 -doc """
 Type of functions to transform terms during a recursive traversal (see
-transform_term/4).
+`transform_term/4`).
 
 Such a transformer can operate on ASTs, but more generally on any kind of terms.
 
-Note: apparently we cannot use the 'when' notation here (InputTerm ... when
-InputTerm :: term()).
+Note: apparently we cannot use the `when` notation here (`InputTerm ... when
+InputTerm :: term()`).
 """.
 -type term_transformer() :: fun( ( term(), user_data() ) ->
 										{ term(), user_data() } ).
@@ -449,8 +447,6 @@ remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 -doc """
 Applies the specified AST transformations (mostly depth-first) to the specified
 module information.
-
-(helper)
 """.
 -spec apply_ast_transforms( module_info(), ast_transforms() ) ->
 										{ module_info(), ast_transforms() }.
@@ -486,8 +482,9 @@ apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
 
 
 -doc """
-Lists (in the order of their definition) all the functions ({Name,Arity}) that
-are exported by the specified module, expected to be found in the code path.
+Lists (in the order of their definition) all the functions (as `{Name,Arity}`)
+that are exported by the specified module, which is expected to be found in the
+code path.
 """.
 -spec list_exported_functions( module_name() ) -> [ function_id() ].
 list_exported_functions( ModuleName ) ->
@@ -612,11 +609,11 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 -doc """
 Transforms "blindly" (that is with no a-priori knowledge about its structure)
 the specified arbitrary term (possibly with nested subterms, as the function
-recurses in lists, tuples and maps), calling specified transformer function on
-each instance of the specified type, in order to replace that instance by the
+recurses in lists, tuples and maps), calling the specified transformer function
+on each instance of the specified type, in order to replace that instance by the
 result of that function.
 
-Note that specifying 'undefined' as type description leads to transform
+Note that specifying `undefined` as type description leads to transform
 (exactly) all non-container types.
 
 Returns an updated term, with these replacements made.
@@ -626,8 +623,8 @@ function might replace, for example, floats by `<<bar>>`; then `{a, ["foo", {c,
 [<<bar>>, 45]}]}` would be returned.
 
 Note: the transformed terms are themselves recursively transformed, to ensure
-nesting is managed. Of course this implies that the term transform should not
-result in iterating the transformation infinitely.
+that nesting is managed. Of course this implies that the term transform should
+not result in iterating the transformation infinitely.
 
 As a result it may appear that a term of the targeted type is transformed almost
 systematically twice: it is first transformed as such, and the result is
@@ -639,7 +636,7 @@ then that content will be shown as analysed twice.
 						{ term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:
 transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
-								when is_list( TargetTerm ) ->
+                                        when is_list( TargetTerm ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
@@ -672,7 +669,7 @@ transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
 
 % Here the term is a tuple (or a record...), and we want to intercept them:
 transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-		when is_tuple( TargetTerm ) andalso (
+                                when is_tuple( TargetTerm ) andalso (
 			TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
@@ -780,8 +777,8 @@ transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 -doc """
 Transforms any term by traversing it (helper).
 
-Helper to traverse a transformed term (e.g. if looking for a {user_id, String}
-pair, we must recurse in nested tuples like: {3, {user_id, "Hello"}, 1}.
+Helper to traverse a transformed term (e.g. if looking for a `{user_id, String}`
+pair, we must recurse in nested tuples like: `{3, {user_id, "Hello"}, 1}`.
 """.
 transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 							UserData ) ->
@@ -825,7 +822,7 @@ get_compile_base_opts() ->
 
 
 
--doc "Returns suitable settings for the debug_info chunk in generated code.".
+-doc "Returns suitable settings for the `debug_info` chunk in generated code.".
 -spec get_debug_info_settings() -> [ tuple() ].
 
 % See DEBUG_INFO_KEY in GNUmakevars.inc:

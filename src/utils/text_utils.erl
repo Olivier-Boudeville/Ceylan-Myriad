@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various facilities to manage **textual content**.
 
-See text_utils_test.erl for the corresponding test.
+See `text_utils_test.erl` for the corresponding test.
 """.
 
 

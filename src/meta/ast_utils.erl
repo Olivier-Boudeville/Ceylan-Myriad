@@ -659,6 +659,10 @@ string_to_form( FormString, StreamLoc ) ->
 			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
+		{ error, ErrorInfo, ErrorLocation } ->
+			throw( { form_tokenizing_error, erl_scan:format_error( ErrorInfo ),
+                     ErrorLocation, FormString } );
+
 		ErrorTok ->
 			throw( { form_tokenizing_error, FormString, ErrorTok } )
 
@@ -939,7 +943,7 @@ raise_error( ErrorTerm ) ->
 	%display_error( "~p", [ ErrorTerm ] ),
 
 	% Does not add any information (just non-relevant erl_parse, epp
-	% etc state):
+	% etc. state):
 	%
 	%erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
 

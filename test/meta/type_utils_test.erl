@@ -25,13 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, November 17, 2019.
 
-
 -module(type_utils_test).
 
 -moduledoc """
 Unit tests for the `type_utils` services.
 
-See the type_utils.erl tested module.
+See the `type_utils` tested module.
 """.
 
 
@@ -63,5 +62,20 @@ run() ->
 
 	test_facilities:display( "Interpreting '~p': ~ts",
 		[ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
+
+
+    % To test invalid type strings:
+    %TypeStr = "[float()]", % should be "list(float())"
+
+    TypeStr = "list(tuple(float(), table(integer(), option(string())), "
+        "list(union(foo,bar))))",
+
+    test_facilities:display( "Parsing the type of '~ts'.", [ TypeStr ] ),
+
+    ParsedType = type_utils:parse_type( TypeStr ),
+
+    test_facilities:display( "Type parsing resulted in contextual type ~w.~n"
+        "It is described as '~ts'.",
+        [ ParsedType, type_utils:type_to_string( ParsedType ) ] ),
 
 	test_facilities:stop().

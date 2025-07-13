@@ -36,6 +36,8 @@ See also the `ast_utils` module for example `ast_utils:term_to_form/1`.
 
 
 -export([ list_to_form/1, form_to_list/1, list_form_length/1,
+          list_to_tuple_form/2,
+          %tuple_to_form/1, form_to_tuple/1,
 		  atoms_to_form/1, form_to_atoms/1, form_to_term/1,
 		  enumerated_variables_to_form/1,
 		  get_iterated_param_name/1, get_header_params/1 ]).
@@ -44,7 +46,9 @@ See also the `ast_utils` module for example `ast_utils:term_to_form/1`.
 % Type shorthands:
 
 -type count() :: basic_utils:count().
+
 -type form_element() :: ast_base:form_element().
+-type file_loc() :: ast_base:file_loc().
 
 
 % For the default_generation_location define:
@@ -55,6 +59,9 @@ See also the `ast_utils` module for example `ast_utils:term_to_form/1`.
 -doc """
 Transforms the specified list (whose elements are typically themselves form
 elements already) into the AST version of a list.
+
+This is thus not a deep transformation, only the top-level elements are
+considered.
 
 For example: `list_to_form( [{atom,FileLoc,a}, {atom,FileLoc,b}]) = {cons,
 FileLoc, {atom,FileLoc,a}, {cons, FileLoc, {atom,FileLoc,b}, {nil,FileLoc}}}`.
@@ -98,6 +105,19 @@ list_form_length( { nil, _FileLoc } ) ->
 
 list_form_length( { cons, _FileLoc, _E, NestedForm } ) ->
 	1 + list_form_length( NestedForm ).
+
+
+
+-doc """
+Returns the AST form corresponding to a tuple whose elements would be the ones
+of the specified list.
+
+For example, if the list is `[FormA,FormB]`, then returns, in AST form, a
+`{FormA,FormB}` pair.
+""".
+-spec list_to_tuple_form( list(), file_loc() ) -> form_element().
+list_to_tuple_form( FormList, FileLoc ) ->
+    { tuple, FileLoc, FormList }.
 
 
 
@@ -193,7 +213,7 @@ like in `f(A,B)->...`.
 For example: `[{var,FileLoc,'Myriad_Param_1'}, {var,FileLoc,'Myriad_Param_2'}] =
 get_header_params(2)`.
 
-See also: `enumerated_variables_to_form/1`.
+See also `enumerated_variables_to_form/1`.
 """.
 -spec get_header_params( arity() ) -> [ form_element() ].
 get_header_params( Arity ) ->

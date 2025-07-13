@@ -64,13 +64,13 @@ sub-elements are of the same kind as they are, and at least some rules differ).
 
 -doc "List-comprehension generator.".
 -type lc_generator_qualifier() ::
-		{ 'generate', file_loc(), ast_pattern(), ast_expression() }.
+	{ 'generate', file_loc(), ast_pattern(), ast_expression() }.
 
 
 
 -doc "Bitstring generator.".
 -type bitstring_generator_qualifier() ::
-		{ 'b_generate', file_loc(), ast_pattern(), ast_expression() }.
+	{ 'b_generate', file_loc(), ast_pattern(), ast_expression() }.
 
 
 
@@ -78,8 +78,9 @@ sub-elements are of the same kind as they are, and at least some rules differ).
 A qualifier is one of the following: an expression-based filter, a
 list-comprehension generator or a bitstring generator.
 """.
--type ast_qualifier() :: ast_expression() | lc_generator_qualifier()
-							| bitstring_generator_qualifier().
+-type ast_qualifier() :: ast_expression()
+                       | lc_generator_qualifier()
+                       | bitstring_generator_qualifier().
 
 
 
@@ -162,7 +163,9 @@ list-comprehension generator or a bitstring generator.
 % Note: awfully verbose. Best option is to leave it disabled and to enable it
 % selectively when recompiling specific target modules.
 
-% Comment to disable logging (too detailed, almost untractable even to display):
+% Comment to disable logging (often too detailed and almost untractable even to
+% display):
+%
 %-define( log_traversal, ).
 
 
@@ -199,7 +202,7 @@ list-comprehension generator or a bitstring generator.
 
 
 -doc """
-Transforms specified expression into a list of expressions.
+Transforms the specified expression into a list of expressions.
 
 See section `7.4 Expressions` in [http://erlang.org/doc/apps/erts/absform.html].
 """.
@@ -1341,13 +1344,14 @@ transform_call( FileLoc, FunctionRef, Params, Transforms ) ?rec_guard ->
 	%?log_enter( "Transforming call parameters ~p", [ Params ] ),
 
 	% First recurses, knowing that function parameters are expressions:
-	{ [ NewParams ], ParamsTransforms } =
+	{ NewParams, ParamsTransforms } =
 		transform_expressions( Params, FuncTransforms ),
 
 	% Dubious: NewParams is a tuple?
-	throw( { debug, new_params, NewParams } ),
+	%throw( { debug, new_params, NewParams } ),
+
 	NewArity = length( NewParams ),
-	NewArity = length( tuple_to_list( NewParams ) ),
+	%NewArity = length( tuple_to_list( NewParams ) ),
 
 	{ [ FinalFunctionRef ], FinalTransforms } = transform_call_expression(
 		TransformedFunctionRef, NewArity, ParamsTransforms ),
