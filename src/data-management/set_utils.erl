@@ -42,9 +42,9 @@ lighter, alternate level of indirection
 - if you feel the need for an associative table whose values do no matter, your
 actual need is a set!
 
-See set_utils_test.erl for the corresponding test.
+See `set_utils_test.erl` for the corresponding test.
 
-See also: list_utils.erl and set_utils_test.erl.
+See also: `list_utils.erl` and `set_utils_test.erl`.
 """.
 
 
@@ -126,7 +126,7 @@ new() ->
 -doc """
 Returns a set comprising only the specified element.
 
-More elegant than set_utils:add(Foo, set_utils:new()).
+More elegant than `set_utils:add(Foo, set_utils:new())`.
 """.
 -spec singleton( element() ) -> set().
 singleton( Element ) ->
@@ -140,7 +140,7 @@ singleton( Element ) ->
 Returns a set containing the elements of the specified list (possibly unordered
 and containing duplicates).
 
-See singleton/1 if wanting to create a set with one element.
+See `singleton/1` if wanting to create a set with one element.
 """.
 -spec new( [ element() ] ) -> set().
 new( ElementList ) ->
@@ -153,8 +153,8 @@ Tells whether the two specified sets are equal (meaning that they contain
 exactly the same elements).
 
 Note: depending on set_impl, this function may or may not be useless, as using
-the basic '==' term-level operator may be sufficient to compare some types of
-sets (e.g. ordsets).
+the basic '=:=' term-level operator may be sufficient to compare some types of
+sets (e.g. `ordsets`).
 """.
 -spec are_equal( set(), set() ) -> boolean().
 are_equal( Set1, Set2 ) ->
@@ -165,8 +165,9 @@ are_equal( Set1, Set2 ) ->
 
 
 -doc """
-Returns a set formed from the specified one with specified element inserted. If
-this element is already in the specified set, the returned set is the same.
+Returns a set formed from the specified one with the specified element
+inserted. If this element is already in the specified set, the returned set is
+the same.
 """.
 -spec add( element(), set() ) -> set().
 add( Element, Set ) ->
@@ -177,7 +178,7 @@ add( Element, Set ) ->
 -doc """
 Returns a set formed from the specified one with specified element inserted,
 checking that this element was not already in the original set (otherwise a
-batmatch exception is thrown).
+`batmatch` exception is thrown).
 """.
 -spec add_as_new( element(), set() ) -> set().
 add_as_new( Element, Set ) ->
@@ -303,7 +304,7 @@ to_list( Set ) ->
 
 
 -doc """
-Returns true iff the specified element is an element of the specified set.
+Returns `true` iff the specified element is an element of the specified set.
 """.
 -spec member( element(), set() ) -> boolean().
 member( Element, Set ) ->
@@ -334,8 +335,8 @@ size( Set ) ->
 Returns an iterator that can be used for traversing the entries of the specified
 set.
 
-Note: the iterator is *not* the first iterated element of a set: next/1 shall be
-used even for the very first element.
+Note: the iterator is *not* the first iterated element of a set: `next/1` shall
+be used even for the very first element.
 """.
 -spec iterator( set() ) -> iterator().
 iterator( Set ) ->
@@ -359,7 +360,7 @@ next( Iterator ) ->
 
 
 -doc """
-Extracts specified element (if any) from specified set: removes it from the
+Extracts the specified element (if any) from specified set: removes it from the
 returned set; otherwise (that is: if that element does not exist in the
 specified set), returns false.
 """.
@@ -374,8 +375,8 @@ extract_if_existing( Element, Set ) ->
 Removes the specified element (if any) from the specified set, and returns the
 resulting set.
 
-Note: does not fail if the element was not in the set; use delete_existing/2 to
-ensure that the element was present.
+Note: does not fail if the element was not in the set; use `delete_existing/2`
+to ensure that the element was present.
 """.
 -spec delete( element(), set() ) -> set().
 delete( Element, Set ) ->
@@ -387,8 +388,8 @@ delete( Element, Set ) ->
 Ensures that the specified element was indeed in the specified set before
 removing it, and returning the resulting set.
 
-Note: use delete/2 to delete an element without checking whether the element was
-already present in the set.
+Note: use `delete/2` to delete an element without checking whether the element
+was already present in the set.
 """.
 -spec delete_existing( element(), set() ) -> set().
 delete_existing( Element, Set ) ->
