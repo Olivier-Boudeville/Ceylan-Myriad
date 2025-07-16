@@ -715,7 +715,7 @@ transform_expression( ?e={ 'catch', FileLoc, Expression },
 	Res;
 
 
-% Cons expression found:
+% Cons (list-building) expression found:
 %
 % "If E is a cons skeleton [E_h | E_t], then Rep(E) = {cons, FILE_LOC, Rep(E_h),
 % Rep(E_t)}."
@@ -723,25 +723,37 @@ transform_expression( ?e={ 'catch', FileLoc, Expression },
 % Head and Tail members are expressions (not just patterns), as a member can
 % for example be : {call,56, {remote, ...
 %
-transform_expression( ?e={ 'cons', FileLoc, HeadExpression, TailExpression },
+transform_expression( ?e={ 'cons', FileLoc, HeadExpr, TailExpr },
 					  Transforms ) ?rec_guard ->
 
 	?log_enter( "Transforming cons expression ~p...", [ E ] ),
 
-	% TO-DO: add a 'cons' transform trigger.
+	Res = case Transforms#ast_transforms.transform_table of
 
-	{ [ NewHeadExpression ], HeadTranforms } =
-		transform_expression( HeadExpression, Transforms ),
+		undefined ->
+			transform_cons( FileLoc, HeadExpr, TailExpr, Transforms );
 
+		TransformTable ->
+			case ?table:lookup_entry( 'cons', TransformTable ) of
 
-	{ [ NewTailExpression ], TailTransforms } =
-		transform_expression( TailExpression, HeadTranforms ),
+				key_not_found ->
+					transform_cons( FileLoc, HeadExpr, TailExpr, Transforms );
 
-	NewExpr = { 'cons', FileLoc, NewHeadExpression, NewTailExpression },
+				{ value, ConsTupleTransformFun } ->
+					% Returns directly {NewExprs, NewTransforms}:
+					%
+					% (note that this transform function is responsible for
+					% recursing in the expression of the tuple elements if
+					% needed - which is probably the case)
+					%
+					ConsTupleTransformFun( FileLoc, HeadExpr, TailExpr,
+                                           Transforms )
 
-	Res = { [ NewExpr ], TailTransforms },
+			end
 
-	?log_exit( "... returning cons expressions and state ~p", [ Res ] ),
+	end,
+
+	?log_exit( "... returning cons and state ~p", [ Res ] ),
 
 	Res;
 
@@ -807,24 +819,38 @@ transform_expression( ?e={ 'bc', FileLoc, Expression, Qualifiers },
 % "If E is a tuple skeleton {E_1, ..., E_k}, then Rep(E) = {tuple, FILE_LOC,
 % [Rep(E_1), ..., Rep(E_k)]}."
 %
-transform_expression( ?e={ 'tuple', FileLoc, Expressions },
-					  Transforms ) ?rec_guard ->
+transform_expression( ?e={ 'tuple', FileLoc, ElemExprs },
+                      Transforms ) ?rec_guard ->
 
 	?log_enter( "Transforming tuple skeleton ~p...", [ E ] ),
 
-	% TO-DO: add a 'tuple' transform trigger.
+	Res = case Transforms#ast_transforms.transform_table of
 
-	{ NewExpressions, NewTransforms } =
-		transform_expressions( Expressions, Transforms ),
+		undefined ->
+			transform_tuple( FileLoc, ElemExprs, Transforms );
 
-	NewExpr = { 'tuple', FileLoc, NewExpressions },
+		TransformTable ->
+			case ?table:lookup_entry( 'tuple', TransformTable ) of
 
-	Res = { [ NewExpr ], NewTransforms },
+				key_not_found ->
+					transform_tuple( FileLoc, ElemExprs, Transforms );
+
+				{ value, TupleTransformFun } ->
+					% Returns directly {NewExprs, NewTransforms}:
+					%
+					% (note that this transform function is responsible for
+					% recursing in the expression of the tuple elements if
+					% needed - which is probably the case)
+					%
+					TupleTransformFun( FileLoc, ElemExprs, Transforms )
+
+			end
+
+	end,
 
 	?log_exit( "... returning tuple skeleton and state ~p", [ Res ] ),
 
 	Res;
-
 
 
 % Map creation found:
@@ -1325,8 +1351,8 @@ transform_expression( Expression, Transforms ) ->
 
 
 -doc """
-Transforms an expression corresponding to a function call into another one
-(exactly).
+Transforms an expression corresponding to a function call into a sequence (list)
+of expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1335,7 +1361,7 @@ Transforms an expression corresponding to a function call into another one
 							{ [ ast_expression() ], ast_transforms() }.
 transform_call( FileLoc, FunctionRef, Params, Transforms ) ?rec_guard ->
 
-	?log_enter( "Transforming 'call', to function reference ~p",
+	?log_enter( "Transforming 'call', for function reference ~p",
 				[ FunctionRef ] ),
 
 	{ [ TransformedFunctionRef ], FuncTransforms } =
@@ -1343,7 +1369,9 @@ transform_call( FileLoc, FunctionRef, Params, Transforms ) ?rec_guard ->
 
 	%?log_enter( "Transforming call parameters ~p", [ Params ] ),
 
-	% First recurses, knowing that function parameters are expressions:
+	% First recurses in each function parameter, knowing that each of them is an
+	% expression:
+    %
 	{ NewParams, ParamsTransforms } =
 		transform_expressions( Params, FuncTransforms ),
 
@@ -1358,12 +1386,18 @@ transform_call( FileLoc, FunctionRef, Params, Transforms ) ?rec_guard ->
 
 	NewExpr = { 'call', FileLoc, FinalFunctionRef, NewParams },
 
-	{ [ NewExpr ], FinalTransforms }.
+	Res = { [ NewExpr ], FinalTransforms },
+
+	?log_exit( "... returning call ~p and state ", [ Res ] ),
+
+    Res.
+
 
 
 
 -doc """
-Transforms an expression corresponding to an `if` into another one (exactly).
+Transforms an expression corresponding to an `if` into a sequence (list) of
+expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1381,7 +1415,8 @@ transform_if( FileLoc, Clauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a `case` into another one (exactly).
+Transforms an expression corresponding to a `case` into a sequence (list) of
+expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1402,7 +1437,8 @@ transform_case( FileLoc, TestExpression, CaseClauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a `match` into another one (exactly).
+Transforms an expression corresponding to a `match` into a sequence (list) of
+expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1429,8 +1465,8 @@ transform_match( FileLoc, MatchPattern, MatchExpression,
 
 
 -doc """
-Transforms an expression corresponding to a simple `receive` into another one
-(exactly).
+Transforms an expression corresponding to a simple `receive` into a sequence
+(list) of expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1449,8 +1485,8 @@ transform_simple_receive( FileLoc, ReceiveClauses, Transforms ) ?rec_guard ->
 
 
 -doc """
-Transforms an expression corresponding to a simple `receive` into another one
-(exactly).
+Transforms an expression corresponding to a simple `receive` into a sequence
+(list) of expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1483,7 +1519,8 @@ transform_receive_with_after( FileLoc, ReceiveClauses, AfterTest,
 
 
 -doc """
-Transforms an expression corresponding to a `try` into another one (exactly).
+Transforms an expression corresponding to a `try` into a sequence (list) of
+expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1513,7 +1550,8 @@ transform_try( FileLoc, TryBody, TryClauses, CatchClauses, AfterBody,
 
 
 -doc """
-Transforms an expression corresponding to a `catch` into another one (exactly).
+Transforms an expression corresponding to a `catch` into a sequence (list) of
+expressions (here, a single one).
 
 (default traversal implementation)
 """.
@@ -1531,6 +1569,57 @@ transform_catch( FileLoc, Expression, Transforms ) ?rec_guard ->
 
 
 -doc """
+Transforms an expression corresponding to a `cons` (list-building) into a
+sequence (list) of expressions (here, a single one).
+
+(default traversal implementation)
+""".
+-spec transform_cons( file_loc(), ast_expression(), ast_expression(),
+                      ast_transforms() ) ->
+							{ [ ast_expression() ], ast_transforms() }.
+transform_cons( FileLoc, HeadExpr, TailExpr, Transforms ) ?rec_guard ->
+
+	{ [ NewHeadExpr ], HeadTransforms } =
+		transform_expression( HeadExpr, Transforms ),
+
+	{ [ NewTailExpr ], TailTransforms } =
+		transform_expression( TailExpr, HeadTransforms ),
+
+	NewExpr = { 'cons', FileLoc, NewHeadExpr, NewTailExpr },
+
+	{ [ NewExpr ], TailTransforms }.
+
+
+
+
+-doc """
+Transforms an expression corresponding to a `tuple` into a sequence (list) of
+expressions (here, a single one).
+
+(default traversal implementation)
+""".
+-spec transform_tuple( file_loc(), [ ast_expression() ], ast_transforms() ) ->
+							{ [ ast_expression() ], ast_transforms() }.
+transform_tuple( FileLoc, ElemExprs, Transforms ) ?rec_guard ->
+
+	% Just recurses in each tuple element, knowing that each of them is an
+	% expression:
+    %
+	{ NewElemExprs, ElemsTransforms } =
+		transform_expressions( ElemExprs, Transforms ),
+
+	NewExpr = { 'tuple', FileLoc, NewElemExprs },
+
+	{ [ NewExpr ], ElemsTransforms }.
+
+
+
+
+
+% Section centralising various transformation helpers.
+
+
+-doc """
 Transforms the specified list of expressions.
 
 Defined for convenience.
@@ -1539,8 +1628,9 @@ Defined for convenience.
 									{ [ ast_expression() ], ast_transforms() }.
 transform_expressions( Expressions, Transforms ) ?rec_guard ->
 
-	% An expression is transformed into a *list* of expressions: (probably
-	% lists:mapfoldl/3 should be replaced by ad-hoc code, to ease debugging)
+	% An expression is transformed into a *list* of expressions:
+    % (probably that lists:mapfoldl/3 should be replaced by ad-hoc code, to ease
+    % debugging)
 	%
 	{ ExprLists, NewTransforms } = lists:mapfoldl(
 		fun transform_expression/2, _Acc0=Transforms, _List=Expressions ),

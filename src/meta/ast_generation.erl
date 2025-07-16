@@ -158,6 +158,9 @@ Returns the term corresponding to the specified form element.
 For example `[{float,boolean}] = form_to_term({cons,0, {tuple,0,
 [{atom,0,float},{atom,0,boolean}]}, {nil,0}})`.
 
+No variable expected in the AST (e.g. no `{var,1,'T'}`), otherwise a `badarg` is
+raised.
+
 See ast_utils:term_to_form/1` for the reciprocal operation.
 """.
 -spec form_to_term( form_element() ) -> term().

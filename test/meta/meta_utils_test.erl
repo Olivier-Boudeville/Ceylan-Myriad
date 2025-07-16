@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **meta_utils** toolbox.
 
-See the meta_utils.erl tested module.
+See the `meta_utils` tested module.
 """.
 
 

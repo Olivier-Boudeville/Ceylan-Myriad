@@ -242,7 +242,7 @@ InputTerm :: term()`).
 
 -type user_data() :: basic_utils:user_data().
 
--type primitive_type_description() :: type_utils:primitive_type_description().
+-type concrete_type_description() :: type_utils:concrete_type_description().
 -type option(T) :: type_utils:option(T).
 
 -type form() :: ast_base:form().
@@ -609,34 +609,34 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 -doc """
 Transforms "blindly" (that is with no a-priori knowledge about its structure)
 the specified arbitrary term (possibly with nested subterms, as the function
-recurses in lists, tuples and maps), calling the specified transformer function
-on each instance of the specified type, in order to replace that instance by the
-result of that function.
+recurses in compounding datastructures like lists, tuples and maps), calling the
+specified transformer function on each instance of the specified concrete type,
+in order to replace that instance by the result of that function.
 
 Note that specifying `undefined` as type description leads to transform
-(exactly) all non-container types.
+(exactly) all non-compounding types.
 
 Returns an updated term, with these replacements made.
 
 For example the input term could be `T={a, ["foo", {c, [2.0, 45]}]}` and the
 function might replace, for example, floats by `<<bar>>`; then `{a, ["foo", {c,
-[<<bar>>, 45]}]}` would be returned.
+[<<bar>>, 45]}]}` would be returned. See the `meta_utils_test` for examples of
+transformer functions.
 
 Note: the transformed terms are themselves recursively transformed, to ensure
 that nesting is managed. Of course this implies that the term transform should
 not result in iterating the transformation infinitely.
 
-As a result it may appear that a term of the targeted type is transformed almost
-systematically twice: it is first transformed as such, and the result is
+As a result, it may appear that a term of the targeted type is transformed
+almost systematically twice: it is first transformed as such, and the result is
 transformed in turn. If the transformed term is the same as the original one,
 then that content will be shown as analysed twice.
 """.
--spec transform_term( term(), option( primitive_type_description() ),
-					  term_transformer(), user_data() ) ->
-						{ term(), user_data() }.
+-spec transform_term( term(), option( concrete_type_description() ),
+	term_transformer(), user_data() ) -> { term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:
 transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
-                                        when is_list( TargetTerm ) ->
+                                when is_list( TargetTerm ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 

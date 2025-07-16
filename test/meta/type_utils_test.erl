@@ -64,11 +64,18 @@ run() ->
 		[ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
 
 
-    % To test invalid type strings:
-    %TypeStr = "[float()]", % should be "list(float())"
+    % To test various (valid) type strings:
+    %TypeStr = "[float()]",
+    %TypeStr = "[T]",
+    TypeStr = "{bar,integer()}",
 
-    TypeStr = "list(tuple(float(), table(integer(), option(string())), "
-        "list(union(foo,bar))))",
+    % To test various invalid type strings:
+    %TypeStr = "list(float())",
+    %TypeStr = "list(T)",
+
+
+    %TypeStr = "list(tuple(float(), table(integer(), option(string())), "
+    %    "list(union(foo,bar))))",
 
     test_facilities:display( "Parsing the type of '~ts'.", [ TypeStr ] ),
 
@@ -77,5 +84,21 @@ run() ->
     test_facilities:display( "Type parsing resulted in contextual type ~w.~n"
         "It is described as '~ts'.",
         [ ParsedType, type_utils:type_to_string( ParsedType ) ] ),
+
+
+    FooTypeStr = "table(V,{bar,U})",
+
+    test_facilities:display( "Declaring now a parametrised type foo(U,V) "
+                             "based on type ~ts.", [ FooTypeStr ] ),
+
+    % Building it from a string:
+    FooParsedType = type_utils:parse_type( FooTypeStr ),
+
+    % As the order of type variables matters when using such type afterwards:
+    WithFooTypedefTable = type_utils:declare_type( foo, [ 'U', 'V' ],
+                                                   FooParsedType, table:new() ),
+
+    test_facilities:display( "Once foo/2 has been declared, having: ~ts.",
+        [ type_utils:typedef_table_to_string( WithFooTypedefTable ) ] ),
 
 	test_facilities:stop().

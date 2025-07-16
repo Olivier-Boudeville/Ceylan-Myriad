@@ -29,8 +29,8 @@
 
 -moduledoc """
 Module helping to manage **datatypes** (and also values), notably in ASTs, but
-also for our (admittedly very limited) own type language (which does not
-specifically depends on Erlang).
+also for our (admittedly quite limited) own type language (which does not
+specifically depends on Erlang). It is named the Myriad type system.
 
 See `type_utils_test.erl` for the corresponding test.
 
@@ -40,11 +40,11 @@ parse-transforms, etc.
 
 
 
-% Design notes about types.
+% Design notes about Myriad types.
 
 
-% Types may be defined according to three forms, from the most human-focused to
-% the most computer-native one:
+% Myriad types may be defined according to three forms, from the most
+% human-focused to the most computer-native one:
 %
 % F1. type-as-a-string, i.e. a textual specification of a type, possibly entered
 % from a user interface; for example, a type (possibly named "my_type") may be
@@ -65,7 +65,7 @@ parse-transforms, etc.
 % supposing that the type foo/0 is an alias for float, and that the type bar/0
 % is specified as "'hello'|'goodbye'", the same example translates to the
 % following explicit type: {union, [float, {union,[{atom,hello},
-% {atom,goodbye}]}, {list,integer}]}; this corresponds to the resolved_type()
+% {atom,goodbye}]}, {list,integer}]}; this corresponds to the explicit_type()
 % type; see resolve_type/1 for that
 
 % Going from:
@@ -73,12 +73,79 @@ parse-transforms, etc.
 % - form F1 (text_type/0) to form F2 (contextual_type/0) is named (here) type
 % parsing, and is implemented by parse_type/1
 %
-% - form F2 (contextual_type/0) to form F3 (resolved_type/0) is named (here)
+% - form F2 (contextual_type/0) to form F3 (explicit_type/0) is named (here)
 % type resolution, and is implemented by resolve_type/1
 
 % Instead of "union(T1, T2, T3)" we would have preferred "T1|T2|T3", but reusing
 % parts of the native parser (possibly erl_parse.yrl) for that does not seem
 % obvious.
+
+
+% Links with the Erlang type system and its AST.
+%
+% The internal, "formal", actual programmatic description of a type according to
+% our conventions is a type-as-a-term (either contextual or explicit, i.e. F2 or
+% F3), relying on a translated version of the textual type (which is for
+% example: "[{float,boolean}]").
+
+% This "internal type language of the Myriad layer" is largely inspired from the
+% forms that can be found in actual (Erlang) ASTs.
+%
+% The requirements for this term-based description were to be able to represent
+% at least any actual type, including parametrised ones, as they are certainly
+% useful (e.g. maps/associative tables, lists, etc.).
+%
+% A problem is that, in terms (as opposed to their textual counterpart),
+% parentheses cannot be used to express parametrised types (not only they denote
+% function calls, but also are not legit components of a term); therefore the
+% convention chosen here is to specify types as pairs, the first element being
+% the name of the type, the second one being the (ordered) list of the types it
+% depends on; then the textual type "a(T1, T2)" is translated to the {a,[T1,T2]}
+% type term; most types being plain, they are represented as
+% '{my_simple_type,[]}', which could be further shortened in the
+% 'my_simple_type' (as an atom - as atoms are not homoiconic here, in the sense
+% that, in terms of types, an atom 'foobar' is not represented directly as
+% 'foobar', but as '{atom,foobar}').
+%
+% So, as an example, the type-as-a-term corresponding to
+% '"[{float(),boolean()}]"' is: '{list, {tuple, [{float,[]}, {boolean,[]}]}}';
+
+% Note that an alternate type language (sticking more closely to its textual
+% counterpart) could have been a more direct '[{float,boolean}]' term (hence
+% getting rid of the parentheses and the pairs whose second element would be an
+% empty list); reason for not doing so: then no possible support of the
+% parametrised types that happen to be often needed (e.g. 'table(atom,int)' is
+% not accepted by the (native) parsing logic, reporting a "bad term").
+
+% The origin of this term-as-a-type notation is clearly the standard (Erlang)
+% type specifications; for example 'meta_utils:string_to_form("-type a() ::
+% [{float(),boolean()}].").' returns the following AST form:
+% {attribute,1,type, {a,{type,1,list, [{type,1,tuple,[{type,1,float,[]},
+% {type,1,boolean,[]}]}]}
+%
+% As a result, the counterpart to the aforementioned '"[{float(), boolean()}]"'
+% type string is translated in ASTs as:
+% {type, 1, list, [{type, 1, tuple, [{type, 1, float, []}, {type, 1, boolean,
+% []}]}]}
+%
+% Then one can remove:
+%
+% - the 'type' (and 'user_type') atoms (not making then a specific distinction
+% between the origin of a type); a list of built-in types - names and arities -
+% is maintained, other types being then user ones; 'typevar' is introduced, for
+% "type variables", for type definitions (like foo(T) being, say, {count(),T}
+%
+% - the line numbers (the '1's here), not useful in that context, hence stripped
+%
+% - as our (built-in) list is parametrised by a single type (the one of its
+% elements), this type does not need to be enclosed in a list
+%
+% Therefore we finally obtain our aforementioned term-as-a-type:
+% '{list, {tuple, [{float,[]}, {boolean,[]}]}}'.
+%
+% So we can ore describe this way arbitrary types as valid terms.
+
+
 
 
 % On type names and signatures.
@@ -94,6 +161,7 @@ parse-transforms, etc.
 % There are reserved type-related names (atoms), which correspond to:
 %  - built-in types: atom, boolean, integer, float, string, binary, any, none
 %  - type constructs: option, list, table, tuple, union
+%  - other: typevar
 
 
 % A type signature is made from the type name and from a list of the type names
@@ -115,7 +183,7 @@ parse-transforms, etc.
 % signature "T(T1, T2, ..., Tk)".
 
 
-% Let Rep(type_signature()) -> resolved_type() be a pseudo-function returning
+% Let Rep(type_signature()) -> explicit_type() be a pseudo-function returning
 % the explicit type definition (as a term) of a type (designated by its
 % signature).
 
@@ -329,6 +397,9 @@ parse-transforms, etc.
 %
 % - non-builtin types and atoms must be encoded differently, e.g., respectively,
 % as [foo()] / {list, {foo,[]}} versus [foo] / {list,{atom,foo}}
+%
+% - at least currently, no "origin" (like a module) of a type applies, they
+% share the same namespace
 
 
 % Implementation notes:
@@ -344,6 +415,13 @@ Describes the name of a type (without, for a parametrised one, the names of the
 types it depends on).
 
 For example `my_count`.
+
+The reserved type names are:
+  - built-in types: `atom`, `boolean`, `integer`, `float`, `string`, `binary`,
+    `any`, `none`
+  - type constructs: `option`, `list`, `table`, `tuple`, `union`
+  - derived types: possibly low_level_type()
+  - other: `typevar`
 """.
 -type type_name() :: atom().
 
@@ -357,7 +435,11 @@ plain types).
 
 
 
--doc "Analoguous to `function_id/0`.".
+-doc """
+Identifier of a Myriad type.
+
+Analoguous to `function_id/0`.
+""".
 -type type_id() :: { type_name(), type_arity() }.
 
 
@@ -374,6 +456,9 @@ content of any networked messages, yet inspired from the syntax used for the
 For example: `"[{float(), boolean(), union(foo()|bar|[integer()])}]"`, where
 `foo` is a (plain) type (expected to be defined in the context) and `bar` is an
 atom.
+
+Such a string representation can be converted into a `contextual_type()` term,
+see the `parse_type/1` function for that.
 """.
 -type text_type() :: ustring().
 
@@ -384,42 +469,63 @@ The most user-friendly textual form of a type.
 For example the contextual type `"[{float(), boolean(),
 union(foo()|bar|[integer()])}]"` would be represented by "[{float(), boolean(),
 foo()|bar|[integer()]}]".
+
+Less flexible that a `text_type/0`, which can be parsed into a contextual type.
 """.
 -type user_text_type() :: ustring().
 
 
 -doc """
-A type-as-a-contextual-term, i.e. an Erlang term that defines a type, yet may
-still be contextual (i.e. it may depend on other non-builtin types).
+A type-as-a-contextual-term, i.e. an Erlang term that defines "formally" a
+Myriad type, yet may still be contextual (i.e. it may depend on other
+non-builtin, possibly parametrised types).
 
 This corresponds to the F2 form, and is relatively in the same spirit as the
 [Erlang Abstract Format](https://www.erlang.org/doc/apps/erts/absform.html),
 albeit this current form only deals with types (not programs, values, etc.).
 
-The same example of the `"foo()|bar|[integer]"` text_type() may then be defined
-here as the `{union, [{foo,[]}, {atom,bar}, {list, {integer,[]}}]}` contextual
-type (hence a term), where the `foo/0` type is expected to be defined in the
-context.
-""".
--type contextual_type() :: term().
+So such a type may not be fully explicit, as it may contain unresolved
+references to other types; for example: `{list, [{count, []}]}` does not specify
+what the `count/0` type is. Same for `{typevar,'T'}`.
 
+The fully explicit types (F3) can be obtained by composing the primitive types
+(see `primitive_type_description/0`) with the compounding, parametrised
+construction types (see `compounding_type_description/0`).
+
+The same example of the `"union(foo(),bar,[integer()])"` `text_type()` may then
+be defined here as the `{union, [{foo,[]}, {atom,bar}, {list, {integer,[]}}]}`
+contextual type (hence a term), where the `foo/0` type is expected to be defined
+in the context.
+
+Such a contextual type may be translated (see `parse_type/0`) from a textual
+type (which is for example: `"[{float(),boolean()}]"`).
+
+It is ultimately a recursive type, and should not contain any typevar.
+""".
+-type contextual_type() ::
+    tuploid( primitive_type_spec() | compounding_type_spec() ).
 
 
 -doc """
-An explicit, fully-resolved type, i.e. a self-standing, Erlang-level term
+An explicit, fully-resolved Myriad type, i.e. a self-standing, Erlang-level term
 defining a type (therefore relying only on built-in types and type constructs,
 all initial types having been fully resolved into them); corresponds to the F3
 form.
 
 For example, supposing that the type `foo()` is an alias for `float()`, and that
 the type `buzz()` is specified as `"hello|goodbye"`, a
-`"foo()|buzz()|[integer]"` text_type() translates to the following resolved
+`"foo()|buzz()|[integer()]"` `text_type()` translates to the following explicit
 type: `{union, [float, {union, [{atom,hello}, {atom,goodbye}]},
 {list,integer}]}`.
+
+An explicit type, being a type that has been fully resolved in terms of built-in
+constructs, is thus autonomous, self-standing.
 """.
--type resolved_type() :: contextual_type().
+-type explicit_type() :: contextual_type().
 
 
+-doc "An AST form describing a Myriad (contextual) type.".
+-type type_form() :: form().
 
 
 -doc """
@@ -463,6 +569,33 @@ For primitive types, the specification is the same of the description.
 
 
 -doc """
+Designates the Erlang-level types that may be encountered as such in an actual
+term.
+
+Complementary to `abstract_type_description/0`.
+
+Convenient for example to target concrete types to be replaced.
+""".
+-type concrete_type_description() :: primitive_type_description()
+                                   | 'map'
+                                   | 'tuple'
+                                   | 'list'.
+
+
+-doc """
+Designates the Erlang-level types (enriched a bit by Myriad) that exist but may
+not be encountered as such in an actual term.
+
+Complementary to `concrete_type_description/0`.
+""".
+-type abstract_type_description() :: 'any'
+                                   | 'none'
+                                   | 'option'
+                                   | 'table' % Introduced by Myriad
+                                   | 'union'.
+
+
+-doc """
 Describes a compounding type, i.e. a type possibly involving/aggregating other
 types.
 
@@ -472,7 +605,7 @@ types).
 -type compounding_type_description() ::
     % Some day maybe: 'function', 'record'
     monomorphic_container_type_description()
-    | 'table' % 2-morphic (and preferred to 'map')
+    | 'table' % 2-morphic (and preferred to 'map', its implementation)
     | 'tuple' % n-morphic
     | 'union'. % n-morphic
 
@@ -488,9 +621,9 @@ Specification of a compounding type.
 """.
 -type compounding_type_spec() ::
     monomorphic_container_type_spec()
-  | { 'table', type(), type() }
-  | { 'tuple', [ type() ] }
-  | { 'union', [ type() ] }.
+  | { 'table', { contextual_type(), contextual_type() } }
+  | { 'tuple', [ contextual_type() ] }
+  | { 'union', [ contextual_type() ] }.
 
 
 
@@ -498,8 +631,8 @@ Specification of a compounding type.
 Specification of a monomorphic container type.
 """.
 -type monomorphic_container_type_spec() ::
-    { 'option', type() }
-  | { 'list', type() }.
+    { 'option', contextual_type() }
+  | { 'list', contextual_type() }.
 
 
 
@@ -548,6 +681,48 @@ See also `get_ast_builtin_types/0`.
 
 
 -doc """
+The name of a type variable.
+
+Used with `typevar`, to keep track of parametrised types in their definition.
+
+For example `T` when discussing the `foo(T)` parametrised type.
+""".
+-type type_variable_name() :: atom().
+
+
+
+-doc """
+A type definition specifies a Myriad type in terms of (generally) other types,
+in a similar way as when using the '-type' attribute in Erlang source code.
+
+For example, defining the `count/0` type to be an alias of `integer/0` (done in
+the sources with `-type count() :: integer()`) could result in the `{[],
+{integer, []}}` type definition.
+
+Types may be defined as parametrised ones; as a result their contextual types
+may include typevars.
+""".
+-type type_definition() :: { [ type_variable_name() ], contextual_type() }.
+
+
+% For the table macro:
+-include("meta_utils.hrl").
+
+
+-doc """
+A table of type definitions.
+
+Allows to convert a type in other (possibly explicit) types.
+
+For example, if wanting to define the `foo(V,K)` type as `table({bar,K}, V)`,
+then an entry whose key would be `{foo,2}` and whose value would be `{['V',
+'K'], {table,{{tuple,[{atom,'bar'},{typevar,'K'}]}, {typevar,'V'}}}}` would be
+introduced in such a table.
+""".
+-type typedef_table() :: ?table:?table( type_id(), type_definition() ).
+
+
+-doc """
 Description of a nesting depth reached when parsing a type description.
 
 It is in pratice a `{P,B}` pair, where `P` is the parenthesis depth (that is the
@@ -555,121 +730,6 @@ number of the parentheses that have been opened and not closed yet) and `B` is
 the bracket depth (i.e. the same principle, for `"[]"` instead of for `"()"`).
 """.
 -type nesting_depth() :: { count(), count() }.
-
-
-
--doc """
-Internal, "formal", actual programmatic description of a type according to our
-conventions: type-as-a-term (either contextual or explicit, i.e. F2 or F3),
-relying on a translated version of the textual type (which is for example:
-`"[{float,boolean}]"`).
-
-This "internal type language of the Myriad layer" is largely inspired from the
-forms that can be found in actual ASTs.
-
-Requirements for this term-based description were:
-
-- be able to represent at least any actual type, including parametrised ones, as
-they are certainly useful (e.g. maps/associative tables, lists, etc.); a problem
-is that, in terms (as opposed to their textual counterpart), parentheses cannot
-be used to express parametrised types (not only they denote function calls, but
-also are not legit components of a term); therefore the convention chosen here
-is to specify types as pairs, the first element being the name of the type, the
-second one being the (ordered) list of the types it depends on; then the textual
-type `"a(T1, T2)"` is translated to the `{a,[T1,T2]}` type term; most types
-being plain, they are represented as `{my_simple_type,[]}`, which can be further
-shortened in the `my_simple_type` (as an atom - as atoms are not homoiconic
-here, in the sense that, in terms of types, an atom `foobar` is not represented
-directly as `foobar`, but as `{atom,foobar}`).
-
-So, as an example, the type-as-a-term corresponding to `"[{float,boolean}]"` is:
-`{list, {tuple, [{float,[]}, {boolean,[]}]}}`;
-
-Note that an alternate type language (sticking more closely to its textual
-counterpart) could have been a more direct `[{float,boolean}]` term (hence
-getting rid of the parentheses and the pairs whose second element would be an
-empty list); reason for not doing so: then no possible support of the
-parametrised types that happen to be often needed (e.g. `table(atom,int)` is not
-accepted by the (native) parsing logic, reporting a "bad term").
-
-The origin of this term-as-a-type notation is clearly the standard (Erlang) type
-specifications; for example `meta_utils:string_to_form("-type a() ::
-[{float(),boolean()}].").` returns following AST form:
-```
-{attribute,1,type, {a,{type,1,list, [{type,1,tuple,[{type,1,float,[]},
- {type,1,boolean,[]}]}]}
-```
-As a result, the counterpart to the aforementioned `"[{float(), boolean()}]"`
-type string is translated in ASTs as:
-```
-{type, 1, list, [{type, 1, tuple, [{type, 1, float, []}, {type, 1, boolean,
-[]}]}]}
-```
-
-Then one can remove:
-
-- the `type` (and `user_type`) atoms (not making then a specific distinction
-between the origin of a type); a list of built-in types - names and arities -
-is maintained, other types being then user ones
-
-- the line numbers (the `1`s here), not useful in that context, hence stripped
-
-- our (built-in) list is parametrised by a single type (the one of its
-  elements), and thus does not need to be enclosed in a list
-
-Therefore we finally obtain our aforementioned term-as-a-type:
-`{list, {tuple, [{float,[]}, {boolean,[]}]}}`.
-
-We can therefore describe this way arbitrary types as valid terms.
-
-Next steps:
-
-- define and document the full type language (elementary datatypes - like
-boolean, integer, float, atoms - and constructs - like list, table, tuple,
-union)
-
-- support it, notably define functions to tell whether a given term is an
-instance of a specified type
-
-Experiment with `ast_utils:string_to_form/1` and have fun!
-
-For example `"-type a() :: [foobar()]."` yields:
-```
-{attribute, 1, type, {a,{type,1, list,
-  [{user_type, 1, foobar, []}]}, []}}
-```
-See also [http://erlang.org/doc/apps/erts/absform.html].
-
-Finally, a direct string representation can be converted into a `type()`term,
-see the parse_type/1 for that.
-
-Of course, on a related note, if `TextualType = "{list, [{tuple, [float,
-boolean]}]}"`, then `ast_utils:string_to_value(TextualType)` will return the
-expected: `{list, [{tuple, [{float, []}, {boolean, []}]}]}`.
-
-Note that such a type may not be fully explicit, as it may contain unresolved
-references to other types; for example: `{list, [{count, []}]}` does not specify
-what the `count()` type is.
-
-The fully explicit types (F3) can be obtained by composing the primitive types
-(see `primitive_type_description/0`) with the compounding, parametrised
-construction types (see `compounding_type_description/0`).
-
-It is ultimately a recursive type.
-""".
-%-type type() :: term().
--type type() ::
-    tuploid( primitive_type_spec() | compounding_type_spec() ).
-
-
-
--doc """
-An explicit type is a type that has been fully resolved in terms of built-in
-constructs; it is thus autonomous, self-standing.
-""".
--type explicit_type() :: type().
-
-
 
 
 -doc """
@@ -969,14 +1029,16 @@ Transient terms are the opposite of permanent ones.
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
                text_type/0, user_text_type/0,
-               contextual_type/0, resolved_type/0,
+               contextual_type/0, explicit_type/0,
 			   primitive_type_description/0, primitive_type_spec/0,
+               concrete_type_description/0, abstract_type_description/0,
                compounding_type_description/0,
                monomorphic_container_type_description/0,
                compounding_type_spec/0,
                monomorphic_container_type_spec/0,
-			   nesting_depth/0, type/0, explicit_type/0,
-			   void/0, low_level_type/0,
+               value_description/0,
+               type_variable_name/0, type_definition/0, typedef_table/0,
+			   nesting_depth/0, void/0, low_level_type/0,
 
 			   option/1, safe_option/1, wildcardable/1,
 
@@ -1011,7 +1073,8 @@ Transient terms are the opposite of permanent ones.
 		  is_transient/1, is_byte/1,
 		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
           parse_type/1, vet_contextual_type/1,
-          resolve_type/1, vet_resolved_type/1,
+          resolve_type/1, vet_explicit_type/1,
+          declare_type/4, typedef_table_to_string/1,
           coerce_stringified_to_type/2 ]).
 
 
@@ -1116,9 +1179,6 @@ Transient terms are the opposite of permanent ones.
 		  array_to_string/1 ]).
 
 
-% For the table macro:
--include("meta_utils.hrl").
-
 % For the ast_transforms record:
 -include("ast_transform.hrl").
 
@@ -1143,9 +1203,7 @@ Transient terms are the opposite of permanent ones.
 
 -doc """
 Returns an atom describing, as precisely as possible, the overall type of the
-specified primitive term.
-
-Note: limited to primitive types, not compounded ones (like `[float()]`).
+specified concrete term.
 
 `is_number/1`, `is_record/1`, etc. not usable here.
 
@@ -1157,7 +1215,7 @@ may be seen of being of multiple types); for that see `is_value_matching/2`.
 The lowest-level/most precise typing can be obtained with the (undocumented)
 `erts_internal:term_type/1` function.
 """.
--spec get_type_of( term() ) -> primitive_type_description().
+-spec get_type_of( term() ) -> concrete_type_description().
 get_type_of( Term ) when is_atom( Term ) ->
 	'atom';
 
@@ -1210,12 +1268,14 @@ get_type_of( Term ) when is_port( Term ) ->
 get_type_of( Term ) when is_tuple( Term ) ->
 	'tuple';
 
+get_type_of( Term ) when is_list( Term ) ->
+	'list';
+
 get_type_of( Term ) when is_reference( Term ) ->
 	'reference';
 
-% 'any', 'none', 'option', 'table', 'union' would not be very relevant here.
 get_type_of( Term ) ->
-	throw( { unknown_type_for, Term } ).
+	throw( { not_concrete_type, Term } ).
 
 
 
@@ -1456,9 +1516,9 @@ is_type( ElemType ) ->
 
 
 -doc """
-Tells whether the specified term is of the specified resolved type (predicate).
+Tells whether the specified term is of the specified explicit type (predicate).
 """.
--spec is_of_type( term(), resolved_type() ) -> boolean().
+-spec is_of_type( term(), explicit_type() ) -> boolean().
 % First, our own simple types:
 is_of_type( _Term=A, _Type={ atom, A } ) ->
 	true;
@@ -1616,14 +1676,17 @@ is_homogeneous_helper( Elems, Type ) ->
 
 
 -doc """
-Tells whether the two specified types are the same (i.e. designate the same
-actual type / are aliases).
+Tells whether the two specified explicit types are the same (i.e. designate the
+same actual type / are aliases).
+
+Even if restraining to explicit types is safer, this function remains
+unreliable, as for example the order of types in an union should not matter.
 """.
--spec are_types_identical( type(), type() ) -> boolean().
-are_types_identical( Type, Type ) ->
+-spec are_types_identical( explicit_type(), explicit_type() ) -> boolean().
+are_types_identical( ExplType, ExplType ) ->
 	true;
 
-are_types_identical( _FirstType, _SecondType ) ->
+are_types_identical( _FirstExplType, _SecondExplType ) ->
 	false.
 
 
@@ -1794,40 +1857,31 @@ For example: `{list, {count,[]}} = parse_type("[count()]")`.
 parse_type( TypeStr ) ->
 
     % (no cond_utils:if_defined/2 usable in a pioneer module)
-    %trace_utils:debug_fmt( "Parsing the '~ts' type.", [ TypeStr ] ) ),
+    trace_utils:debug_fmt( "Parsing the '~ts' type.", [ TypeStr ] ),
 
-    % We wrap the expression in a pseudo-function, as standalone atoms are
-    % caught only in the context of a call (otherwise top-level atoms would not
-    % be transformed as others):
-
-    % As an atom:
-    PseudoFunName = pseudo_func,
-
-    % Needing a dot-terminated expression:
-    ToScanStr = text_utils:format( "~ts(~ts).", [ PseudoFunName, TypeStr ] ),
+    DotTypeStr = text_utils:format( "~ts.", [ TypeStr ] ),
 
     % Not using ast_utils:string_to_form/1 for more specific error reporting;
-    case erl_scan:string( ToScanStr ) of
+    case erl_scan:string( DotTypeStr ) of
 
         { ok, Tokens, _EndLocation=1 } ->
 
-            %trace_utils:debug_fmt( "Scanned tokens: ~p.", [ Tokens ] ) ),
+            trace_utils:debug_fmt( "Scanned tokens:~n ~p.", [ Tokens ] ),
 
             % Neither parse_term/1 nor parse_form/1 but:
             case erl_parse:parse_exprs( Tokens ) of
 
                 { ok, [ ExprForm ] } ->
-                    %trace_utils:debug_fmt( "Form parsed:~n ~p.",
-                    %   [ ExprForm ] ),
+                    trace_utils:debug_fmt( "Form parsed:~n ~p.",
+                                           [ ExprForm ] ),
 
-                    { pseudo_func, [ CtxtType ] } =
-                        transform_type_references( ExprForm ),
+                    CtxtType = transform_for_contextual_type( ExprForm ),
 
-                     %trace_utils:debug_fmt(
-                     %   "Form transformed as a contextual type:~n ~p.",
-                     %   [ CtxtType ] ),
+                     trace_utils:debug_fmt(
+                        "Form transformed as a contextual type:~n ~p.",
+                        [ CtxtType ] ),
 
-                    % Useful as invalid strings (e.g. "[float()]") may be
+                    % Useful as invalid strings (e.g. "[float()]") might be
                     % accepted by the parsing:
                     %
                     vet_contextual_type( CtxtType );
@@ -1854,113 +1908,81 @@ parse_type( TypeStr ) ->
 
 
 -doc """
-Rewrites recursively all pseudo local calls (corresponding to type like
-"float()") into a reference to a type (e.g. `{float, []}`.
+Transforms recursively (acting as a pseudo-function named here Rep) the
+specified type forms in order to return the corresponding contextual type
+(i.e. Myriad's type-as-a-term, a.k.a F2 form).
+
+The approach here is to start from the specified AST form (typically obtained
+from parsing), to directly transform it as a term (hence not an AST-to-AST
+transform), i.e. as the legit corresponding contextual type.
+
+The following transformation cases are to be applied:
+
+A. all native compounding structures into F2 terms; for example, resulting in
+  *actual terms* (not AST forms):
+
+  - Rep("[T]") (thus, as AST: {tuple,_,[{atom,_,list},RepAST(T)]}) shall become
+    {list,RepTerm(T)}
+
+  - Rep("{E1,E2}") shall become {tuple, [RepTerm(E1), RepTerm(E2)]}
+
+B. all free types to type variables; for example:
+  Rep("U") (thus, as AST: {var,_,'U'}), shall become {typevar, 'U'}.
+
+C. all standalone atoms into their F2 form; for example:
+  Rep("foo") (thus, as AST, {atom,_,foo}) shall become {atom,foo};
+
+D. all pseudo local calls to a F2 sub-type reference; for example:
+
+  Rep("float()") (thus as AST: {call,_,{atom,_float},[]}), shall become
+  {float, []}.
+
+  Rep("[bar(integer(),T2)]" shall become
+  {list,{bar,[{integer,[]},{typevar,'T2'}]}}
 """.
-% For example {cons,1,{call,1,{atom,1,float},[]},{nil,1}} shall become
-% (recursively) {cons,1,{atom,1,float},{nil,1}}.
--spec transform_type_references( form() ) -> contextual_type().
-transform_type_references( ExprForm ) ->
+% We had to go for a custom (not relying on ast_transform), single-pass (to
+% ensure a transformed, final form is not attempted to be transformed again)
+% transformer, as:
+% - {atom,1,foo} shall not be transformed the same depending on whether it is a
+% type name in a call, as third element of the call tuple (thus not to be
+% changed), or a standalone atom as in case C (thus to be converted in a form
+% corresponding to the {atom,foo} term)
+% - this last form is {tuple,_,[{atom,_,atom},{atom,_,foo}]} that we do not want
+%   to be interpreted again
+-spec transform_for_contextual_type( type_form() ) -> contextual_type().
+% Case A.1 (tuples):
+transform_for_contextual_type( { tuple, _FileLoc, TypeForms } ) ->
+    { tuple, [ transform_for_contextual_type( TF ) || TF <- TypeForms ] };
 
-    % Refer to the general clause below for more details:
+% Case A.2 (lists); only single-element lists like '[integer()]' expected here:
+transform_for_contextual_type(
+        { cons, _FileLoc, HeadForm, _TailForm={nil,_} } ) ->
+    { list, transform_for_contextual_type( HeadForm ) };
 
-    LocalCallTransformFun =
+transform_for_contextual_type( { cons, FileLoc, HeadForm, TailForm } ) ->
+    throw( { non_singleton_list_type, FileLoc, TailForm, HeadForm } );
 
-        % list/1 instances are translated as {list,T}, instead of the
-        % default {list,[T]}; the same applies for option/1:
-        %
-        fun( _FileLoc, FunctionRef={ atom, OtherFileLoc, FunTypeName },
-             _Params=[ SingleParam ], Transforms )
-                 when FunTypeName =:= list orelse FunTypeName =:= option ->
+% Case B (type vars):
+transform_for_contextual_type( { var, _FileLoc, AtomTypeName } ) ->
+    { typevar, AtomTypeName };
 
-               { [ NewSingleParam ], ParamsTransforms } =
-                    ast_expression:transform_expression( SingleParam,
-                                                         Transforms ),
+% Case C (standalone atoms):
+transform_for_contextual_type( { atom, _FileLoc, AtomLiteral } ) ->
+    { atom, AtomLiteral };
 
-                WithAtomsParam = transform_standalone_atom( NewSingleParam ),
+% Case D (calls/sub-type references):
+transform_for_contextual_type(
+        { call, _FileLoc, {atom,_SomeFileLoc, AtomTypeName}, TypeForms } ) ->
+    { AtomTypeName,
+      [ transform_for_contextual_type( TF ) || TF <- TypeForms ] };
 
-                % Wanting directly the type, not as a single-element list:
-                NewExprForm = { tuple, OtherFileLoc,
-                                [ FunctionRef, WithAtomsParam ] },
-
-                { [ NewExprForm ], ParamsTransforms };
-
-
-        % table/2 instances are translated as {table,{T1,T2}}, instead of the
-        % default {table,[T1,T2]}:
-        %
-           ( _FileLoc, FunctionRef={ atom, OtherFileLoc, _FunTypeName=table },
-             Params=[ _FirstParam, _SecondParam ], Transforms ) ->
-
-                { NewParams, ParamsTransforms } =
-                    ast_expression:transform_expressions( Params, Transforms ),
-
-                WithAtomsParams = transform_standalone_atoms( NewParams ),
-
-                % Wanting a pair, not a list:
-                NewExprForm = { tuple, OtherFileLoc, [ FunctionRef,
-                    ast_generation:list_to_tuple_form( WithAtomsParams,
-                                                       OtherFileLoc ) ] },
-
-                { [ NewExprForm ], ParamsTransforms };
-
-
-        % General clause; here FunName corresponds to any other type name,
-        % for example "float":
-           ( _FileLoc, FunctionRef={ atom, OtherFileLoc, _FunTypeName },
-             Params, Transforms ) ->
-
-                { NewParams, ParamsTransforms } =
-                    ast_expression:transform_expressions( Params, Transforms ),
-
-                % We want to intercept self-standing atoms (like foo and bar in
-                % 'union(foo,bar)'; as opposed to types, which have parentheses,
-                % hence are seen as calls), and directly transform them in their
-                % final form, like {atom,foo}:
-                %
-                WithAtomsParams = transform_standalone_atoms( NewParams ),
-
-                % We have (as a form) 'float', but we want '{float, []}'; and
-                % NewParams is an actual list, whereas we want a list as an AST
-                % form, so:
-                %
-                NewExprForm = { tuple, OtherFileLoc, [ FunctionRef,
-                    ast_generation:list_to_form( WithAtomsParams ) ] },
-
-                { [ NewExprForm ], ParamsTransforms }
-
-       end,
-
-    LocalCallTransformTable = ?table:singleton( _K=call,
-                                                _V=LocalCallTransformFun ),
-
-    ASTTransforms = #ast_transforms{ transform_table=LocalCallTransformTable },
-
-    { [ NewExprForm ], _NewASTTransforms } =
-        ast_expression:transform_expression( ExprForm, ASTTransforms ),
-
-    ast_generation:form_to_term( NewExprForm ).
-
-
-
--spec transform_standalone_atoms( [ form() ] ) -> [ form() ].
-transform_standalone_atoms( Params ) ->
-    [ transform_standalone_atom( P ) || P <- Params ].
-
-
-% (helper)
-% Thus corresponds to {atom,Atom}:
-transform_standalone_atom( T={ atom, FileLoc, _Atom } ) ->
-    { tuple, FileLoc, [ { atom, FileLoc, atom }, T ] };
-
-% Typicall a call:
-transform_standalone_atom( Other ) ->
-    Other.
+transform_for_contextual_type( Other ) ->
+    throw( { unexpected_type_form, Other } ).
 
 
 
 -doc "Returns the specified contextual type once (superficially) checked.".
-% Note: cannot reuse vet_resolved_type/1, as having to recurse as contextual.
+% Note: cannot reuse vet_explicit_type/1, as having to recurse as contextual.
 -spec vet_contextual_type( contextual_type() ) -> contextual_type().
 vet_contextual_type( Type={ atom, AtomName } ) when is_atom( AtomName ) ->
     Type;
@@ -1979,6 +2001,9 @@ vet_contextual_type( _Type={ tuple, Types } ) when is_list( Types ) ->
 
 vet_contextual_type( _Type={ union, Types } ) when is_list( Types ) ->
     { union, [ vet_contextual_type( T ) || T <- Types ] };
+
+vet_contextual_type( Type={ typevar, TypeName } ) when is_atom( TypeName ) ->
+    Type;
 
 % For user-defined types:
 vet_contextual_type( _Type={ TypeName, Types } ) when is_atom( TypeName )
@@ -2004,39 +2029,143 @@ As a result, performs "type resolution", i.e. converts a F2 form into a F3 one
 
 For example: `{list, {integer,[]}} = resolve_type({list, {count,[]}})`.
 """.
--spec resolve_type( contextual_type() ) -> resolved_type().
+-spec resolve_type( contextual_type() ) -> explicit_type().
 resolve_type( CtxType ) ->
     CtxType.
 
 
 
--doc "Returns the specified resolved type once checked.".
--spec vet_resolved_type( resolved_type() ) -> resolved_type().
-vet_resolved_type( Type={ atom, AtomName } ) when is_atom( AtomName ) ->
+-doc "Returns the specified explicit type once checked.".
+-spec vet_explicit_type( explicit_type() ) -> explicit_type().
+vet_explicit_type( Type={ atom, AtomName } ) when is_atom( AtomName ) ->
     Type;
 
-vet_resolved_type( _Type={ option, Type } )  ->
-    { option, vet_resolved_type( Type ) };
+vet_explicit_type( _Type={ option, Type } )  ->
+    { option, vet_explicit_type( Type ) };
 
-vet_resolved_type( _Type={ list, Type } )  ->
-    { list, vet_resolved_type( Type ) };
+vet_explicit_type( _Type={ list, Type } )  ->
+    { list, vet_explicit_type( Type ) };
 
-vet_resolved_type( _Type={ table, { KType, VType } } )  ->
-    { table, { vet_resolved_type( KType ), vet_resolved_type( VType ) } };
+vet_explicit_type( _Type={ table, { KType, VType } } )  ->
+    { table, { vet_explicit_type( KType ), vet_explicit_type( VType ) } };
 
-vet_resolved_type( _Type={ tuple, Types } ) when is_list( Types ) ->
-    { tuple, [ vet_resolved_type( T ) || T <- Types ] };
+vet_explicit_type( _Type={ tuple, Types } ) when is_list( Types ) ->
+    { tuple, [ vet_explicit_type( T ) || T <- Types ] };
 
-vet_resolved_type( _Type={ union, Types } ) when is_list( Types ) ->
-    { union, [ vet_resolved_type( T ) || T <- Types ] };
+vet_explicit_type( _Type={ union, Types } ) when is_list( Types ) ->
+    { union, [ vet_explicit_type( T ) || T <- Types ] };
 
-vet_resolved_type( Type={ T, [] } ) when T =:= binary orelse T =:= boolean
+% Not allowed for explicit types:
+%vet_explicit_typee( Type={ typevar, TypeName } ) when is_atom( TypeName ) ->
+%    Type;
+
+vet_explicit_type( Type={ T, [] } ) when T =:= binary orelse T =:= boolean
         orelse T =:= float orelse T =:= integer orelse T =:= pid
         orelse T =:= port orelse T =:= reference ->
     Type;
 
-vet_resolved_type( Other ) ->
-    throw( { unexpected_resolved_type, Other } ).
+vet_explicit_type( Other ) ->
+    throw( { unexpected_explicit_type, Other } ).
+
+
+
+-doc """
+Declares the specified type, with the specified type variables, in the specified
+typedef table.
+
+Typevars have to be explicitly listed to account for their declaration order.
+""".
+-spec declare_type( type_name(), [ type_variable_name() ], contextual_type(),
+                    typedef_table() ) -> typedef_table().
+declare_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
+                  when is_atom( TypeName ) andalso is_list( TypeVarNames ) ->
+
+    check_atoms( TypeVarNames ),
+    DeclaredTypeVarNameSet = set_utils:new( TypeVarNames ),
+
+    vet_contextual_type( CtxtType ),
+
+    CollectTermTransformer =
+        fun( Tuple={ typevar, AtomTypeName }, _UserData=Set ) ->
+            NewSet = set_utils:add( AtomTypeName, Set ),
+            { Tuple, NewSet };
+
+           ( OtherTerm, _UserData=Set ) ->
+            { OtherTerm, Set }
+
+        end,
+
+    CollectedTypeVarNameSet = meta_utils:transform_term( _TargetTerm=CtxtType,
+        _TypeDescription=tuple, _TermTransformer=CollectTermTransformer,
+        _UserData=set_utils:new() ),
+
+    trace_utils:debug_fmt( "Typevars collected from contextual type ~w: ~w.",
+        [ CtxtType, set_utils:to_list( CollectedTypeVarNameSet ) ] ),
+
+    { NotUsedSet, NotDeclaredSet } = set_utils:differences(
+        DeclaredTypeVarNameSet, CollectedTypeVarNameSet ),
+
+    % First clearer:
+    set_utils:is_empty( NotDeclaredSet ) orelse
+        begin
+            NotDeclared = set_utils:to_list( NotDeclaredSet ),
+            trace_bridge:error_fmt( "For declared type '~ts', the following "
+                "type variables were found in the definition yet were not "
+                "specified: ~ts.", [ TypeName,
+                    text_utils:atoms_to_listed_string( NotDeclared ) ] ),
+        throw( { unspecified_type_vars, NotDeclared } )
+
+        end,
+
+    set_utils:is_empty( NotUsedSet ) orelse
+        begin
+            NotUsed = set_utils:to_list( NotUsedSet ),
+            trace_bridge:error_fmt( "For declared type '~ts', the following "
+                "type variables were specified but not found in the "
+                "definition: ~ts.", [ TypeName,
+                    text_utils:atoms_to_listed_string( NotUsed ) ] ),
+        throw( { unused_type_vars,  NotUsed} )
+
+        end,
+
+    TypeId = { TypeName, length( TypeVarNames ) },
+
+    TypeDef = { TypeVarNames, CtxtType },
+
+    ?table:add_new_entry( _K=TypeId, _V=TypeDef, TypedefTable ).
+
+
+
+-doc "Returns a textual description of the specified type definition table.".
+-spec typedef_table_to_string( typedef_table() ) -> ustring().
+typedef_table_to_string( TypedefTable ) ->
+
+    case ?table:enumerate( TypedefTable ) of
+
+        [] ->
+            "empty type definition table";
+
+        [ TypedefEntry ] ->
+            text_utils:format( "type definition table with a single entry: ~ts",
+                               [ typedef_table_to_string( TypedefEntry ) ] );
+
+        TypedefEntries ->
+            text_utils:format( "type definition table with ~B entries: ~ts",
+                [ length( TypedefEntries ), text_utils:strings_to_string(
+                  [ typedef_entry_to_string( TE )
+                        || TE <- TypedefEntries ] ) ] )
+
+    end.
+
+
+
+-doc "Returns a textual description of the specified type definition table.".
+-spec typedef_entry_to_string( { type_id(), type_definition() } ) -> ustring().
+typedef_entry_to_string( { _TypeId={ TypeName, _TypeArity },
+                           _TypeDef={ TypeVarNames, CtxtType } } ) ->
+    VarNameStr = text_utils:join( _Sep=", ", TypeVarNames ),
+    text_utils:format( "type ~ts(~ts) :: ~ts",
+        [ TypeName, VarNameStr, type_to_string( CtxtType ) ] ).
 
 
 
@@ -2046,7 +2175,7 @@ the specified type.
 
 For example: `coerce_stringified_to_type("[4,3]", {list,integer}) = [4,3]`.
 """.
--spec coerce_stringified_to_type( any_string(), type() ) -> term().
+-spec coerce_stringified_to_type( any_string(), explicit_type() ) -> term().
 % To have a plain string in all cases:
 coerce_stringified_to_type( BinStr, Type ) when is_binary( BinStr ) ->
     coerce_stringified_to_type( text_utils:binary_to_string( BinStr ),
@@ -2144,6 +2273,9 @@ type_to_string( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
 type_to_string( _Type={ union, TypeList } ) when is_list( TypeList ) ->
 	text_utils:join( _Separator="|",
 					 [ type_to_string( T ) || T <- TypeList ] );
+
+type_to_string( _Type={ typevar, T } ) ->
+	text_utils:atom_to_string( T );
 
 type_to_string( Type ) ->
 

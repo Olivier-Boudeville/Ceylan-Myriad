@@ -84,7 +84,8 @@
 	% whole (generally exceeding the mere transformations of calls into calls,
 	% like rewriting bodies) whenever a trigger is found.
 	%
-	% Triggers currently supported: 'call', 'body'.
+	% See the `ast_transform:transform_trigger/0` type for the triggers
+	% currently supported.
 	%
 	transform_table = undefined ::
 		type_utils:option( ast_transform:ast_transform_table() ),

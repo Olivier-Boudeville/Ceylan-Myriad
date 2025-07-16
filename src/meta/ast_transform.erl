@@ -29,7 +29,7 @@
 
 -moduledoc """
 Module in charge of **transforming AST elements**, typically by operating on a
-`module_info` record obtained after the transforming of an AST.
+`module_info` record obtained after the transformation of an AST.
 
 Note that the transform relies on a rather complex and complete traversal of the
 abstract syntax of the AST, inspired from the spec (in
@@ -151,7 +151,7 @@ on context.
 
 -doc """
 The same arity is kept, and just specifying the module name means that the
-function name of the call is not to change.
+function name of the call is to be kept.
 
 Note that this implies that a (local or remote) call can only be replaced by a
 remote call (a priori not a problematic limitation).
@@ -266,7 +266,7 @@ turn recursive transformation calls (e.g. to
 `ast_expression:transform_expressions/2`) by themselves.
 """.
 -type ast_transform_table() ::
-		?table:?table( transform_trigger(), ast_transform_function() ).
+	?table:?table( transform_trigger(), ast_transform_function() ).
 
 
 
