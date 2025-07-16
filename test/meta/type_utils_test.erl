@@ -86,7 +86,7 @@ run() ->
         [ ParsedType, type_utils:type_to_string( ParsedType ) ] ),
 
 
-    FooTypeStr = "table(V,{bar,U})",
+    FooTypeStr = "table(tuple(V,float()),union(bar,integer(),option(U)))",
 
     test_facilities:display( "Declaring now a parametrised type foo(U,V) "
                              "based on type ~ts.", [ FooTypeStr ] ),

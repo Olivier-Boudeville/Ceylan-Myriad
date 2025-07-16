@@ -105,7 +105,7 @@ parse-transforms, etc.
 % '{my_simple_type,[]}', which could be further shortened in the
 % 'my_simple_type' (as an atom - as atoms are not homoiconic here, in the sense
 % that, in terms of types, an atom 'foobar' is not represented directly as
-% 'foobar', but as '{atom,foobar}').
+% 'foobar', but as '{atom,foobar}' - although they could be).
 %
 % So, as an example, the type-as-a-term corresponding to
 % '"[{float(),boolean()}]"' is: '{list, {tuple, [{float,[]}, {boolean,[]}]}}';
@@ -719,7 +719,9 @@ then an entry whose key would be `{foo,2}` and whose value would be `{['V',
 'K'], {table,{{tuple,[{atom,'bar'},{typevar,'K'}]}, {typevar,'V'}}}}` would be
 introduced in such a table.
 """.
--type typedef_table() :: ?table:?table( type_id(), type_definition() ).
+% Not ?table:?table/2, not table/2 as pioneer module:
+-type typedef_table() ::
+    map_hashtable:map_hashtable( type_id(), type_definition() ).
 
 
 -doc """
@@ -1971,6 +1973,31 @@ transform_for_contextual_type( { atom, _FileLoc, AtomLiteral } ) ->
     { atom, AtomLiteral };
 
 % Case D (calls/sub-type references):
+
+% The rest of our special cases, besides atoms.
+% For option:
+transform_for_contextual_type(
+        { call, _FileLoc, {atom,_SomeFileLoc, _AtomTypeName=option},
+          _TypeForms=[ TypeForm ] } ) ->
+    % {option,T}, not {option,[T]}:
+    { option, transform_for_contextual_type( TypeForm ) };
+
+% For list:
+transform_for_contextual_type(
+        { call, _FileLoc, {atom,_SomeFileLoc, _AtomTypeName=list},
+          _TypeForms=[ TypeForm ] } ) ->
+    % {list,T}, not {list,[T]}:
+    { list, transform_for_contextual_type( TypeForm ) };
+
+% For table:
+transform_for_contextual_type(
+        { call, _FileLoc, {atom,_SomeFileLoc, _AtomTypeName=table},
+          _TypeForms=[ KeyTypeForm, ValueTypeForm ] } ) ->
+    % {table,{K,V}}, not {table,[K,V]}:
+    { table, { transform_for_contextual_type( KeyTypeForm ),
+               transform_for_contextual_type( ValueTypeForm ) } };
+
+% The base case for types:
 transform_for_contextual_type(
         { call, _FileLoc, {atom,_SomeFileLoc, AtomTypeName}, TypeForms } ) ->
     { AtomTypeName,
@@ -2073,7 +2100,9 @@ vet_explicit_type( Other ) ->
 Declares the specified type, with the specified type variables, in the specified
 typedef table.
 
-Typevars have to be explicitly listed to account for their declaration order.
+Typevars have to be explicitly listed, in order to account for their declaration
+order, so that when they are instantiated with actual types, these types are
+assigned to the right type variables.
 """.
 -spec declare_type( type_name(), [ type_variable_name() ], contextual_type(),
                     typedef_table() ) -> typedef_table().
@@ -2085,6 +2114,7 @@ declare_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
 
     vet_contextual_type( CtxtType ),
 
+    % For a term-level transformation:
     CollectTermTransformer =
         fun( Tuple={ typevar, AtomTypeName }, _UserData=Set ) ->
             NewSet = set_utils:add( AtomTypeName, Set ),
@@ -2095,9 +2125,9 @@ declare_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
 
         end,
 
-    CollectedTypeVarNameSet = meta_utils:transform_term( _TargetTerm=CtxtType,
-        _TypeDescription=tuple, _TermTransformer=CollectTermTransformer,
-        _UserData=set_utils:new() ),
+    { _CtxtType, CollectedTypeVarNameSet } = meta_utils:transform_term(
+        _TargetTerm=CtxtType, _TypeDescription=tuple,
+        _TermTransformer=CollectTermTransformer, _UserData=set_utils:new() ),
 
     trace_utils:debug_fmt( "Typevars collected from contextual type ~w: ~w.",
         [ CtxtType, set_utils:to_list( CollectedTypeVarNameSet ) ] ),
@@ -2132,7 +2162,7 @@ declare_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
 
     TypeDef = { TypeVarNames, CtxtType },
 
-    ?table:add_new_entry( _K=TypeId, _V=TypeDef, TypedefTable ).
+    map_hashtable:add_new_entry( _K=TypeId, _V=TypeDef, TypedefTable ).
 
 
 
@@ -2140,14 +2170,14 @@ declare_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
 -spec typedef_table_to_string( typedef_table() ) -> ustring().
 typedef_table_to_string( TypedefTable ) ->
 
-    case ?table:enumerate( TypedefTable ) of
+    case map_hashtable:enumerate( TypedefTable ) of
 
         [] ->
             "empty type definition table";
 
         [ TypedefEntry ] ->
             text_utils:format( "type definition table with a single entry: ~ts",
-                               [ typedef_table_to_string( TypedefEntry ) ] );
+                               [ typedef_entry_to_string( TypedefEntry ) ] );
 
         TypedefEntries ->
             text_utils:format( "type definition table with ~B entries: ~ts",
@@ -2163,7 +2193,8 @@ typedef_table_to_string( TypedefTable ) ->
 -spec typedef_entry_to_string( { type_id(), type_definition() } ) -> ustring().
 typedef_entry_to_string( { _TypeId={ TypeName, _TypeArity },
                            _TypeDef={ TypeVarNames, CtxtType } } ) ->
-    VarNameStr = text_utils:join( _Sep=", ", TypeVarNames ),
+    TypeVarStrs = [ text_utils:atom_to_string( N ) || N <- TypeVarNames ],
+    VarNameStr = text_utils:join( _Sep=", ", TypeVarStrs ),
     text_utils:format( "type ~ts(~ts) :: ~ts",
         [ TypeName, VarNameStr, type_to_string( CtxtType ) ] ).
 
