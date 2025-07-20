@@ -87,7 +87,7 @@ parse-transforms, etc.
 % The internal, "formal", actual programmatic description of a type according to
 % our conventions is a type-as-a-term (either contextual or explicit, i.e. F2 or
 % F3), relying on a translated version of the textual type (which is for
-% example: "[{float,boolean}]").
+% example: "[{float(),boolean()}]").
 
 % This "internal type language of the Myriad layer" is largely inspired from the
 % forms that can be found in actual (Erlang) ASTs.
@@ -106,7 +106,8 @@ parse-transforms, etc.
 % '{my_simple_type,[]}', which could be further shortened in the
 % 'my_simple_type' (as an atom - as atoms are not homoiconic here, in the sense
 % that, in terms of types, an atom 'foobar' is not represented directly as
-% 'foobar', but as '{atom,foobar}' - although they could be).
+% 'foobar', but as '{atom,foobar}' - although they could be; atoms in general
+% are represented as the '{atom,[]}' explicit type).
 %
 % So, as an example, the type-as-a-term corresponding to
 % '"[{float(),boolean()}]"' is: '{list, {tuple, [{float,[]}, {boolean,[]}]}}';
@@ -1236,11 +1237,11 @@ The lowest-level/most precise typing can be obtained with the (undocumented)
 `erts_internal:term_type/1` function.
 """.
 -spec get_type_of( term() ) -> concrete_type_description().
-get_type_of( Term ) when is_atom( Term ) ->
-	'atom';
-
 get_type_of( Term ) when is_boolean( Term ) ->
 	'boolean';
+
+get_type_of( Term ) when is_atom( Term ) ->
+	'atom';
 
 get_type_of( Term ) when is_integer( Term ) ->
 	'integer';
