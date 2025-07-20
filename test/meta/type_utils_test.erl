@@ -73,10 +73,6 @@ run() ->
     %TypeStr = "list(float())",
     %TypeStr = "list(T)",
 
-
-    %TypeStr = "list(tuple(float(), table(integer(), option(string())), "
-    %    "list(union(foo,bar))))",
-
     test_facilities:display( "Parsing the type of '~ts'.", [ TypeStr ] ),
 
     ParsedType = type_utils:parse_type( TypeStr ),
@@ -88,17 +84,66 @@ run() ->
 
     FooTypeStr = "table(tuple(V,float()),union(bar,integer(),option(U)))",
 
-    test_facilities:display( "Declaring now a parametrised type foo(U,V) "
-                             "based on type ~ts.", [ FooTypeStr ] ),
+    test_facilities:display(
+        "Defining now a parametrised type foo(U,V) as ~ts.", [ FooTypeStr ] ),
 
-    % Building it from a string:
-    FooParsedType = type_utils:parse_type( FooTypeStr ),
+    % Building this contextual type from a string:
+    FooCtxtType = type_utils:parse_type( FooTypeStr ),
 
-    % As the order of type variables matters when using such type afterwards:
-    WithFooTypedefTable = type_utils:declare_type( foo, [ 'U', 'V' ],
-                                                   FooParsedType, table:new() ),
+    % As the order of type variables will matter when using such parametrised
+    % types:
+    %
+    WithFooTypedefTable = type_utils:define_type( foo, [ 'U', 'V' ],
+                                                  FooCtxtType, table:new() ),
 
-    test_facilities:display( "Once foo/2 has been declared, having: ~ts.",
+    test_facilities:display( "Once foo/2 has been defined, having: ~ts.",
         [ type_utils:typedef_table_to_string( WithFooTypedefTable ) ] ),
+
+    % Defining a partially-instantiated type using this foo/2 (with U=X and
+    % Y=atom()):
+    %
+    WithFooTypeStr = "{buzz, foo(X,atom())}",
+
+    WithFooCtxtType = type_utils:parse_type( WithFooTypeStr ),
+
+    WithFooExplType = type_utils:resolve_type( WithFooCtxtType,
+                                               WithFooTypedefTable ),
+
+    test_facilities:display( "The explicit (still parametrised) type obtained "
+        "from contextual type ~ts is ~w.~nIt is described as '~ts'.",
+        [ WithFooTypeStr, WithFooExplType,
+          type_utils:type_to_string( WithFooExplType ) ] ),
+
+    % Fully instantiating this type, with X=boolean():
+    NonParamFooExplType = type_utils:instantiate_type( WithFooExplType,
+        [ { 'X', {boolean,[]} } ] ),
+
+    test_facilities:display( "By setting the type variable X=boolean(), "
+        "obtaining explicit, non-parametrised type ~ts.",
+        [ type_utils:type_to_string( NonParamFooExplType ) ] ),
+
+    false = type_utils:is_of_type( hello, NonParamFooExplType ),
+    false = type_utils:is_of_type( buzz, NonParamFooExplType ),
+
+    MyFirstTable = table:new(),
+    true = type_utils:is_of_type( { buzz, MyFirstTable }, NonParamFooExplType ),
+
+    MySecondTable = table:singleton( _K={ hello, 1.0 }, _V=bar ),
+    true = type_utils:is_of_type( { buzz, MySecondTable },
+                                  NonParamFooExplType ),
+
+    MyThirdTable = table:new( [ { { hello, 1.0 }, bar }, { { good, 0.0 }, 4 },
+                                { { bye, 1.1 }, false } ] ),
+
+    true = type_utils:is_of_type( { buzz, MyThirdTable },
+                                  NonParamFooExplType ),
+
+    MyFourthTable = table:singleton( hello, bar ),
+    false = type_utils:is_of_type( { buzz, MyFourthTable },
+                                   NonParamFooExplType ),
+
+    MyFifthTable = table:singleton( { hello, 1.0 }, buzz ),
+    false = type_utils:is_of_type( { buzz, MyFifthTable },
+                                   NonParamFooExplType ),
 
 	test_facilities:stop().
