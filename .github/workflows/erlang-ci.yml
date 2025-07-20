@@ -2,11 +2,12 @@ name: Erlang CI
 
 # Do *not* whitespace-clean up this file, it would corrupt it!
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+# Do not restrict operations on the main branch anymore:
+# on:
+#  push:
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
 
 jobs:
 
