@@ -26,6 +26,18 @@
 % Creation date: Saturday, February 3, 2018.
 
 
+% Defines for transformation matches.
+
+% Not expected to be legit symbols:
+-define( any_module_name, '_' ).
+
+-define( any_type_name,  '_' ).
+-define( any_type_arity, '_' ).
+
+-define( any_function_name,  '_' ).
+-define( any_function_arity, '_' ).
+
+
 % Describes the transformations to be applied onto an AST when scanning it.
 %
 % Typically centralises the automatic replacements of all known kinds to be
@@ -72,7 +84,8 @@
 	% whole (generally exceeding the mere transformations of calls into calls,
 	% like rewriting bodies) whenever a trigger is found.
 	%
-	% Triggers currently supported: 'call', 'body'.
+	% See the `ast_transform:transform_trigger/0` type for the triggers
+	% currently supported.
 	%
 	transform_table = undefined ::
 		type_utils:option( ast_transform:ast_transform_table() ),
@@ -92,7 +105,7 @@
 	% not of interest and/or very bulky to format).
 	%
 	transform_formatter = fun ast_transform:default_formatter/2
-									:: ast_transform:transform_formatter()
+		:: ast_transform:transform_formatter()
 
 
 } ).

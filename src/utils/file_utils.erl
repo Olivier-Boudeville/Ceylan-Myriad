@@ -5684,13 +5684,15 @@ get_element_access_denied_info( AnyElemPath ) ->
 			ParentDirPerms = { permissions,
                                describe_permissions_of( ParentDir ) },
 
-			ParentDirInfo = { parent_directory_exists, ParentDir,
+			ParentDirInfo = { parent_directory_exists,
+                text_utils:ensure_string( ParentDir ),
                 ParentDirOwnerInfo, ParentDirGroupInfo, ParentDirPerms },
 
 			{ ElemInfo, ParentDirInfo, get_runtime_user_info() };
 
 		false ->
-			{ parent_directory_does_not_exist, ParentDir }
+			{ parent_directory_does_not_exist,
+              text_utils:ensure_string( ParentDir ) }
 
 	end.
 
@@ -5726,13 +5728,15 @@ get_file_access_denied_info( AnyFilePath ) ->
 			ParentDirPerms = { permissions,
                                describe_permissions_of( ParentDir ) },
 
-			ParentDirInfo = { parent_directory_exists, ParentDir,
+			ParentDirInfo = { parent_directory_exists,
+                text_utils:ensure_string( ParentDir ),
                 ParentDirOwnerInfo, ParentDirGroupInfo, ParentDirPerms },
 
 			{ FileInfo, ParentDirInfo, get_runtime_user_info() };
 
 		false ->
-			{ parent_directory_does_not_exist, ParentDir }
+			{ parent_directory_does_not_exist,
+              text_utils:ensure_string( ParentDir ) }
 
 	end.
 
@@ -5767,14 +5771,16 @@ get_directory_access_denied_info( AnyDirPath ) ->
 			ParenDirPerms = { permissions,
                               describe_permissions_of( ParentDir ) },
 
-			ParentDirInfo = { parent_directory_exists, ParentDir,
+			ParentDirInfo = { parent_directory_exists,
+                              text_utils:ensure_string( ParentDir ),
                               ParenDirOwnerInfo, ParenDirGroupInfo,
                               ParenDirPerms },
 
 			{ DirInfo, ParentDirInfo, get_runtime_user_info() };
 
 		false ->
-			{ parent_directory_does_not_exist, ParentDir }
+			{ parent_directory_does_not_exist,
+              text_utils:ensure_string( ParentDir ) }
 
 	end.
 

@@ -743,14 +743,11 @@ transform_type( _TypeDef={ 'type', FileLoc, TargetType='union', UnifiedTypes },
 	{ NewTypeDef, NewTransforms };
 
 
-% Simple built-in type, like 'boolean()', translating in '{type, 57, boolean,
-% []}':
-%
+% Built-in type, like 'boolean()', translating in '{type, 57, boolean, []}':
 transform_type( TypeDef={ 'type', FileLoc, BuiltinType, _TypeVars=[] },
 				Transforms ) ->
 
-	case lists:member( BuiltinType,
-					   type_utils:get_ast_simple_builtin_types() ) of
+	case lists:member( BuiltinType, type_utils:get_ast_builtin_types() ) of
 
 		true ->
 			{ TypeDef, Transforms };

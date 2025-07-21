@@ -29,7 +29,7 @@
 
 -moduledoc """
 Module in charge of **transforming AST elements**, typically by operating on a
-`module_info` record obtained after the transforming of an AST.
+`module_info` record obtained after the transformation of an AST.
 
 Note that the transform relies on a rather complex and complete traversal of the
 abstract syntax of the AST, inspired from the spec (in
@@ -59,9 +59,6 @@ Erlang `id` parse transformation (see `lib/stdlib/examples/erl_id_trans.erl`).
 -type ast_transforms() :: #ast_transforms{}.
 
 
-% Not expected to be legit symbols:
--define( any_module_name, '_' ).
-
 
 -doc "To match any module name.".
 -type module_name_match() :: module_name() | ?any_module_name.
@@ -69,9 +66,6 @@ Erlang `id` parse transformation (see `lib/stdlib/examples/erl_id_trans.erl`).
 
 
 %% Type replacement section.
-
--define( any_type_name,  '_' ).
--define( any_type_arity, '_' ).
 
 
 -doc "To match any type name.".
@@ -105,14 +99,15 @@ Either we directly set the target module and type names (using same arity), or
 we apply an anonymous function to determine the corresponding information,
 qbased on context.
 """.
--type local_type_replacement() :: type_replacement()
-			| fun( ( type_name(), type_arity(), transformation_state() ) ->
+-type local_type_replacement() ::
+    type_replacement()
+  | fun( ( type_name(), type_arity(), transformation_state() ) ->
 						{ type_replacement(), transformation_state() } ).
 
 
 -doc "Table defining replacements of local types.".
 -type local_type_transform_table() ::
-		?table:?table( local_type_id_match(), local_type_replacement() ).
+	?table:?table( local_type_id_match(), local_type_replacement() ).
 
 
 
@@ -120,7 +115,7 @@ qbased on context.
 
 -doc "To match a remote type.".
 -type remote_type_id_match() ::
-		{ module_name_match(), type_name_match(), type_arity_match() }.
+	{ module_name_match(), type_name_match(), type_arity_match() }.
 
 
 
@@ -129,25 +124,21 @@ Either we directly set the target module and type names (using same arity), or
 we apply an anonymous function to determine the corresponding information, based
 on context.
 """.
--type remote_type_replacement() :: type_replacement()
-			| fun( ( module_name(), type_name(), type_arity(),
-					 transformation_state() ) ->
+-type remote_type_replacement() ::
+    type_replacement()
+  | fun( ( module_name(), type_name(), type_arity(), transformation_state() ) ->
 						{ type_replacement(), transformation_state() } ).
 
 
 -doc "Table defining replacements of remote types.".
 -type remote_type_transform_table() ::
-		?table:?table( remote_type_id_match(), remote_type_replacement() ).
+	?table:?table( remote_type_id_match(), remote_type_replacement() ).
 
 
 
 
 
 %% Call replacement section.
-
-
--define( any_function_name,  '_' ).
--define( any_function_arity, '_' ).
 
 
 -doc "To match a function name.".
@@ -160,7 +151,7 @@ on context.
 
 -doc """
 The same arity is kept, and just specifying the module name means that the
-function name of the call is not to change.
+function name of the call is to be kept.
 
 Note that this implies that a (local or remote) call can only be replaced by a
 remote call (a priori not a problematic limitation).
@@ -181,15 +172,16 @@ Either we directly set the target module and function names (using same arity),
 or we apply an anonymous function to determine the corresponding information,
 based on context.
 """.
--type local_call_replacement() :: call_replacement()
-			| fun( ( function_name(), arity(), transformation_state() ) ->
+-type local_call_replacement() ::
+    call_replacement()
+  | fun( ( function_name(), arity(), transformation_state() ) ->
 							{ call_replacement(), transformation_state() } ) .
 
 
 
 -doc "Table defining replacements of local calls.".
 -type local_call_transform_table() ::
-		?table:?table( local_call_match(), local_call_replacement() ).
+	?table:?table( local_call_match(), local_call_replacement() ).
 
 
 
@@ -206,16 +198,16 @@ Either we directly set the target module and function names (using same arity),
 or we apply an anonymous function to determine the corresponding information,
 based on context.
 """.
--type remote_call_replacement() :: call_replacement()
-			| fun( ( module_name(), function_name(), arity(),
-					 transformation_state() ) ->
+-type remote_call_replacement() ::
+    call_replacement()
+  | fun( ( module_name(), function_name(), arity(), transformation_state() ) ->
 							{ call_replacement(), transformation_state() } ).
 
 
 
 -doc "Table defining replacements of remote calls.".
 -type remote_call_transform_table() ::
-		?table:?table( remote_call_match(), remote_call_replacement() ).
+	?table:?table( remote_call_match(), remote_call_replacement() ).
 
 
 
@@ -229,13 +221,13 @@ Note that not all triggers are supported, but that adding any lacking one is not
 especially difficult.
 """.
 -type transform_trigger() ::
-		ast_expression:expression_kind() | 'clause' | 'body'.
+	ast_expression:expression_kind() | 'clause' | 'body'.
 
 
 
 -doc "User-supplied function to define how AST clauses shall be transformed.".
 -type clause_transform_function() ::
-		fun( ( ast_clause(), ast_transforms() ) ->
+	fun( ( ast_clause(), ast_transforms() ) ->
 					{ ast_clause(), ast_transforms() } ).
 
 
@@ -251,10 +243,10 @@ User-supplied function to define how expressions shall be replaced.
 
 (currently describing only call replacements)
 """.
--type expression_replacement_function() :: fun(
-		( line(), ast_expression:function_ref_expression(),
-		  ast_expression:params_expression(), ast_transforms() ) ->
-					{ [ ast_expression() ], ast_transforms() } ).
+-type expression_replacement_function() ::
+    fun( ( line(), ast_expression:function_ref_expression(),
+           ast_expression:params_expression(), ast_transforms() ) ->
+                        { [ ast_expression() ], ast_transforms() } ).
 
 
 
@@ -274,7 +266,7 @@ turn recursive transformation calls (e.g. to
 `ast_expression:transform_expressions/2`) by themselves.
 """.
 -type ast_transform_table() ::
-		?table:?table( transform_trigger(), ast_transform_function() ).
+	?table:?table( transform_trigger(), ast_transform_function() ).
 
 
 
@@ -292,8 +284,8 @@ Designates a function able to properly format typically the output of expression
 transformation (e.g. when exiting an `ast_expression:transform_expression/2`
 clause).
 """.
--type transform_formatter() :: fun( ( format_string(), format_values() ) ->
-											ustring() ).
+-type transform_formatter() ::
+    fun( ( format_string(), format_values() ) -> ustring() ).
 
 
 

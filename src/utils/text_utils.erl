@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various facilities to manage **textual content**.
 
-See text_utils_test.erl for the corresponding test.
+See `text_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -177,7 +177,7 @@ See text_utils_test.erl for the corresponding test.
 		  pad_string_right/2, pad_string_right/3,
 		  center_string/2, center_string/3,
 
-		  is_char/1,
+		  is_char/1, is_chars/1, is_nested_chars/1,
 		  is_string/1, is_bin_string/1, is_any_string/1, is_non_empty_string/1,
 		  is_string_like/1,
 		  are_strings/1, are_binaries/1, are_of_same_string_type/2,
@@ -386,9 +386,10 @@ is a builtin type; it cannot be redefined"`).
 
 
 -doc """
-A nested string, that is a possibly deep list containing only `char()` elements.
+A nested string, that is a possibly arbitrarily deep list containing only
+`char()` elements, and lists thereof.
 """.
--type chars() :: io_lib:chars(). % Thus [char() | chars()].
+-type chars() :: io_lib:chars(). % Thus a recursive type: [char() | chars()].
 
 
 
@@ -5790,6 +5791,34 @@ is_char( _Other ) ->
 
 
 -doc """
+Tells whether the specified term is a list of (possibly Unicode, UTF-8)
+characters, i.e. `[char()]`.
+""".
+-spec is_chars( term() ) -> boolean().
+is_chars( L ) when is_list( L ) ->
+	lists:all( fun( C ) -> is_char(C) end, L );
+
+is_chars( _Other ) ->
+	false.
+
+
+-doc """
+Tells whether the specified term is a nested string, that is a possibly
+arbitrarily deep list containing only `char()` elements, and lists thereof.
+""".
+-spec is_nested_chars( term() ) -> boolean().
+is_nested_chars( L ) when is_list( L ) ->
+	lists:all( fun is_nested_chars/1, L );
+
+is_nested_chars( C ) ->
+	is_char( C ).
+
+
+
+
+
+
+-doc """
 Returns true iff the parameter is a (non-nested) plain string (actually a list
 of characters).
 
@@ -5820,7 +5849,7 @@ is_string( _Other ) ->
 -doc "Returns true iff the specified parameter is a binary string.".
 -spec is_bin_string( term() ) -> boolean().
 is_bin_string( Term ) when is_binary( Term ) ->
-	% Would probably be excessive:
+	% Would probably be a bit excessive:
 	%is_string( binary_to_list( Term ) );
 	true;
 
@@ -5869,12 +5898,16 @@ is_string_like( A ) when is_atom( A ) ->
 is_string_like( BS ) when is_binary( BS ) ->
 	is_bin_string( BS );
 
-is_string_like( L ) when is_list( L ) ->
+is_string_like( L ) ->
 	% Traverse recursively:
-	lists:all( [ is_char( E ) orelse is_string_like( E ) || E <- L ] );
 
-is_string_like( _Other ) ->
-	false.
+    % 'lists:all(fun(E) -> is_char(E) orelse is_string_like(E) end, L)'
+    % would not selective enough, as it would accept T=[32,foo] whereas
+    % io_lib:format("~ts",[T]) throws a badarg; we can mix strings and chars
+    % (e.g. with T=["a", "b", 32]), but apparently an atom is accepted iff it is
+    % single (not mixed with strings, chars or even just other atoms); so:
+    %
+    is_chars( L ).
 
 
 

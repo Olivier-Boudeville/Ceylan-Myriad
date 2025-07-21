@@ -26,6 +26,8 @@
 % Creation date: Saturday, February 3, 2018.
 
 
+% Centralised facilities, notably with variations for debugging.
+
 -define( rec_base_guard, is_record( Transforms, ast_transforms ) ).
 
 % Useful to trigger an error sooner when debugging:
