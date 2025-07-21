@@ -30,13 +30,14 @@
 -moduledoc """
 Unit tests for the **file_utils toolbox**.
 
-See the file_utils.erl tested module.
+See the `file_utils` tested module.
 """.
 
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
+
 
 
 -spec run() -> no_return().
@@ -168,7 +169,7 @@ run() ->
 
 	test_facilities:display( "Path '~ts', once transformed into a variable "
 		"name, results in: ~ts", [ SecondFilename,
-						file_utils:path_to_variable_name( SecondFilename ) ] ),
+			file_utils:path_to_variable_name( SecondFilename ) ] ),
 
 
 	FirstString = "My name is Bond",
@@ -230,19 +231,32 @@ run() ->
 
 	test_facilities:display( "Testing compression support." ),
 
-	TargetFile = "GNUmakefile",
+	TargetFilename = "GNUmakefile",
 
-	OriginalContent = file_utils:read_whole( TargetFile ),
+	OriginalContent = file_utils:read_whole( TargetFilename ),
 
-	ZippedFile = file_utils:compress( TargetFile, zip ),
-	UnzippedFile = file_utils:decompress( ZippedFile, zip ),
-	UnzippedContent = file_utils:read_whole( UnzippedFile ),
+    % We copy the original file, as we will remove it when testing
+    % decompression, since overwriting it may fail in some contexts
+    % (e.g. depending on umask on an continuous integration):
+
+    TestFilename = text_utils:format( "~ts-for-test", [ TargetFilename ] ),
+
+    file_utils:copy_file( TargetFilename, TestFilename ),
+
+
+	ZippedFilename = file_utils:compress( TestFilename, zip ),
+
+    % To be able to decompress it with no possible overwriting:
+    file_utils:remove_file( TestFilename ),
+
+	TestFilename = file_utils:decompress( ZippedFilename, zip ),
+	UnzippedContent = file_utils:read_whole( TestFilename ),
 
 	case UnzippedContent =:= OriginalContent of
 
 		true ->
 			test_facilities:display( "Original file and unzipped one "
-									 "(~ts) match.", [ UnzippedFile ] );
+									 "(~ts) match.", [ TestFilename ] );
 
 		false ->
 			throw( unzipped_content_differs )
@@ -250,43 +264,56 @@ run() ->
 	end,
 
 
-	Bzip2File = file_utils:compress( TargetFile, bzip2 ),
-	Unbzip2File = file_utils:decompress( Bzip2File, bzip2 ),
-	UnbzippedContent = file_utils:read_whole( Unbzip2File ),
+	Bzip2Filename = file_utils:compress( TestFilename, bzip2 ),
+
+    % To be able to decompress it with no possible overwriting:
+    file_utils:remove_file( TestFilename ),
+
+	TestFilename = file_utils:decompress( Bzip2Filename, bzip2 ),
+	UnbzippedContent = file_utils:read_whole( TestFilename ),
 
 	case UnbzippedContent =:= OriginalContent of
 
 		true ->
 			test_facilities:display( "Original file and unbzip2-ed one "
-									 "(~ts) match.", [ Unbzip2File ] );
+									 "(~ts) match.", [ TestFilename ] );
 
 		false ->
 			throw( unbzip2ed_content_differs )
 
 	end,
 
-	XzFile = file_utils:compress( TargetFile, xz ),
-	UnxzFile = file_utils:decompress( XzFile, xz ),
-	UnxzContent = file_utils:read_whole( UnxzFile ),
+	XzFilename = file_utils:compress( TestFilename, xz ),
+
+    % To be able to decompress it with no possible overwriting:
+    file_utils:remove_file( TestFilename ),
+
+	TestFilename = file_utils:decompress( XzFilename, xz ),
+	UnxzContent = file_utils:read_whole( TestFilename ),
 
 	case UnxzContent =:= OriginalContent of
 
 		true ->
 			test_facilities:display(
-			  "Original file and unxz-ed one (~ts) match.", [ UnxzFile ] );
+                "Original file and unxz-ed one (~ts) match.",
+                [ TestFilename ] );
 
 		false ->
 			throw( unxz_content_differs )
 
 	end,
 
-	InfoPath = UnxzFile,
+	InfoPath = TestFilename,
 
 	test_facilities:display( "Information about '~ts': owner_id=~B, "
 		"group_id=~B, permissions=~w.",
 		[ InfoPath, file_utils:get_owner_of( InfoPath ),
 		  file_utils:get_group_of( InfoPath ),
 		  file_utils:get_permissions_of( InfoPath ) ] ),
+
+    % Now useless:
+    file_utils:remove_file( TestFilename ),
+
 
 	TargetPath = "/foo",
 
@@ -298,7 +325,7 @@ run() ->
 		UserName = system_utils:get_user_name_safe(),
 
 		test_facilities:display( "Unexpectedly able to open '~ts' (as '~ts').",
-			[ TargetPath, UserName ] ),
+                                 [ TargetPath, UserName ] ),
 
 		file_utils:write_ustring( F, "I should not be able to write there." ),
 
@@ -326,6 +353,6 @@ run() ->
 	% Check:
 	Caught = true,
 
-	file_utils:remove_files( [ ZippedFile, Bzip2File, XzFile ] ),
+	file_utils:remove_files( [ ZippedFilename, Bzip2Filename, XzFilename ] ),
 
 	test_facilities:stop().
