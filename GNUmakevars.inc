@@ -518,6 +518,11 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 					  -I$(MYRIAD_TOP)/../../include/utils
 
 
+# To be used for homogeneous offsets ('echo "$(ECHO_PREFIX)Doing something"'):
+ECHO_OFFSET = "\ \ \ \ "
+
+
+
 # Extra prerequisite includes:
 
 
