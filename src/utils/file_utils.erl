@@ -1506,7 +1506,7 @@ resolve_type_of( Path ) ->
 
 -doc """
 Resolves the specified symbolic link once: returns the entry (potentially
-another symbolic link) it points to.
+another symbolic link) to which it points.
 """.
 -spec resolve_symlink_once( any_path() ) -> any_path().
 resolve_symlink_once( SymlinkPath ) ->
@@ -1529,8 +1529,8 @@ resolve_symlink_once( SymlinkPath ) ->
 
 
 -doc """
-Resolves fully the specified symbolic link: returns the entry it points
-ultimately to (therefore this entry cannot be a symbolic link), or throws an
+Resolves fully the specified symbolic link: returns the entry to which it points
+ultimately (therefore this entry cannot be a symbolic link), or throws an
 exception (including if exceeding a larger link depth, which happens most
 probably because these links form a cycle; throwing arbitrarily an exception is
 better than looping for ever).
@@ -1730,7 +1730,16 @@ is_existing_link( Path ) ->
 
 -doc """
 Returns whether the specified path entry exists and is either a regular file or
-a symbolic link.
+a legit (live) symbolic link.
+
+Note that this function ensures that a real, actual file exists, typically in
+order to read it afterwards (but no permission is checked here, only
+existence).
+
+Notably, if the specified path is an (existing) symbolic link, but if this link
+is dead (dangling symlink), then this function will return `false`. As a symlink
+may point to another symlink and so on, a reasonable attempt to resolve any
+actual file pointed (see `resolve_symlink_fully/1`) will be done.
 
 Returns `true` or `false`, and cannot trigger an exception.
 """.
@@ -1743,7 +1752,18 @@ is_existing_file_or_link( Path ) ->
 			true ;
 
 		symlink ->
-			true ;
+            try
+
+                ResPath = resolve_symlink_fully( Path ),
+                %trace_utils:debug_fmt( "Testing symlink target '~ts'.",
+                %                       [ ResPath ] ),
+                is_existing_file( ResPath )
+
+            catch throw:_Any ->
+
+                false
+
+           end;
 
 		_ ->
 			false
@@ -3979,16 +3999,21 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 
 		{ error, eacces } ->
 			throw( { copy_file_failed,
-					 text_utils:ensure_string( SourceFilePath ),
-					 text_utils:ensure_string( DestinationFilePath ),
-					 access_denied,
-					 get_file_access_denied_info( SourceFilePath ),
-					 get_file_access_denied_info( DestinationFilePath ) } );
+					 { source, text_utils:ensure_string( SourceFilePath ) },
+					 { destination,
+                       text_utils:ensure_string( DestinationFilePath ) },
+					 { reason, access_denied },
+					 { source_information,
+                       get_file_access_denied_info( SourceFilePath ) },
+                     { destination_information,
+                       get_file_access_denied_info( DestinationFilePath ) } } );
 
 		{ error, Reason } ->
 			throw( { copy_file_failed,
-					 text_utils:ensure_string( SourceFilePath ),
-					 text_utils:ensure_string( DestinationFilePath ), Reason } )
+                     { source, text_utils:ensure_string( SourceFilePath ) },
+                     { destination,
+                       text_utils:ensure_string( DestinationFilePath ) },
+                     { reason, Reason } } )
 
 	end.
 
