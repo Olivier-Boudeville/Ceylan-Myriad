@@ -1517,7 +1517,7 @@ resolve_symlink_once( SymlinkPath ) ->
 			TargetPath;
 
 		{ error, eacces } ->
-			throw( { resolve_type_of_failed,
+			throw( { resolve_symlink_failed,
                      text_utils:ensure_string( SymlinkPath ), access_denied,
                      get_element_access_denied_info( SymlinkPath ) } );
 
