@@ -506,6 +506,9 @@ type (which is for example: `"[{float(),boolean()}]"`).
 It is ultimately a recursive type, and may contain type variables (like in
 `thing(SomeType)`) where `SomeType` designates a free type, i.e. can be any
 contextual type).
+
+If not specified otherwise, corresponds to the most general, usual notion of
+"type" (typically in user code).
 """.
 -type contextual_type() ::
     tuploid( primitive_type_spec() | compounding_type_spec() ).
