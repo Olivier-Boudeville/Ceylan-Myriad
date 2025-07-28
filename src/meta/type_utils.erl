@@ -708,8 +708,8 @@ For example, defining the `count/0` type to be an alias of `integer/0` (done in
 the sources with `-type count() :: integer()`) could result in the `{[],
 {integer, []}}` type definition.
 
-Types may be defined as parametrised ones; as a result their contextual types
-may include typevars.
+Types may be parametrised (by other types); as a result, their contextual types
+includes any number (including zero) of typevars.
 """.
 -type type_definition() :: { [ type_variable_name() ], contextual_type() }.
 
@@ -1524,18 +1524,102 @@ get_plain_builtin_types() ->
 
 
 -doc """
-Tells whether the specified term designates a type (i.e. a `type()` instance).
+Tells whether the specified term designates a type (i.e. a `contextual_type()`
+instance).
 """.
 -spec is_type( term() ) -> boolean().
-% Certainly to be improved:
-is_type( TypeList ) when is_list( TypeList ) ->
-    lists:all( _Pred=fun is_type/1, TypeList );
+% First, our own simple types, as always in definition order:
+% The atom/0 type::
+is_type( { atom, [] } ) ->
+	true;
 
-is_type( TypeTuple ) when is_tuple( TypeTuple ) ->
-    lists:all( _Pred=fun is_type/1, tuple_to_list( TypeTuple ) );
+% Atome literal (i.e. a specific atom):
+is_type( { atom, A } ) when is_atom( A ) ->
+	true;
 
-is_type( ElemType ) ->
-    lists:member( ElemType, get_ast_builtin_types() ).
+is_type( { atom, _ } ) ->
+	false;
+
+
+% boolean/0:
+is_type( { boolean, [] } ) ->
+    true;
+
+% Boolean literals:
+is_type( { boolean, true } ) ->
+    true;
+
+is_type( { boolean, false } ) ->
+    true;
+
+%is_type( { boolean, _ } ) ->
+%    false;
+
+
+is_type( { integer, [] } ) ->
+    true;
+
+is_type( { integer, I } ) when is_integer( I ) ->
+    true;
+
+%is_type( { integer, _ ) ->
+%	false;
+
+
+is_type( { float, [] } ) ->
+	true;
+
+is_type( { float, F } ) when is_float( F ) ->
+    true;
+
+%is_type( { float, _ } ) ->
+%	false;
+
+
+is_type( { string, [] } ) ->
+	true;
+
+is_type( { string, S } ) when is_list( S ) ->
+	text_utils:is_string( S );
+
+%is_type( { string, _ } ) ->
+%	false;
+
+
+is_type( { any, [] } ) ->
+	true;
+
+%is_type( { any, _ } ) ->
+%	false;
+
+
+is_type( { none, [] } ) ->
+	true;
+
+%is_type( { none, _ } ) ->
+%	false;
+
+
+is_type( { option, ElemType } ) ->
+    is_type( ElemType );
+
+is_type( { list, ElemType } ) ->
+    is_type( ElemType );
+
+is_type( { table, { KeyType, ValueType } } ) ->
+    is_type( KeyType ) andalso is_type( ValueType );
+
+is_type( { TypeTag, Types } ) when (TypeTag =:= tuple orelse TypeTag =:= union)
+                                            andalso is_list( Types ) ->
+    lists:all( _Pred=fun is_type/1, Types );
+
+is_type( { typevar, VarName } ) when is_atom( VarName ) ->
+    true;
+
+% Add any lacking type here.
+
+is_type( _T ) ->
+    false.
 
 
 
@@ -1549,7 +1633,7 @@ is_of_type( _Term=A, _Type={ atom, [] } ) when is_atom( A ) ->
 	true;
 
 % A specific atom:
-is_of_type( _Term=A, _Type={ atom, A } ) ->
+is_of_type( _Term=A, _Type={ atom, A } ) when is_atom( A ) ->
 	true;
 
 is_of_type( _Term, _Type={ atom, _ } ) ->
