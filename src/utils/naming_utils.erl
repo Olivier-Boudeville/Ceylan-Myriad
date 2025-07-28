@@ -61,7 +61,7 @@ See `naming_utils_test.erl` for the corresponding test.
 		  get_registered_names/1,
 
 		  is_registered/1, is_registered/2,
-		  wait_for_registration_of/2,
+		  wait_for_registration_of/1, wait_for_registration_of/2,
 		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
 		  wait_for_local_registration_of/1, wait_for_local_registration_of/2,
 		  wait_for_remote_local_registrations_of/2,
@@ -690,15 +690,15 @@ get_registered_names( _LookUpScope=local ) ->
 
 
 -doc """
-Tells whether specified name is registered in the specified local/global
-context: if no, returns the `not_registered` atom, otherwise returns the
+Tells whether the specified name is registered in a local otherwise global
+context: if not, returns the `not_registered` atom, otherwise returns the
 corresponding PID.
 
 Local registering will be requested first, if not found global one will be
 tried.
 
 No specific waiting for registration will be performed, see
-`wait_for_*_registration_of` instead.
+`wait_for_*_registration_of/*` instead.
 """.
 -spec is_registered( registration_name() ) -> pid() | 'not_registered'.
 is_registered( Name ) ->
@@ -707,7 +707,7 @@ is_registered( Name ) ->
 
 
 -doc """
-Tells whether specified name is registered in the specified scope: if no,
+Tells whether the specified name is registered in the specified scope: if not,
 returns the `not_registered` atom, otherwise returns the corresponding PID.
 
 No specific waiting for registration will be performed, see
@@ -837,8 +837,20 @@ is_registered( Name, _LookUpScope=global_only ) ->
 
 
 -doc """
-Waits (up to a few seconds) until specified name is registered, within specified
-scope.
+Waits (up to a few seconds) until the specified name is registered, within
+specified scope.
+
+Returns the resolved PID, or throws an exception.
+""".
+-spec wait_for_registration_of( lookup_info() ) -> pid().
+wait_for_registration_of( _LookUpInfo={ RegName, LookupScope } ) ->
+    wait_for_registration_of( RegName, LookupScope ).
+
+
+
+-doc """
+Waits (up to a few seconds) until the specified name is registered, within
+specified scope.
 
 Returns the resolved PID, or throws an exception.
 """.
