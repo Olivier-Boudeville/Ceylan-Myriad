@@ -258,10 +258,10 @@ ensure_pids( Other ) ->
 -doc """
 Returns the element in the list at the specified index, in `[1..length(List)]`.
 
-If the index is out of bounds, a function_clause is raised.
+If the index is out of bounds, a `function_clause` is raised.
 
-Note: usually these kinds of functions should not be used, recursive algorithms
-are a lot more effective, when applicable.
+Note: usually these kinds of functions should not be used, when applicable
+recursive algorithms are a lot more effective.
 """.
 %
 % Not tail recursive version:
