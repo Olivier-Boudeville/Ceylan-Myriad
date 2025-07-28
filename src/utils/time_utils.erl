@@ -30,6 +30,13 @@
 -moduledoc """
 Gathering of **time management** facilities.
 
+Three types of timestamps are supported:
+- for absolute timestamps with a 1-second accuracy, use `timestamp/0`
+- for timestamps suitable for the tracking of durations with a 1-millisecond
+  accuracy, use `ms_monotonic/0`
+- for the most accurate (microsecond-level) timestamps, use
+  `precise_timestamp()`
+
 See `time_utils_test.erl` for the corresponding test.
 """.
 
@@ -365,7 +372,7 @@ Typically a user-defined time frame, to be transformed into a legit
 `time_frame/0`.
 """.
 -type user_time_frame() ::
-		{ Begin :: timestamp() | date(), End   :: timestamp() | date() }.
+	{ Begin :: timestamp() | date(), End   :: timestamp() | date() }.
 
 
 
@@ -2466,6 +2473,24 @@ duration_to_french_string( infinity ) ->
 	"infini".
 
 
+-doc """
+Returns an approximate textual (English) description of the specified time-out,
+expected to be expressed as a signed number of milliseconds (integer; otherwise,
+if being floating-point, it will be rounded), or as the `infinity` atom.
+
+For example for a time-out of 150 012 ms, returns: `"time-out of 2 minutes, 30
+seconds and 12 milliseconds"`.
+
+See also: `get_textual_duration/2`.
+""".
+-spec time_out_to_string( time_out() ) -> ustring().
+time_out_to_string( _Timeout=infinity ) ->
+	"time-out that is unlimited";
+
+time_out_to_string( Duration ) ->
+	"time-out of " ++ duration_to_string( Duration ).
+
+
 
 -doc """
 Returns an approximate textual description of the specified time-out, in the
@@ -2490,22 +2515,6 @@ time_out_to_string( Duration, _Lang ) ->
 
 
 
--doc """
-Returns an approximate textual (English) description of the specified time-out,
-expected to be expressed as a signed number of milliseconds (integer; otherwise,
-if being floating-point, it will be rounded), or as the `infinity` atom.
-
-For example for a time-out of 150 012 ms, returns: `"time-out of 2 minutes, 30
-seconds and 12 milliseconds"`.
-
-See also: `get_textual_duration/2`.
-""".
--spec time_out_to_string( time_out() ) -> ustring().
-time_out_to_string( _Timeout=infinity ) ->
-	"time-out that is unlimited";
-
-time_out_to_string( Duration ) ->
-	"time-out of " ++ duration_to_string( Duration ).
 
 
 
@@ -2527,7 +2536,7 @@ timestamps (as obtained thanks to `get_precise_duration/0`), using the first one
 as starting time and the second one as stopping time.
 """.
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
-								milliseconds().
+                                            milliseconds().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 					  _SecondTimestamp={ B1, B2, B3 } ) ->
 
