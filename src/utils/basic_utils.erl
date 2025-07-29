@@ -2358,7 +2358,7 @@ is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
 
 -doc """
 Tells whether the specified process (designated by its PID) supposed to run on
-specified node (specified as an atom) was still existing at the moment of this
+the target node (specified as an atom) was still existing at the moment of this
 call.
 
 Note: generally not to be used when relying on a good design; and `is_alive/1`
@@ -2372,7 +2372,7 @@ is_alive( TargetPid, Node )  ->
 
 -doc """
 Tells whether the specified process (designated by its PID) supposed to run on
-specified node (specified as an atom) was still existing at the moment of this
+target node (specified as an atom) was still existing at the moment of this
 call.
 
 May emit trace warnings if told to be verbose.
@@ -2391,8 +2391,10 @@ is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 			erlang:is_process_alive( TargetPid );
 
 		_OtherNode ->
+
 			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
 			%   "on node ~p.", [ TargetPid, Node ] ),
+
 			case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
 						   _Args=[ TargetPid ] ) of
 
