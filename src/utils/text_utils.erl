@@ -146,7 +146,8 @@ See `text_utils_test.erl` for the corresponding test.
 
 		  find_substring_index/2, find_substring_index/3,
 
-		  substitute/3, filter/2, split_after_prefix/2, split_before_suffix/2,
+		  substitute/3, filter/2, is_prefixed_with/2,
+          split_after_prefix/2, split_before_suffix/2,
 		  update_with_keywords/2,
 
 		  list_whitespaces/0,
@@ -4660,6 +4661,21 @@ filter( CharToRemove, _String=[ CharToRemove | T ], Acc ) ->
 
 filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
 	filter( CharToRemove, T, [ OtherChar | Acc ] ).
+
+
+
+-doc "Tells whether the specified string starts with the specified prefix.".
+-spec is_prefixed_with( ustring(), ustring() ) -> boolean().
+is_prefixed_with( _Str, _Prefix=[] ) ->
+    true;
+
+% Character matching:
+is_prefixed_with( _Str=[ C | TS ], _Prefix=[ C | TP ] ) ->
+    is_prefixed_with( TS, TP );
+
+% Otherwise:
+is_prefixed_with( _Str, _Prefix ) ->
+    false.
 
 
 
