@@ -796,10 +796,10 @@ Returns the found preferences file (if any) relevant for the specified
 application, otherwise the preferences filename and the ordered list of the full
 paths explored.
 
-For example, for an application named "foobar", of version 0.0.1, following
+For example, for an application named `"foobar"`, of version 0.0.1, following
 paths may be looked up in turn:
- - "~/.config/foobar/0.0.1/foobar.etf"
- - "~/.config/foobar/foobar.etf"
+ - `"~/.config/foobar/0.0.1/foobar.etf"`
+ - `"~/.config/foobar/foobar.etf"`
 
 So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
 {not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
@@ -817,15 +817,15 @@ Returns the found preferences file (if any) relevant for the specified
 application, otherwise the preferences filename and the ordered list of the full
 paths explored.
 
-For example, for an application named "foobar", of version 0.0.1, following
+For example, for an application named `"foobar"`, of version 0.0.1, following
 paths may be looked up in turn:
- - "~/.config/foobar/0.0.1/foobar.etf"
- - "~/.config/foobar/foobar.etf"
- - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+ - `"~/.config/foobar/0.0.1/foobar.etf"`
+ - `"~/.config/foobar/foobar.etf"`
+ - if `AddDefaultPrefPath` is `true`: `"/home/john/.ceylan-settings.etf"`
 
-So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
-{not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
-"/home/john/.config/foobar/foobar.etf", "/home/john/.ceylan-settings.etf"]}
+So for example either `"/home/john/.config/foobar/foobar.etf"` is returned, or a
+`{not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+"/home/john/.config/foobar/foobar.etf", "/home/john/.ceylan-settings.etf"]}`
 triplet.
 """.
 -spec get_application_preferences_file( any_app_info(), boolean() ) ->
@@ -843,13 +843,13 @@ paths explored, using first the application-related directories, then the
 specified extra directory candidates and, if requested, as a last resort, the
 default preferences path.
 
-For example, for an application named "foobar", of version 0.0.1 and extra
-directories ["/home/a", "/var/b"], following paths may be looked up in turn:
- - "~/.config/foobar/0.0.1/foobar.etf"
- - "~/.config/foobar/foobar.etf"
- - "/home/a/foobar.etf"
- - "/var/b/foobar.etf"
- - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+For example, for an application named `"foobar"`, of version 0.0.1 and extra
+directories `["/home/a", "/var/b"]`, following paths may be looked up in turn:
+ - `"~/.config/foobar/0.0.1/foobar.etf"`
+ - `"~/.config/foobar/foobar.etf"`
+ - `"/home/a/foobar.etf"è
+ - `"/var/b/foobar.etf"`
+ - if `AddDefaultPrefPath` is `true`: `"/home/john/.ceylan-settings.etf"`
 
 So for example either "/var/b/foobar.etf" is returned, or a {not_found,
 "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
@@ -871,21 +871,21 @@ paths explored, using the specified prioritary directories as (ordered) first
 locations, then the application-related directories, then the extra (ordered)
 directories and, if requested, as a last resort, the default preferences path.
 
-For example, for an application named "foobar", of version 0.0.1 and prioritary
-directories ["/home/a", "/var/b"] and extra directories ["/opt/c"], following
-paths may be looked up in turn:
- - "/home/a/foobar.etf"
- - "/var/b/foobar.etf"
- - "~/.config/foobar/0.0.1/foobar.etf"
- - "~/.config/foobar/foobar.etf"
- - "/opt/c/foobar.etf"
- - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+For example, for an application named `"foobar"`, of version 0.0.1 and
+prioritary directories `["/home/a", "/var/b"]` and extra directories
+`["/opt/c"]`, following paths may be looked up in turn:
+ - `"/home/a/foobar.etf"`
+ - `"/var/b/foobar.etf"`
+ - `"~/.config/foobar/0.0.1/foobar.etf"`
+ - `"~/.config/foobar/foobar.etf"`
+ - `"/opt/c/foobar.etf"`
+ - if `AddDefaultPrefPath` is `true`: `"/home/john/.ceylan-settings.etf"`
 
-So for example either "/var/b/foobar.etf" is returned, or a {not_found,
+So for example either `"/var/b/foobar.etf"` is returned, or a `{not_found,
 "foobar.etf", ["/home/a/foobar.etf", "/var/b/foobar.etf",
    "/home/john/.config/foobar/0.0.1/foobar.etf",
    "/home/john/.config/foobar/foobar.etf", "/opt/c/foobar.etf"
-   "/home/john/.ceylan-settings.etf"]} triplet.
+   "/home/john/.ceylan-settings.etf"]}` triplet.
 """.
 -spec get_application_preferences_file( any_app_info(),
 	[ any_directory_path() ], [ any_directory_path() ], boolean() ) ->
@@ -918,7 +918,7 @@ get_application_preferences_file( AppInfoMap=#{ name := BinAppName },
 		error ->
 			[]
 
-						end,
+	end,
 
 	OrderedDirs = PrioritaryDirs ++ AppDirs ++ ExtraDirs,
 
