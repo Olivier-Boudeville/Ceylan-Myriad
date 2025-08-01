@@ -439,7 +439,7 @@ in which case a local registering will be tried first, and if not found a global
 one will be tried then.
 
 No specific waiting for registration will be performed, see
-`wait_for_*_registration_of` instead.
+`wait_for_*_registration_of/*` instead.
 """.
 -spec get_maybe_registered_pid_for( lookup_info() | registration_name() ) ->
                                                 option( pid() ).
@@ -461,7 +461,7 @@ be tried then.
 Throws an exception on failure.
 
 No specific waiting for registration will be performed, see
-`wait_for_*_registration_of` instead.
+`wait_for_*_registration_of/*` instead.
 """.
 -spec get_registered_pid_for( lookup_info() | registration_name() ) -> pid().
 get_registered_pid_for( _LookUpInfo={ RegName, LookupScope } ) ->
