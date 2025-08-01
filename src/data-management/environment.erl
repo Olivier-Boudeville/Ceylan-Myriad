@@ -61,7 +61,7 @@ Example of content of an environment file:
 
 The server process corresponding to an environment is locally registered; as a
 consequence it can be designated either directly through its PID or through
-its conventional (atom) registration name (like 'my_foobar_env_server' in
+its conventional (atom) registration name (like `my_foobar_env_server` in
 `environment:get(my_first_color, my_foobar_env_server`). No specific global
 registration of servers is made.
 
@@ -71,7 +71,7 @@ to avoid any risk of race conditions (should multiple processes attempt
 concurrently to create the same environment server), and also to be able to
 request that the server is also linked to the calling process.
 
-See our 'preferences' module, corresponding to the user preferences, which is
+See our `preferences` module, corresponding to the user preferences, which is
 implemented as a specific case of environment.
 
 See also the (unrelated) resource module for the sharing of any kind of data
@@ -204,7 +204,6 @@ Specifying the registration name is required for caching.
 -type cache_info() :: { env_reg_name(), env_cache_table() }.
 
 
-
 -doc "Key of an entry.".
 -type key() :: atom().
 
@@ -213,8 +212,8 @@ Specifying the registration name is required for caching.
 -doc """
 Value of an entry.
 
-Can be 'undefined' (no difference between a non-registered key and a key
-registered to 'undefined').
+Can be `undefined` (no difference between a non-registered key and a key
+registered to `undefined`).
 """.
 -type value() :: table:value().
 
@@ -225,29 +224,29 @@ registered to 'undefined').
 
 
 
--doc "Entries are lists of entry/0 terms, i.e. lists of pairs.".
+-doc "Entries are lists of `entry/0` terms, i.e. lists of pairs.".
 -type entries() :: table:entries().
 
 
 -doc """
 How entries in an ETF stream shall be checked.
 
-For the strict_tagged_* policies, see the tagged_list module.
+For the `strict_tagged_*` policies, see the `tagged_list` module.
 """.
 -type etf_check_policy() ::
 
-		'no_check' % Do not perform any check (in terms of structure, key
-				   % duplication, etc.)
+	'no_check' % Do not perform any check (in terms of structure, key
+			   % duplication, etc.)
 
-	  | 'strict_tagged_trace'  % Assume that the elements of the ETF stream
-							   % form a strict tagged list, and emit a warning
-							   % trace if duplicated keys are found, while
-							   % retaining the last occurrence found for each
-							   % key
+  | 'strict_tagged_trace'  % Assume that the elements of the ETF stream
+						   % form a strict tagged list, and emit a warning trace
+						   % if duplicated keys are found, while retaining the
+						   % last occurrence found for each key
 
-	  | 'strict_tagged_throw'. % Assume that the elements of the ETF stream
-							   % form a strict tagged list, and throw an
-							   % exception if duplicated keys are found
+  | 'strict_tagged_throw'. % Assume that the elements of the ETF stream
+						   % form a strict tagged list, and throw an exception
+						   % if duplicated keys are found
+
 
 -doc """
 A specification of the environment keys (possibly with their initial values)
@@ -277,38 +276,20 @@ environment server).
 
 % A list_table, as it is expected to reference only very few environments:
 -doc """
-Corresponds to the value associated to the env_dictionary_key key in the process
-dictionary of a process using environment caching.
+Corresponds to the value associated to the `env_dictionary_key` key in the
+process dictionary of a process using environment caching.
 """.
 -type all_env_table() :: list_table( env_pid(), cache_info() ).
 
 
 
 -doc "A table storing the (local) cached entries for a given environment.".
--type env_cache_table() :: table( atom(), term() ).
-
+-type env_cache_table() :: table( key(), value() ).
 
 
 
 % Just for silencing:
 -export_type([ all_env_table/0 ]).
-
-
-
-% Type shorthands:
-
--type ustring() :: text_utils:ustring().
--type bin_string() :: text_utils:bin_string().
-
--type maybe_list( T ) :: list_utils:maybe_list( T ).
-
--type list_table( K, V ) :: list_table:list_table( K, V ).
-
--type file_path() :: file_utils:file_path().
--type bin_file_path() :: file_utils:bin_file_path().
--type any_file_path() :: file_utils:any_file_path().
-
--type registration_name() :: naming_utils:registration_name().
 
 
 
@@ -351,6 +332,23 @@ dictionary of a process using environment caching.
 
 % Many start functions look the same, but are not; minor variations prevent much
 % factorisation.
+
+
+
+% Type shorthands:
+
+-type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type list_table( K, V ) :: list_table:list_table( K, V ).
+
+-type file_path() :: file_utils:file_path().
+-type bin_file_path() :: file_utils:bin_file_path().
+-type any_file_path() :: file_utils:any_file_path().
+
+-type registration_name() :: naming_utils:registration_name().
 
 
 
