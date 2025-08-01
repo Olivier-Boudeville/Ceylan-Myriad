@@ -420,10 +420,10 @@ update_existing_entries( Entries, MapHashtable ) ->
 
 
 -doc """
-Swaps in specified table the current value associated to the specified key with
-the specified new value.
+Swaps in the specified table the current value associated to the specified key
+with the specified new value.
 
-Returns the value previously associated to that key and an updated table.
+Returns the value previously associated to that key, and an updated table.
 
 The entry designated by the specified key is expected to exist already,
 otherwise a `{bad_key,Key}` exception is triggered.
