@@ -320,6 +320,9 @@ The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
 -type tcp_port_restriction() :: 'no_restriction' | tcp_port_range().
 
 
+-doc "The port used by an EPMD daemon.".
+-type epmd_port() :: tcp_port().
+
 
 -doc "A DNS lookup tool.".
 -type lookup_tool() :: 'dig' | 'drill' | 'host'.
@@ -351,6 +354,7 @@ The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
 			   udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
 			   tcp_port_restriction/0,
+               epmd_port/0,
 			   lookup_tool/0, lookup_info/0, lookup_outcome/0 ]).
 
 
