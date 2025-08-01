@@ -31,7 +31,7 @@
 This module defines a few basic facilities for **applications** (in the Myriad
 sense, not OTP one).
 
-See also the preferences module for application preferences.
+See also the `preferences` module for application preferences.
 """.
 
 
@@ -54,16 +54,16 @@ A Myriad-defined record introduced in order to store information regarding
 an application.
 
 This information can be transformed in a map that is a bit less detailed (not
-storing application name, and storing os only, instead of os_family and os_name)
-and that can be used directly by functions in the standard 'filename' module,
-such as filename:basedir/3 in order to return suitable system-specific base
-paths.
+storing application name, and storing `os` only, instead of `os_family` and
+`os_name`) and that can be used directly by functions in the standard `filename`
+module, such as `filename:basedir/3`, in order to return suitable
+system-specific base paths.
 """.
 -type app_info() :: #app_info{}.
 
 
 
--doc "Needed by some standard functions in the filename module.".
+-doc "Needed by some standard functions in the `filename` module.".
 -type app_info_map() :: % Not exported yet: filename:basedir_opts().
 						any().
 
@@ -73,7 +73,18 @@ paths.
 -type any_app_info() :: app_info() | app_info_map().
 
 
--export_type([ app_info/0, app_info_map/0, any_app_info/0 ]).
+-doc "The key in a configuration table. For example `tcp_port_number`.".
+-type config_key() :: atom().
+
+
+-doc """
+A table holding configuration information, typically as read from an ETF file.
+""".
+-type config_table() :: table( config_key(), Value :: term() ).
+
+
+-export_type([ app_info/0, app_info_map/0, any_app_info/0,
+               config_key/0, config_table/0 ]).
 
 
 % Type shorthands:
@@ -86,7 +97,6 @@ paths.
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
-
 
 
 -doc """
@@ -144,7 +154,7 @@ get_app_info( AppName, AppVersion ) ->
 
 -doc """
 Returns an application information corresponding to the specified application
-name and possibly version and author description.
+name, and possibly version and author description.
 """.
 -spec get_app_info( string_like(), option( any_version() ),
 					option( any_string() ) ) -> app_info().
@@ -180,7 +190,7 @@ get_app_info( AppName, MaybeAppVersion, MaybeAuthorDesc ) ->
 
 
 
--doc "Returns a map typically relevant for filename:basedir/3.".
+-doc "Returns a map typically relevant for `filename:basedir/3`.".
 -spec get_app_info_map( app_info() ) -> app_info_map().
 get_app_info_map( #app_info{ name=BinAppName,
 							 version=MaybeAppVersion,
@@ -250,7 +260,7 @@ display( Message ) ->
 -doc """
 Displays an application message, once formatted.
 
-FormatString is an io:format-style format string, Values is the corresponding
+`FormatString` is an io:format-style format string, Values is the corresponding
 list of field values.
 """.
 -spec display( format_string(), format_values() ) -> void().
@@ -339,8 +349,8 @@ fail( Reason ) ->
 -doc """
 To be called whenever an application is to fail (crash on error) immediately.
 
-FormatString is an io:format-style format string, Values is the corresponding
-list of field values.
+`FormatString` is an io:format-style format string, `Values` is the
+corresponding list of field values.
 
 For example `app_facilities:fail("server ~ts on strike", ["foobar.org"])`.
 """.
@@ -366,4 +376,5 @@ fail( FormatString, Values ) ->
 
 	% Useless, but otherwise Dialyzer will complain that this function has no
 	% local return:
+    %
 	app_failed.
