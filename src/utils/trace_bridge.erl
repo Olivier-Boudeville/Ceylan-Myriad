@@ -128,7 +128,7 @@ trace_bridge:register(BridgeSpec), [...]
 
 -doc "Bridging information typically specified by the user.".
 -type user_bridge_info() ::
-		{ TraceCategory :: any_string(), BridgePid :: bridge_pid() }.
+	{ TraceCategory :: any_string(), BridgePid :: bridge_pid() }.
 
 
 
@@ -520,8 +520,6 @@ send( SeverityType, MessageFormat, MessageValues ) ->
 
 
 % Mimicking the Ceylan-Traces protocol.
-%
-% (helper)
 send_bridge( SeverityType, Message,
 			 _BridgeInfo={ TraceEmitterName, TraceEmitterCategorization,
 						   BinLocation, BridgePid, AppTimestamp } ) ->
