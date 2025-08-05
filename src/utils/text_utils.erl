@@ -4027,15 +4027,18 @@ binary_to_float( BinString ) ->
 
 
 -doc """
-Capitalises the specified string, ensuring that its first letter is a capital
-one, uppercasing it if necessary.
+Capitalises the specified string, ensuring that the first letter of the plain
+returned string is a capital letter, uppercasing it if necessary.
 """.
--spec uppercase_initial_letter( ustring() ) -> ustring().
+-spec uppercase_initial_letter( any_string() ) -> ustring().
+uppercase_initial_letter( LettersBin ) when is_binary( LettersBin ) ->
+    uppercase_initial_letter( binary_to_list( LettersBin ) );
+
 uppercase_initial_letter( _Letters=[] ) ->
 	[];
 
 uppercase_initial_letter( _Letters=[ First | Others ] ) ->
-	% More reliable to use First-$a+$A if $a =< First, First =< $z:
+	% More reliable than to use First-$a+$A if $a =< First, First =< $z:
 	[ string:to_upper( First ) | Others ].
 
 

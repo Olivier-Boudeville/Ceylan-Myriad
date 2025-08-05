@@ -1268,7 +1268,7 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 
 -doc """
 Returns supervisor-level settings for a supervisor that would be supervised by a
-supervisor relying on the specified settings.
+supervisor itself relying on the specified settings.
 
 Not tremendously useful.
 """.
@@ -1284,7 +1284,7 @@ get_child_supervisor_settings(
 
 
 -doc """
-Returns default, base restart settings depending on the specified execution
+Returns the default, base restart settings, depending on the specified execution
 target.
 
 Note that the execution context must be explicitly specified here (typically by
@@ -1306,7 +1306,7 @@ get_restart_setting( _ExecutionTarget=production ) ->
 
 
 -doc """
-Returns a default, reasonable shutdown maximum duration to be used by a
+Returns a default, reasonable maximum shutdown duration to be used by a
 supervisor for its basic OTP workers, depending on the specified execution
 target.
 """.
@@ -1333,7 +1333,7 @@ check_application_run_context( OtherAppRunContext ) ->
 
 
 -doc """
-Returns a textual representation of specified application run context.
+Returns a textual representation of the specified application run context.
 """.
 -spec application_run_context_to_string( application_run_context() ) ->
 												ustring().
@@ -1393,11 +1393,11 @@ get_application_root( AppName ) ->
 
 -doc """
 Returns the root directory of the application-private tree (`priv`), based on
-specified module (expected to belong to that application).
+the specified module (expected to belong to that application).
 
 It may be useful to fetch data or NIF code for example.
 
-One may specify ?MODULE as argument, provided that this module belongs to the
+One may specify `?MODULE` as argument, provided that this module belongs to the
 application of interest.
 """.
 -spec get_priv_root( module_name() ) -> directory_path().
@@ -1413,7 +1413,7 @@ trace) if requested.
 
 It may be useful to fetch data or NIF code for example.
 
-One may specify ?MODULE as argument, provided that this module belongs to the
+One may specify `?MODULE` as argument, provided that this module belongs to the
 application of interest.
 """.
 -spec get_priv_root( module_name(), boolean() ) -> directory_path().
@@ -1435,7 +1435,7 @@ get_priv_root( ModuleName, BeSilent ) ->
 			case code:which( ModuleName ) of
 
 				WError when is_atom( WError ) ->
-					throw( { priv_lookup_failed, WError } );
+					throw( { priv_lookup_failed, PError, WError, ModuleName } );
 
 				ObjectCodePath -> % when is_list( ObjectCodePath ) ->
 					EbinDir = file_utils:get_base_path( ObjectCodePath ),
