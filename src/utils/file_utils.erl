@@ -1529,13 +1529,21 @@ resolve_symlink_once( SymlinkPath ) ->
 
 
 -doc """
-Resolves fully the specified symbolic link: returns the entry to which it points
+Fully resolves the specified symbolic link: returns the entry to which it points
 ultimately (therefore this entry cannot be a symbolic link), or throws an
 exception (including if exceeding a larger link depth, which happens most
 probably because these links form a cycle; throwing arbitrarily an exception is
 better than looping for ever).
+
+Note that an absolute directory path may be returned even if supplied with a
+relative one, as a symlink source may be relative to its parent, and they may be
+arbitrarily nested. For example a `foo/bar/s1.txt` symlink may be resolved as
+`s2.txt`: then this last entry shall not be searched literally as `s2.txt` (thus
+from the current directory), but as `foo/bar/s2.txt` (i.e. relative to the
+parent directory of its original symlink). Relying on absolute paths allows to
+avoid this contextual dependency.
 """.
--spec resolve_symlink_fully( any_path() ) -> any_path().
+-spec resolve_symlink_fully( any_path() ) -> abs_directory_path().
 resolve_symlink_fully( SymlinkPath ) ->
 	resolve_symlink_fully( SymlinkPath, SymlinkPath, _MaxDepth=50 ).
 
@@ -1554,14 +1562,31 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
 	case file:read_link_all( SymlinkPath ) of
 
 		{ ok, TargetPath } ->
-			case is_link( TargetPath ) of
+            % As this target path may be relative to the original symlink:
+            RetargetedPath = case is_absolute_path( TargetPath ) of
+
+                true ->
+                    TargetPath;
+
+                false ->
+                    % Relative to the source of the symlink:
+                    BaseDir = get_base_path( SymlinkPath ),
+
+                    % No need to normalise:
+                    any_join( BaseDir, TargetPath )
+
+            end,
+
+			case is_link( RetargetedPath ) of
 
 				true ->
-					resolve_symlink_fully( TargetPath, OrigSymlinkPath,
+                    % Then we consider the actual target of that symlink:
+					resolve_symlink_fully( RetargetedPath, OrigSymlinkPath,
 										   Depth-1 );
 
 				false ->
-					TargetPath
+                    % Better kept as a potentially relative path:
+					RetargetedPath
 
 			end;
 
@@ -1753,14 +1778,16 @@ is_existing_file_or_link( Path ) ->
 
 		symlink ->
             try
-
                 ResPath = resolve_symlink_fully( Path ),
+
                 %trace_utils:debug_fmt( "Testing symlink target '~ts'.",
                 %                       [ ResPath ] ),
+
                 is_existing_file( ResPath )
 
-            catch throw:_Any ->
-
+            catch throw:Any ->
+                trace_utils:warning_fmt( "Exception when resolving path "
+                                         "'~ts':~n ~p", [ Path, Any ] ),
                 false
 
            end;
