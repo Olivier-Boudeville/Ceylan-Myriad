@@ -984,7 +984,9 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 
 
 # To synchronise the selected source content of the current layer, from the
-# local tree to the specified server location, with no VCS commit involved.
+# local tree to the specified server location, as defined by
+# "$(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)" (run 'make info-sync' to check),
+# with no VCS commit involved.
 #
 # Note that files removed from the local sources will remain in the target
 # server.
@@ -996,16 +998,18 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 #
 # Note that, here, only the content of the 'src' and 'include' tree is
 # synchronised (e.g. not the makefiles, not the configuration files, etc. that
-# are elsewhere); see the next 'sync-all-to-server' target.
+# are elsewhere); see the next 'sync-all-to-server' target for a complete
+# transfer.
 #
 sync-sources-to-server: all
-	@echo "  Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
-	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
-	@echo "(source synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
+	@echo "  Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)"
+	@if [ -n "$(SYNC_HOST)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no SYNC_HOST variable set." 1>&2; exit 5; fi
+	@echo "(source synchronisation to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
 
 # To synchronise the full content of the current layer to the specified server
-# location, with no VCS commit involved.
+# location, as defined by "$(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)" (run 'make
+# info-sync' to check), with no VCS commit involved.
 #
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
 # on arrival timestamps may not be respected, and we want the right BEAMs to be
@@ -1013,9 +1017,9 @@ sync-sources-to-server: all
 # problem).
 #
 sync-all-to-server: all
-	@echo "  Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
-	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) $(LAYER_TOP) $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
-	@echo "(full synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
+	@echo "  Synchronising the full content of the $$(basename $$(pwd)) layer to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)"
+	@if [ -n "$(SYNC_HOST)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) $(LAYER_TOP) $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no SYNC_HOST variable set." 1>&2; exit 5; fi
+	@echo "(full synchronisation to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
 
 
@@ -1426,7 +1430,7 @@ info-sync:
 	@echo "SYNC_TARGET_GROUP= $(SYNC_TARGET_GROUP)"
 	@echo "SYNC_TARGET_GROUP_OPT= $(SYNC_TARGET_GROUP_OPT)"
 	@echo "SYNC_OPT = $(SYNC_OPT)"
-	@echo "WEB_SRV = $(WEB_SRV)"
+	@echo "SYNC_HOST = $(SYNC_HOST)"
 	@echo "CEYLAN_SYNC_TARGET_ROOT = $(CEYLAN_SYNC_TARGET_ROOT)"
 
 
