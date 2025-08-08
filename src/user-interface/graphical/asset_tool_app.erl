@@ -312,7 +312,7 @@ update_information_sizer( InfoSizer, Panel, Texts ) ->
 	TextOpts = [ { border_width, 10 }, all_borders, expand_fully ],
 
    [ gui_sizer:add_element( InfoSizer,
-		gui_text:create_static_display( T, Panel ), TextOpts ) || T <- Texts ].
+		gui_text_display:create( T, Panel ), TextOpts ) || T <- Texts ].
 
 
 
