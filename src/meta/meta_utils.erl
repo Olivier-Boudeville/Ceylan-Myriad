@@ -635,68 +635,68 @@ then that content will be shown as analysed twice.
 -spec transform_term( term(), option( concrete_type_description() ),
 	term_transformer(), user_data() ) -> { term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:
-transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc=list, TermTransformer, UserData )
                                 when is_list( TargetTerm ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, TypeDescription,
+	transform_transformed_term( TransformedTerm, ConcTypeDesc,
 								TermTransformer, NewUserData );
 
 
 % Here the term is a list and we are not interested in them:
-transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
 								when is_list( TargetTerm ) ->
-	transform_list( TargetTerm, TypeDescription, TermTransformer, UserData );
+	transform_list( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 % Here the term is a map and this is the type we want to intercept:
-transform_term( TargetTerm, TypeDescription=map, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc=map, TermTransformer, UserData )
 								when is_map( TargetTerm ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, TypeDescription,
+	transform_transformed_term( TransformedTerm, ConcTypeDesc,
 								TermTransformer, NewUserData );
 
 
 % Here the term is a map and we are not interested in them:
-transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
 								when is_map( TargetTerm ) ->
-	transform_map( TargetTerm, TypeDescription, TermTransformer, UserData );
+	transform_map( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 
 % Here the term is a tuple (or a record...), and we want to intercept them:
-transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
                                 when is_tuple( TargetTerm ) andalso (
-			TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
+			ConcTypeDesc =:= tuple orelse ConcTypeDesc =:= record ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, TypeDescription,
+	transform_transformed_term( TransformedTerm, ConcTypeDesc,
 								TermTransformer, NewUserData );
 
 
 % Here the term is a tuple (or a record...), and we are not interested in them:
-transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
 								when is_tuple( TargetTerm ) ->
-	transform_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
+	transform_tuple( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 % Base case (current term is not a binding structure, it is a leaf of the
 % underlying syntax tree):
 %
-transform_term( TargetTerm, _TypeDescription=undefined, TermTransformer,
+transform_term( TargetTerm, _ConcTypeDesc=undefined, TermTransformer,
 				UserData ) ->
 	% All non-container types selected:
 	TermTransformer( TargetTerm, UserData );
 
-transform_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
+transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	case type_utils:get_type_of( TargetTerm ) of
 
-		TypeDescription ->
+		ConcTypeDesc ->
 			TermTransformer( TargetTerm, UserData );
 
 		_ ->
@@ -708,13 +708,13 @@ transform_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
 
 
 -doc "Transforms the elements of a list (helper).".
-transform_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
+transform_list( TargetList, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	{ NewList, NewUserData } = lists:foldl(
 		fun( Elem, { AccList, AccData } ) ->
 
 			{ TransformedElem, UpdatedData } = transform_term( Elem,
-				TypeDescription, TermTransformer, AccData ),
+				ConcTypeDesc, TermTransformer, AccData ),
 
 			% New accumulator, produces a reversed element list:
 			{ [ TransformedElem | AccList ], UpdatedData }
@@ -735,16 +735,16 @@ Transforms the entries of a map (helper).
 The transformation is applied entry by entry and, for each of them, first on the
 key, then on the value.
 """.
-transform_map( TargetMap, TypeDescription, TermTransformer, UserData ) ->
+transform_map( TargetMap, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	{ NewMap, NewUserData } = maps:fold(
 		fun( K, V, _Acc={ AccMap, AccData } ) ->
 
 			{ TransformedK, UpdatedKData } = transform_term( K,
-				TypeDescription, TermTransformer, AccData ),
+				ConcTypeDesc, TermTransformer, AccData ),
 
 			{ TransformedV, UpdatedVData } = transform_term( V,
-				TypeDescription, TermTransformer, UpdatedKData ),
+				ConcTypeDesc, TermTransformer, UpdatedKData ),
 
 			NewAccMap = AccMap#{ TransformedK => TransformedV },
 
@@ -762,12 +762,12 @@ transform_map( TargetMap, TypeDescription, TermTransformer, UserData ) ->
 
 
 -doc "Transforms the elements of a tuple (helper).".
-transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
+transform_tuple( TargetTuple, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	% We do exactly as with lists:
 	TermAsList = tuple_to_list( TargetTuple ),
 
-	{ NewList, NewUserData } = transform_list( TermAsList, TypeDescription,
+	{ NewList, NewUserData } = transform_list( TermAsList, ConcTypeDesc,
 											   TermTransformer, UserData ),
 
 	{ list_to_tuple( NewList ), NewUserData }.
@@ -780,21 +780,21 @@ Transforms any term by traversing it (helper).
 Helper to traverse a transformed term (e.g. if looking for a `{user_id, String}`
 pair, we must recurse in nested tuples like: `{3, {user_id, "Hello"}, 1}`.
 """.
-transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
+transform_transformed_term( TargetTerm, ConcTypeDesc, TermTransformer,
 							UserData ) ->
 
 	case TermTransformer( TargetTerm, UserData ) of
 
 		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
-			transform_list( TransformedTerm, TypeDescription, TermTransformer,
+			transform_list( TransformedTerm, ConcTypeDesc, TermTransformer,
 							NewUserData );
 
 		{ TransformedTerm, NewUserData } when is_map( TransformedTerm ) ->
-			transform_map( TransformedTerm, TypeDescription, TermTransformer,
+			transform_map( TransformedTerm, ConcTypeDesc, TermTransformer,
 							NewUserData );
 
 		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
-			transform_tuple( TransformedTerm, TypeDescription, TermTransformer,
+			transform_tuple( TransformedTerm, ConcTypeDesc, TermTransformer,
 							 NewUserData );
 
 		% {ImmediateTerm, NewUserData} ->

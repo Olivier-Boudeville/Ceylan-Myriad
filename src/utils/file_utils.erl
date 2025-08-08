@@ -6739,8 +6739,8 @@ transferred with TCP/IP / send_file and by chunks.
 -spec files_to_zipped_term( [ file_name() ], any_directory_path() ) -> binary().
 files_to_zipped_term( Filenames, BaseDirectory ) ->
 
-    trace_utils:debug_fmt( "Selected filenames (base directory: '~ts'): ~p.",
-                           [ BaseDirectory, Filenames ] ),
+    %trace_utils:debug_fmt( "Selected filenames (base directory: '~ts'): ~p.",
+    %                       [ BaseDirectory, Filenames ] ),
 
 	DummyFileName = "dummy",
 

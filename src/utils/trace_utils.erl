@@ -1061,13 +1061,19 @@ Note: adds a carriage-return/line-feed at the end of the message.
 -spec actual_display( trace_message() ) -> void().
 actual_display( Message ) ->
 
+    % For a lower-level trace management like this one, based on console
+    % printouts, we ellipse longer messages as they are mostly unreadable
+    % anyway:
+    %
+    RetainedMsg = text_utils:ellipse( Message, _DefaultMaxLen=2500 ),
+
 	% This default timeout (30 seconds, in milliseconds) may not be sufficient
 	% in all cases:
 	%
-	%basic_utils:display_timed( Message, _MsTimeOut=30000 ).
+	%basic_utils:display_timed( RetainedMsg, _MsTimeOut=30000 ).
 
 	% If wanting a faster, less safe version:
-	io:format( "~ts~n", [ Message ] ).
+	io:format( "~ts~n", [ RetainedMsg ] ).
 
 
 

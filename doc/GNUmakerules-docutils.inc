@@ -11,7 +11,7 @@
  view-doc to-print check-dot                                                   \
  info-doc info-doc-local info-doc-tools info-diagrams                          \
  clean clean-doc-repository clean-generated clean-diagrams clean-dot           \
- clean-doc-logs clean-gnuplot clean-png clean-rst clean-mathjax
+ clean-doc-logs clean-gnuplot clean-png clean-rst clean-mathjax-local
 
 
 # Content typically to be deployed to webservers:
@@ -527,7 +527,8 @@ clean-rst:
 	@if [ -d "$(TMP_RST_REPOSITORY)" ]; then $(MAKE) -s clean-doc-repository; fi
 
 
-# $$(basename $$(pwd)):
-clean-mathjax:
+# Avoiding any dead symlink:
+# (or $$(basename $$(pwd)))
+clean-mathjax-local:
 	@echo "$(ECHO_OFFSET)Cleaning mathjax elements in $$(pwd)"
-	@echo "(warning: not implemented)" 1>&2
+	@/bin/rm -f mathjax
