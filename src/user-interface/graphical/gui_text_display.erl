@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various facilities for **text display**.
 
-See also the corresponding gui_dialog:message_dialog() dialog.
+See also the corresponding `gui_dialog:message_dialog/0` dialog.
 """.
 
 
@@ -55,7 +55,7 @@ The current font applies to this display.
 -doc """
 A style element of a text display.
 
-See also <http://docs.wxwidgets.org/stable/classwx_static_text.html>.
+See also [http://docs.wxwidgets.org/stable/classwx_static_text.html].
 """.
 -type text_display_style() ::
 	'align_left'   % Align the text to the left.
@@ -152,7 +152,7 @@ its precise text extent, determined thanks to the specified font, which is
 associated to it.
 
 Note that the display height may be higher than the one of the actual text, due
-to the margin taken for letters possibly going below the baseline (like 'g').
+to the margin taken for letters possibly going below the baseline (like `g`).
 
 This function may be useful as, in some cases, even the rendering of a
 single-line label in a panel may be wrong, being cropped or extended for some
@@ -231,8 +231,6 @@ destruct( TextDisplay ) ->
 -doc """
 Converts the specified text display option(s) into the appropriate backend
 specific options.
-
-(helper)
 """.
 -spec to_wx_static_display_opts( maybe_list( text_display_option() ) ) ->
 											[ wx_opt_pair() ].
