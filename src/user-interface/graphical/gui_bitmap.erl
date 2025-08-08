@@ -35,11 +35,11 @@ quickest/easiest to operate with - as opposed to images, which are generic
 elements, independent from platform and image file format (these are just
 buffers of RGB bytes, with an optional buffer for the alpha bytes).
 
-See also the gui_canvas and gui_render (e.g. for draw_bitmap/*) modules.
+See also the gui_canvas and gui_render (e.g. for `draw_bitmap/*`) modules.
 
 Bitmaps belong to the reference-counted resources; their life-cycle shall be
 managed by the caller: a creation shall be ultimately paired to a destruction
-(see destruct/1).
+(see `destruct/1`).
 """.
 
 
@@ -56,7 +56,7 @@ A given bitmap may or may not have its internal data buffer set.
 
 Bitmaps belong to the reference-counted resources; their life-cycle shall be
 managed by the caller: a creation shall be ultimately paired to a destruction
-(see destruct/1).
+(see `destruct/1`).
 """.
 -type bitmap() :: gui_image:bitmap().
 
@@ -65,7 +65,7 @@ managed by the caller: a creation shall be ultimately paired to a destruction
 A bitmap with no internal data buffer set.
 
 When a bitmap is constructed as empty, it embeds no data buffer; use typically
-populate_buffer/4 to add such data.
+`populate_buffer/4` to add such data.
 """.
 -type empty_bitmap() :: bitmap().
 
@@ -80,7 +80,7 @@ A record describing a raw, ready-to-use, bitmap, as a term, possibly loaded from
 file, or generated, etc., as opposed to an image (which respects a format like
 PNG or JPEG, has metadata, etc.).
 
-Note: currently not used, as a bitmap() offers all services needed.
+Note: currently not used, as a `bitmap()` offers all services needed.
 """.
 -type raw_bitmap() :: #raw_bitmap{}.
 
@@ -100,7 +100,7 @@ the rendering of a bitmap.
 -doc """
 The name identifiers of the standard bitmaps.
 
-See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
+See also `gui_constants:get_standard_bitmap_name_id_topic_spec/0`.
 """.
 -type standard_bitmap_name_id() ::
 	'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
@@ -196,7 +196,7 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 Returns a bitmap of the specified dimensions, using the current system color
 depth.
 
-To be explicitly destructed (see destruct/1) when done with it.
+To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create( width(), height() ) -> bitmap().
 create( Width, Height ) ->
@@ -207,7 +207,7 @@ create( Width, Height ) ->
 -doc """
 Returns a bitmap of the specified dimensions and color depth.
 
-To be explicitly destructed (see destruct/1) when done with it.
+To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create( width(), height(), color_depth() ) -> bitmap().
 create( Width, Height, ColorDepth ) ->
@@ -220,7 +220,7 @@ create( Width, Height, ColorDepth ) ->
 -doc """
 Returns a bitmap created from the image at the specified path.
 
-To be explicitly destructed (see destruct/1) when done with it.
+To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_from( any_file_path() ) -> bitmap().
 create_from( ImagePath ) ->
@@ -231,7 +231,7 @@ create_from( ImagePath ) ->
 -doc "Returns an empty (buffer-less) bitmap of the specified size.".
 -spec create_empty( size() ) -> empty_bitmap().
 %
-% To be explicitly destructed (see destruct/1) when done with it.
+% To be explicitly destructed (see `destruct/1`) when done with it.
 %
 create_empty( _Size={ Width, Height } ) ->
 	create_empty( Width, Height ).
@@ -241,7 +241,7 @@ create_empty( _Size={ Width, Height } ) ->
 -doc """
 Returns an empty (buffer-less) bitmap of the specified dimensions.
 
-To be explicitly destructed (see destruct/1) when done with it.
+To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_empty( width(), height() ) -> empty_bitmap().
 create_empty( Width, Height ) ->
@@ -262,7 +262,7 @@ create_empty( Width, Height ) ->
 -doc """
 Returns an empty bitmap whose size is the client one of the specified widget.
 
-To be explicitly destructed (see destruct/1) when done with it.
+To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_empty_for( widget() ) -> empty_bitmap().
 create_empty_for( Widget ) ->
