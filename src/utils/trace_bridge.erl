@@ -66,7 +66,6 @@ trace_bridge:register(BridgeSpec), [...]
 % ones.
 
 
-
 -doc "Possibly a `class_TraceAggregator:aggregator_pid()`.".
 -type bridge_pid() :: pid().
 
