@@ -28,7 +28,7 @@
 -module(type_utils_test).
 
 -moduledoc """
-Unit tests for the `type_utils` services.
+Unit tests for the **type-related** services.
 
 See the `type_utils` tested module.
 """.
@@ -75,7 +75,7 @@ run() ->
 
     test_facilities:display( "Parsing the type of '~ts'.", [ TypeStr ] ),
 
-    ParsedType = type_utils:parse_type( TypeStr ),
+    { ok, ParsedType } = type_utils:parse_type( TypeStr ),
 
     test_facilities:display( "Type parsing resulted in contextual type ~w.~n"
         "It is described as '~ts'.",
@@ -88,7 +88,7 @@ run() ->
         "Defining now a parametrised type foo(U,V) as ~ts.", [ FooTypeStr ] ),
 
     % Building this contextual type from a string:
-    FooCtxtType = type_utils:parse_type( FooTypeStr ),
+    { ok, FooCtxtType } = type_utils:parse_type( FooTypeStr ),
 
     % As the order of type variables will matter when using such parametrised
     % types:
@@ -104,7 +104,7 @@ run() ->
     %
     WithFooTypeStr = "{buzz, foo(X,atom())}",
 
-    WithFooCtxtType = type_utils:parse_type( WithFooTypeStr ),
+    { ok, WithFooCtxtType } = type_utils:parse_type( WithFooTypeStr ),
 
     WithFooExplType = type_utils:resolve_type( WithFooCtxtType,
                                                WithFooTypedefTable ),
