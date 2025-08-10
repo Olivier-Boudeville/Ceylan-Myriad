@@ -34,6 +34,8 @@ specifically depends on Erlang); it is named the Myriad type system and
 currently supports any parametrised (a type possibly depending on other types),
 non-recursive type.
 
+We define here a type as a (potentially infinite) set of values.
+
 See `type_utils_test.erl` for the corresponding test.
 
 See also `meta_utils` for all topics regarding metaprogramming,
@@ -492,8 +494,8 @@ references to other types; for example: `{list, [{count, []}]}` does not specify
 what the `count/0` type is. Same for `{typevar,'T'}`.
 
 The fully explicit types (F3) can be obtained by composing the primitive types
-(see `primitive_type_description/0`) with the compounding, parametrised
-construction types (see `compounding_type_description/0`).
+(see `primitive_type_name/0`) with the compounding, parametrised
+construction types (see `compounding_type_name/0`).
 
 The same example of the `"union(foo(),bar,[integer()])"` `text_type()` may then
 be defined here as the `{union, [{foo,[]}, {atom,bar}, {list, {integer,[]}}]}`
@@ -537,8 +539,10 @@ contextual type.
 -type type_form() :: form().
 
 
+
+
 -doc """
-The "most precise" description of an in-memory primitive type, in which:
+The "most precise" descriptive name of an in-memory primitive type, in which:
 - simple types do not coexist (e.g. no `boolean` and `atom` overlapping)
 - `number` and `bitstring` are not used (as they derive respectively from
 `float()|integer()` and `binary()`)
@@ -551,15 +555,15 @@ More precisely, as one can see in `erts/emulator/beam/erl_term.h`, a float_def
 is an union able to contain a ieee754_8 datatype, aliased to the `double` C
 datatype.
 
-Parametrised types (e.g. lists) are described with no mention of the types they
-may depend on (e.g. `list` can be specified, not `list(float())` or anything
-like that).
+As this type is about names, parametrised types (e.g. lists) are described with
+no mention of the types they may depend on (e.g. `list` can be specified, not
+`list(float())` or anything like that).
 
-The description of any given type is based on `primitive_type_description/0`,
+The description of any given type is based on `primitive_type_name/0`,
 and can be done in two complementary forms: the textual one, and the internal
 one, which are relatively different.
 """.
--type primitive_type_description() ::
+-type primitive_type_name() ::
     'atom' % Note that, in F3 form, {atom,[]} designates the atom/0 type,
            % whereas {atom,foo} designates the 'foo' atom.
   | 'binary'
@@ -567,13 +571,33 @@ one, which are relatively different.
   | 'integer'
   | 'pid'
   | 'port'
-  | 'reference'.
+  | 'reference'
+  | 'void'. % This "bottom" type may be useful to describe function returns.
+
 
 
 -doc """
-For primitive types, the specification is the same of the description.
+A primitive type specialiser is either:
+
+- an empty list to designate the type itself (like `[]` in `{integer,[]}`)
+
+- a value of that type to designate a corresponding literal (like in
+`{integer,4}`, `{float,1.0}`, `{atom,foo}`, etc.)
 """.
--type primitive_type_spec() :: primitive_type_description().
+-type primitive_type_specialiser() :: []
+                                    | atom()
+                                    | binary()
+                                    | float()
+                                    | integer()
+                                    | pid()
+                                    | port()
+                                    | reference().
+                                    % Nothing for 'void' of course.
+
+
+-doc "Specifies a primitive type (including literals).".
+-type primitive_type_spec() ::
+    { primitive_type_name(), primitive_type_specialiser() }.
 
 
 
@@ -581,27 +605,27 @@ For primitive types, the specification is the same of the description.
 Designates the Erlang-level types that may be encountered as such in an actual
 term.
 
-Complementary to `abstract_type_description/0`.
+Complementary to `abstract_type_name/0`.
 
 Convenient for example to target concrete types to be replaced.
 """.
--type concrete_type_description() :: primitive_type_description()
-                                   | 'map'
-                                   | 'tuple'
-                                   | 'list'.
+-type concrete_type_name() :: primitive_type_name()
+                            | 'map'
+                            | 'tuple'
+                            | 'list'.
 
 
 -doc """
 Designates the Erlang-level types (enriched a bit by Myriad) that exist but may
 not be encountered as such in an actual term.
 
-Complementary to `concrete_type_description/0`.
+Complementary to `concrete_type_name/0`.
 """.
--type abstract_type_description() :: 'any'
-                                   | 'none'
-                                   | 'option'
-                                   | 'table' % Introduced by Myriad
-                                   | 'union'.
+-type abstract_type_name() :: 'any'
+                            | 'none'
+                            | 'option'
+                            | 'table' % Introduced by Myriad
+                            | 'union'.
 
 
 -doc """
@@ -611,16 +635,16 @@ types.
 They can be nested (i.e. they can operate on primitive and/or compounding
 types).
 """.
--type compounding_type_description() ::
+-type compounding_type_name() ::
     % Some day maybe: 'function', 'record'
-    monomorphic_container_type_description()
+    monomorphic_container_type_name()
     | 'table' % 2-morphic (and preferred to 'map', its implementation)
     | 'tuple' % n-morphic
     | 'union'. % n-morphic
 
 
 -doc "Describes a type of monomorphic container.".
--type monomorphic_container_type_description() ::
+-type monomorphic_container_type_name() ::
     'option'
   | 'list'.
 
@@ -960,17 +984,22 @@ For example `#my_point{x=1, y=2}` is actually `{my_point, 1, 2}` and thus
 
 
 -doc """
-We name tuploid a pseudo-tuple, that is a value that is either an actual tuple
-or a single, standalone term, designated as a "basic tuploid".
+A pseudo-tuple, that is a value that is either an actual (homogeneous) tuple or
+a single, standalone term, designated as a "basic tuploid".
 
 That is, a tuploid is a tuple of any size, except that the tuploid of size 1 is
-`MyTerm`, not the rather useless `{MyTerm}`. Note that if `MyTerm` can itself be
-a tuple, this is bound to lead to ambiguities.
+`MyTerm`, not the rather useless `{MyTerm}`.
+
+Note that if `MyTerm` can itself be a tuple, this is bound to lead to
+ambiguities.
 """.
 -type tuploid() :: tuploid( term() ).
 
 
--doc "Probably that such a tuple would contain at least an element of type T.".
+-doc """
+Either a single value of type `T`, or a T-homogeneous tuple, i.e. a tuple whose
+all elements are of type `T`.
+""".
 -type tuploid( T ) :: tuple( T ) | T.
 
 
@@ -983,15 +1012,18 @@ a tuple, this is bound to lead to ambiguities.
 
 
 -doc """
-Designates an uniform tuple (of unspecified size), that is a tuple whose
-elements are all of the specified type T.
+Designates an homogeneous tuple (of unspecified size), that is a tuple whose
+elements are all of the specified type `T`.
 """.
 -type tuple( _T ) :: tuple().
 
 
 -doc """
-Designates an uniform tuple of the specified size, that is a tuple whose S
-elements are all of the type T.
+Designates a fixed-size homogeneous tuple, that is a tuple whose `S` elements
+are all of the type `T`.
+
+Here ``S`` should be a type that conflates to a single, strictly positive
+integer value.
 """.
 -type tuple( _T, _S ) :: tuple().
 
@@ -1052,10 +1084,13 @@ Transient terms are the opposite of permanent ones.
 -export_type([ type_name/0, type_arity/0, type_id/0,
                text_type/0, user_text_type/0,
                contextual_type/0, explicit_type/0,
-			   primitive_type_description/0, primitive_type_spec/0,
-               concrete_type_description/0, abstract_type_description/0,
-               compounding_type_description/0,
-               monomorphic_container_type_description/0,
+
+			   primitive_type_name/0, primitive_type_specialiser/0,
+               primitive_type_spec/0,
+
+               concrete_type_name/0, abstract_type_name/0,
+               compounding_type_name/0,
+               monomorphic_container_type_name/0,
                compounding_type_spec/0,
                monomorphic_container_type_spec/0,
                value_description/0,
@@ -1095,7 +1130,7 @@ Transient terms are the opposite of permanent ones.
 		  get_low_level_type_size/1,
 		  is_transient/1, is_byte/1,
 		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
-          parse_type/1, vet_contextual_type/1,
+          parse_type/1, interpret_parse_type_error/1, vet_contextual_type/1,
           resolve_type/2, instantiate_type/2,
           vet_explicit_type/1,
           define_type/4, typedef_table_to_string/1,
@@ -1213,6 +1248,8 @@ Transient terms are the opposite of permanent ones.
 -type count() :: basic_utils:count().
 -type level() :: basic_utils:level().
 -type positive_index() :: basic_utils:positive_index().
+-type tagged_fallible( T ) :: basic_utils:tagged_fallible( T ).
+-type tagged_error_info() :: basic_utils:tagged_error_info().
 
 -type array() :: array:array().
 
@@ -1226,20 +1263,24 @@ Transient terms are the opposite of permanent ones.
 
 
 -doc """
-Returns an atom describing, as precisely as possible, the overall type of the
-specified concrete term.
+Returns an atom describing the overall first-level, as precise as reasonably
+possible, type description of the specified concrete value (term).
+
+No recursive identification is done to investigate nested values/types; for
+example if the specified term is `[1,4]`, `list` will be returned (not
+`[integer]` for example).
 
 `is_number/1`, `is_record/1`, etc. not usable here.
 
 Note: often we do not want to retrieve the actual type of a term but need
-instead to determine whether the term can be considered as an instance of a
-specific type (this is not strictly the same need, as a given term in general
-may be seen of being of multiple types); for that see `is_value_matching/2`.
+instead to determine whether the term can be considered as a value of a specific
+type (this is not strictly the same need, as a given term in general may be seen
+of being of multiple types); for that see `is_value_matching/2`.
 
 The lowest-level/most precise typing can be obtained with the (undocumented)
 `erts_internal:term_type/1` function.
 """.
--spec get_type_of( term() ) -> concrete_type_description().
+-spec get_type_of( term() ) -> value_description().
 get_type_of( Term ) when is_boolean( Term ) ->
 	'boolean';
 
@@ -1259,16 +1300,16 @@ get_type_of( Term ) when is_list( Term ) ->
 			'string';
 
 		false ->
-			case text_utils:are_strings( Term ) of
+			% case text_utils:are_strings( Term ) of
 
-				true ->
-					'[string]';
+			%   true ->
+			%       '[string]';
 
-				false ->
-					'list'
+			%   false ->
+			%       'list'
 
-			end
-
+			% end
+            'list'
 	end;
 
 get_type_of( Term ) when is_binary( Term ) ->
@@ -1299,7 +1340,7 @@ get_type_of( Term ) when is_reference( Term ) ->
 	'reference';
 
 get_type_of( Term ) ->
-	throw( { not_concrete_type, Term } ).
+	throw( { no_type_for_value, Term } ).
 
 
 
@@ -1599,6 +1640,11 @@ is_type( { none, [] } ) ->
 %is_type( { none, _ } ) ->
 %	false;
 
+is_type( { void, [] } ) ->
+	true;
+
+%is_type( { void, _ } ) ->
+%	false;
 
 is_type( { option, ElemType } ) ->
     is_type( ElemType );
@@ -1723,9 +1769,9 @@ whether all its elements are of the same type.
 If true, returns the common type.
 If false, returns two of the different types found in the container.
 """.
--spec is_homogeneous( monomorphic_container_type_description() ) ->
-		{ 'true', primitive_type_description() } | { 'false',
-			{ primitive_type_description(), primitive_type_description() } }.
+-spec is_homogeneous( monomorphic_container_type_name() ) ->
+		{ 'true', primitive_type_name() } | { 'false',
+			{ primitive_type_name(), primitive_type_name() } }.
 is_homogeneous( _List=[] ) ->
 	% We want to return types:
 	throw( empty_container );
@@ -1745,8 +1791,8 @@ Tells whether the specified non-empty monomorphic container is homogeneous in
 terms of type, that is whether all its elements are of the same, specified,
 primitive type.
 """.
--spec is_homogeneous( monomorphic_container_type_description(),
-                      primitive_type_description() ) -> boolean().
+-spec is_homogeneous( monomorphic_container_type_name(),
+                      primitive_type_name() ) -> boolean().
 is_homogeneous( _List=[], _Type ) ->
 	% Considered homogeneous:
 	true;
@@ -1957,20 +2003,40 @@ is_neg_integer( _Other ) ->
 
 -doc """
 Parses the specified string, supposedly containing a type-as-a-string, i.e. a
-textual specification of a type, and returns the corresponding
+textual specification of a type, and on success returns the corresponding
 type-as-a-contextual-term, i.e. an Erlang term that defines (contextually) that
 type.
 
 As a result, performs "type parsing", i.e. converts a F1 form into a F2 one (see
 the design notes above).
 
-For example: `{list, {count,[]}} = parse_type("[count()]")`.
+For example: `{ok, {list, {count,[]}}} = parse_type("[count()]")`.
+
+Never throws.
 """.
--spec parse_type( text_type() ) -> contextual_type().
+-spec parse_type( text_type() ) -> tagged_fallible( contextual_type() ).
 parse_type( TypeStr ) ->
 
+    case text_utils:is_string( TypeStr ) of
+
+        true ->
+            parse_type_helper( TypeStr );
+
+        false ->
+            { error, { not_string, TypeStr } }
+
+    end.
+
+
+% (helper)
+parse_type_helper( TypeStr ) ->
+
     % (no cond_utils:if_defined/2 usable in a pioneer module)
-    trace_utils:debug_fmt( "Parsing the '~ts' type.", [ TypeStr ] ),
+    %DoTrace = false,
+    DoTrace = true,
+
+    DoTrace andalso
+        trace_utils:debug_fmt( "Parsing the '~ts' type.", [ TypeStr ] ),
 
     DotTypeStr = text_utils:format( "~ts.", [ TypeStr ] ),
 
@@ -1979,49 +2045,74 @@ parse_type( TypeStr ) ->
 
         { ok, Tokens, _EndLocation=1 } ->
 
-            trace_utils:debug_fmt( "Scanned tokens:~n ~p.", [ Tokens ] ),
+            DoTrace andalso
+                trace_utils:debug_fmt( "Scanned tokens:~n ~p.", [ Tokens ] ),
 
             % Neither parse_term/1 nor parse_form/1 but:
             case erl_parse:parse_exprs( Tokens ) of
 
                 { ok, [ ExprForm ] } ->
-                    trace_utils:debug_fmt( "Form parsed:~n ~p.",
-                                           [ ExprForm ] ),
+                    DoTrace andalso trace_utils:debug_fmt( "Form parsed:~n ~p.",
+                                                           [ ExprForm ] ),
 
                     CtxtType = transform_for_contextual_type( ExprForm ),
 
-                     trace_utils:debug_fmt(
+                    DoTrace andalso trace_utils:debug_fmt(
                         "Form transformed as a contextual type:~n ~p.",
                         [ CtxtType ] ),
 
                     % Useful as invalid strings (e.g. "[float()]") might be
                     % accepted by the parsing:
                     %
-                    vet_contextual_type( CtxtType );
+                    { ok, vet_contextual_type( CtxtType ) };
 
                 { error, ErrorPInfo } ->
 
                     % Trying to obtain a readable term:
-                    ErrStr = text_utils:format( "~ts", [
-                        erl_parse:format_error( ErrorPInfo ) ] ),
+                    ErrStr = text_utils:format( "~ts",
+                        [ erl_parse:format_error( ErrorPInfo ) ] ),
 
-                    throw( { type_parsing_failed, ErrStr, TypeStr, Tokens } )
+                    { error, { type_parsing_failed,
+                               { ErrStr, TypeStr, Tokens } } }
 
             end;
 
         { error, ErrorSInfo, ErrorLocation } ->
 
-            ErrStr = text_utils:format( "~ts", [
-                erl_scan:format_error( ErrorSInfo ) ] ),
+            ErrStr = text_utils:format( "~ts",
+                [ erl_scan:format_error( ErrorSInfo ) ] ),
 
-            throw( { type_scanning_failed, ErrStr, ErrorLocation, TypeStr } )
+            { error, { type_scanning_failed,
+                       { ErrStr, TypeStr, ErrorLocation } } }
 
     end.
 
 
+-doc """
+Returns a textual description of the specified error triggered by
+`parse_type/1`.
+""".
+-spec interpret_parse_type_error( tagged_error_info() ) -> ustring().
+interpret_parse_type_error( { _ErrorTag=not_string, _ErrorInfo=TypeStr } ) ->
+    text_utils:format( "the specified type to parse is not a textual one; "
+        "it is not a string, but:~n ~p", [ TypeStr ] );
+
+interpret_parse_type_error( { _ErrorTag=type_parsing_failed,
+                              _ErrorInfo={ ErrStr, TypeStr, Tokens } } ) ->
+    text_utils:format(
+        "the parsing of type '~ts' failed: ~ts (tokens being ~p)",
+        [ TypeStr, ErrStr, Tokens ] );
+
+interpret_parse_type_error( { _ErrorTag=type_scanning_failed,
+        _ErrorInfo={ ErrStr, TypeStr, ErrorLocation } } ) ->
+    text_utils:format(
+        "the scanning of type '~ts' failed: ~ts (error location being ~p)",
+        [ TypeStr, ErrStr, ErrorLocation ] ).
+
+
 
 -doc """
-Transforms recursively (acting as a pseudo-function named here Rep) the
+Transforms recursively (acting as a pseudo-function named here `Rep`) the
 specified type forms in order to return the corresponding contextual type
 (i.e. Myriad's type-as-a-term, a.k.a F2 form).
 
@@ -2034,24 +2125,23 @@ The following transformation cases are to be applied:
 A. all native compounding structures into F2 terms; for example, resulting in
   *actual terms* (not AST forms):
 
-  - Rep("[T]") (thus, as AST: {tuple,_,[{atom,_,list},RepAST(T)]}) shall become
-    {list,RepTerm(T)}
+  - `Rep("[T]")` (thus, as AST: `{tuple,_,[{atom,_,list},RepAST(T)]}`) shall
+    become `{list,RepTerm(T)}`
 
-  - Rep("{E1,E2}") shall become {tuple, [RepTerm(E1), RepTerm(E2)]}
+  - `Rep("{E1,E2}")` shall become `{tuple, [RepTerm(E1), RepTerm(E2)]}`
 
 B. all free types to type variables; for example:
-  Rep("U") (thus, as AST: {var,_,'U'}), shall become {typevar, 'U'}.
+  `Rep("U")` (thus, as AST: `{var,_,'U'}`), shall become `{typevar, 'U'}`
 
 C. all standalone atoms into their F2 form; for example:
-  Rep("foo") (thus, as AST, {atom,_,foo}) shall become {atom,foo};
+  `Rep("foo")` (thus, as AST, `{atom,_,foo}`) shall become `{atom,foo}`
 
 D. all pseudo local calls to a F2 sub-type reference; for example:
+  `Rep("float()")` (thus as AST: `{call,_,{atom,_float},[]}`), shall become
+  `{float, []}`
 
-  Rep("float()") (thus as AST: {call,_,{atom,_float},[]}), shall become
-  {float, []}.
-
-  Rep("[bar(integer(),T2)]" shall become
-  {list,{bar,[{integer,[]},{typevar,'T2'}]}}
+  So `Rep("[bar(integer(),T2)]"` shall become `{list, {bar, [{integer,[]},
+  {typevar,'T2'}]}}`
 """.
 % We had to go for a custom (not relying on ast_transform), single-pass (to
 % ensure a transformed, final form is not attempted to be transformed again)
@@ -2496,31 +2586,78 @@ of the specified contextual type.
 type_to_string( _Type={ atom, [] } ) ->
     "atom()";
 
-% A specific atom:
+% A specific atom (an atom literal):
 type_to_string( _Type={ atom, AtomName } ) ->
     % Adding single quoted at least for clarity:
 	text_utils:format( "'~ts'", [ AtomName ] );
 
+
+type_to_string( _Type={ binary, [] } ) ->
+   "binary()";
+
+type_to_string( _Type={ binary, Bin } ) ->
+	text_utils:binary_to_string( Bin );
+
+
 type_to_string( _Type={ boolean, [] } ) ->
 	"boolean()";
+
+type_to_string( _Type={ boolean, _Literal=true } ) ->
+	"'true'";
+
+type_to_string( _Type={ boolean, _Literal=false } ) ->
+	"'false'";
+
 
 type_to_string( _Type={ integer, [] } ) ->
 	"integer()";
 
+type_to_string( _Type={ integer, I } ) ->
+	text_utils:integer_to_string( I );
+
+
 type_to_string( _Type={ float, [] } ) ->
 	"float()";
+
+type_to_string( _Type={ float, F } ) ->
+	text_utils:float_to_string( F );
+
+
+type_to_string( _Type={ pid, [] } ) ->
+	"pid()";
+
+type_to_string( _Type={ pid, F } ) ->
+	text_utils:pid_to_string( F );
+
+
+type_to_string( _Type={ port, [] } ) ->
+	"port()";
+
+type_to_string( _Type={ port, P } ) ->
+	text_utils:port_to_string( P );
+
+type_to_string( _Type={ reference, [] } ) ->
+	"reference()";
+
+type_to_string( _Type={ reference, R } ) ->
+	text_utils:reference_to_string( R );
+
 
 type_to_string( _Type={ string, [] } ) ->
 	"string()";
 
-type_to_string( _Type={ binary, [] } ) ->
-   "binary()";
+type_to_string( _Type={ string, S } ) ->
+	S;
+
 
 type_to_string( _Type={ any, [] } ) ->
 	"any()";
 
 type_to_string( _Type={ none, [] } ) ->
 	"none()";
+
+type_to_string( _Type={ void, [] } ) ->
+	"void()";
 
 % Then parametrised constructs:
 
@@ -2548,6 +2685,11 @@ type_to_string( _Type={ union, TypeList } ) when is_list( TypeList ) ->
 
 type_to_string( _Type={ typevar, T } ) ->
 	text_utils:atom_to_string( T );
+
+type_to_string( _Type={ NonBuiltinType, TypeList } ) ->
+    TypeStr = text_utils:join( _Sep=", ", TypeList ),
+	text_utils:format( "~ts(~ts)", [ NonBuiltinType, TypeStr ] );
+
 
 type_to_string( Type ) ->
 
