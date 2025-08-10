@@ -89,6 +89,14 @@ Note: useful to have self-describing types.
 -type error_reason() :: reason().
 
 
+-doc """
+A synthetic description/identifier of a type of error, as a mere atom.
+
+For example `file_not_found`.
+""".
+-type error_tag() :: atom().
+
+
 -doc "Designates a plain string explaning an error.".
 -type error_diagnosis() :: ustring().
 
@@ -175,11 +183,15 @@ pair).
 
 
 
+% These *fallible*/* types may or may not be clearer forms that the complete
+% types that they capture. To be used wisely.
+
+
 -doc """
 Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller).
 """.
--type fallible( T ) :: { 'ok', T } | error_term().
+-type fallible( TSuccess ) :: { 'ok', TSuccess } | error_term().
 
 
 
@@ -193,14 +205,90 @@ wanting to specify the error type as well.
 
 
 
--doc "Thus either `{ok,T}` or `{error,{ErrorTuploid,ErrorMsg}}`.".
--type diagnosed_fallible( T ) :: fallible( T, diagnosed_error_term() ).
+-doc """
+A tagged error with information, like `{type_scanning_failed, {ErrStr,
+ErrorLocation, TypeStr}}`.
+""".
+-type tagged_error_info( TErrorInfoTuploid ) ::
+    { error_tag(), TErrorInfoTuploid }.
+
+
+-doc "Defined for the clarity of user code.".
+-type error_info_tuploid() :: tuploid().
+
+
+-doc """
+A tagged error with information, like `{type_scanning_failed, {ErrStr,
+ErrorLocation, TypeStr}}`.
+
+To provide better, optional error interpretation, for any given function
+(e.g. `parse_type/*`) that returns a `tagged_error_info/0` term, a specific
+textual diagnosis function
+(e.g. `interpret_parse_type_error(tagged_error_info()) -> ustring()` may be
+defined.
+
+See `type_utils:{parse_type, interpret_parse_type_error}/1` for an example
+thereof.
+""".
+-type tagged_error_info() :: tagged_error_info( error_info_tuploid() ).
 
 
 
--doc "Thus either `{ok,TSuccess}` or `{error,{TuploidTFailure,ErrorMsg}}`.".
+-doc """
+Return type for operations that may fail, allowing the caller to act based on
+the different causes of errors.
+
+Thus either `{ok,TSuccessValue}` or `{error, {ErrorTag, TErrorInfoTuploid}}`
+like `{error, {type_scanning_failed, {ErrStr, ErrorLocation, TypeStr}}}`.
+
+Having the error tag in a pair (rather than in a tuple of potentially variable
+size) facilitates the caller-side error management. The tuploid, which is the
+most relevant form to aggregate extra information, may be further interpreted by
+the caller if needed.
+""".
+-type tagged_fallible( TSuccess, TErrorInfoTuploid ) ::
+    fallible( TSuccess, tagged_error_info( TErrorInfoTuploid ) ).
+
+
+-doc """
+Return type for operations that may fail, allowing the caller to act based on
+the different causes of errors.
+
+Thus either `{ok,TSuccessValue}` or `{error, {ErrorTag, SomeErrorTuploid}}` like
+`{error, {type_scanning_failed, {ErrStr, ErrorLocation, TypeStr}}}`.
+
+Having the error tag in a pair (rather than in a tuple of potentially variable
+size) facilitates the caller-side error management. The tuploid, which is the
+most relevant form to aggregate extra information, may be further interpreted by
+the caller if needed.
+""".
+-type tagged_fallible( TSuccess ) ::
+    tagged_fallible( TSuccess, tuploid() ).
+
+
+-doc """
+Thus either `{ok,TSuccessValue}` or `{error, {TuploidTFailureValue,ErrorMsg}}`.
+""".
 -type diagnosed_fallible( TSuccess, TFailure ) ::
-		fallible( TSuccess, diagnosed_error_term( TFailure ) ).
+	fallible( TSuccess, diagnosed_error_reason( TFailure ) ).
+
+
+-doc """
+Thus either `{ok,TSuccessValue}` or `{error, {ErrorTuploid,ErrorMsg}}`.
+""".
+-type diagnosed_fallible( TSuccess ) ::
+    fallible( TSuccess, diagnosed_error_reason() ).
+
+
+-doc """
+Thus either `{ok,TValue}` or `{error, {ErrorAtomTag, ErrorMsgStr}}`
+(e.g. `{error, {parsing_failed, "Syntax error in expression 'xxx': yyy"}}`).
+
+A very flexible result value, allowing the caller to throw and/or trace errors,
+selectively (based on the tag) and each time with a proper diagnosis.
+""".
+-type diagnosed_tagged_fallible( TSuccess ) ::
+    fallible( TSuccess, diagnosed_error_reason() ).
 
 
 
@@ -400,14 +488,21 @@ eliminate afterwards).
 
 -export_type([ count/0, non_null_count/0, level/0,
 			   message/0, pid_or_port/0, atom_key/0,
-			   reason/0, exit_reason/0, error_reason/0,
+			   reason/0, exit_reason/0, error_reason/0, error_tag/0,
 			   error_diagnosis/0, error_bin_diagnosis/0,
 			   error_type/0, error_tuploid/0, error_message/0,
 			   diagnosed_error_reason/0, tagged_error/0,
-			   error_term/0, diagnosed_error_term/0,
+			   error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
 			   base_status/0, base_outcome/0,
+
 			   fallible/1, fallible/2,
+
+               tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
+               tagged_fallible/1, tagged_fallible/2,
+
 			   diagnosed_fallible/1, diagnosed_fallible/2,
+               diagnosed_tagged_fallible/1,
+
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
@@ -549,6 +644,7 @@ eliminate afterwards).
 -type directory_path() :: file_utils:directory_path().
 
 -type void() :: type_utils:void().
+-type tuploid() :: type_utils:tuploid().
 -type option( T ) :: type_utils:option( T ).
 
 -type atom_node_name() :: net_utils:atom_node_name().
