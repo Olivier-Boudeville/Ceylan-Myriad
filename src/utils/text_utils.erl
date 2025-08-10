@@ -68,7 +68,7 @@ See `text_utils_test.erl` for the corresponding test.
 		  pid_to_short_string/1, pids_to_short_string/1,
 		  pid_to_core_string/1, pid_to_filename/1,
 
-		  record_to_string/1,
+          port_to_string/1, reference_to_string/1, record_to_string/1,
 
 		  strings_to_string/1, strings_to_string/2,
 		  strings_to_spaced_string/1, strings_to_spaced_string/2,
@@ -1015,6 +1015,22 @@ For example `["<0.84.0>"]`.
 pid_to_string( Pid ) ->
 	io_lib:format( "~w", [ Pid ] ).
 
+
+
+-doc """
+Returns nested characters corresponding to the specified port.
+""".
+-spec port_to_string( port() ) -> chars().
+port_to_string( Port ) ->
+	io_lib:format( "~w", [ Port ] ).
+
+
+-doc """
+Returns nested characters corresponding to the specified reference.
+""".
+-spec reference_to_string( reference() ) -> chars().
+reference_to_string( Reference ) ->
+	io_lib:format( "~w", [ Reference ] ).
 
 
 -doc """
