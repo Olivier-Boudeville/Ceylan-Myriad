@@ -32,6 +32,15 @@
 # Default is false (1):
 use_run_erl=1
 
+# If non-null, implies that, if using run_erl, the write pipe that it just
+# created while be checked for existence after the corresponding number of
+# seconds; indeed, if a node with the same name already exists, the write pipe
+# will exist for a brief time, then will be removed:
+#
+#write_pipe_linger_duration=2
+
+# If the launch program does its own startup checking:
+write_pipe_linger_duration=0
 
 
 # Not used anymore as the user may prefer file-based cookies:
@@ -1126,30 +1135,34 @@ if [ ${use_run_erl} -eq 0 ] && [ ${autostart} -eq 0 ]; then
 
 	done
 
+
 	wait_count=0
-	wait_max=2
 
-	# If a node with the same name already exists, the write pipe will exist for
-	# a brief time then will be removed:
+	if [ $write_pipe_linger_duration -gt 0 ]; then
 
-	echo "Write pipe '${write_pipe}' found, waiting ${wait_max} seconds to ensure start-up is successful indeed."
+		echo "Write pipe '${write_pipe}' found, waiting ${write_pipe_linger_duration} seconds to ensure start-up is successful indeed."
 
-	while [ ${wait_count} -lt ${wait_max} ]; do
+		while [ ${wait_count} -lt ${write_pipe_linger_duration} ]; do
 
-		sleep 1
+			sleep 1
 
-		if [ ! -e "${write_pipe}" ]; then
+			if [ ! -e "${write_pipe}" ]; then
 
-			echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing, or that the launched code does not crash at start-up.\n" 1>&2
+				echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing, or that the launched code does not crash at start-up.\n" 1>&2
 
-			exit 55
+				exit 55
 
-		fi
+			fi
 
-		wait_count=$((${wait_count}+1))
+			wait_count=$((${wait_count}+1))
 
-	done
+		done
 
+	else
+
+		echo "Write pipe '${write_pipe}' found, supposing that the start-up is successful."
+
+	fi
 
 
 	echo -e "\n  **************************************************************"
