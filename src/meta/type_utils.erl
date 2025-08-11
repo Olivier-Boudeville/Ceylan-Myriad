@@ -713,6 +713,7 @@ See also `get_ast_builtin_types/0`.
   | 'term'.
 
 
+
 -doc """
 The name of a type variable.
 
@@ -1125,7 +1126,7 @@ Transient terms are the opposite of permanent ones.
 		  get_elementary_types/0, get_plain_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_homogeneous/1, is_homogeneous/2,
-		  are_types_identical/2,
+		  are_types_identical/2, is_subtype_of/2,
 		  is_value_matching/2,
 		  get_low_level_type_size/1,
 		  is_transient/1, is_byte/1,
@@ -1670,7 +1671,8 @@ is_type( _T ) ->
 
 
 -doc """
-Tells whether the specified term is of the specified explicit type (predicate).
+Tells whether the specified term (value) is of the specified explicit type
+(predicate).
 """.
 -spec is_of_type( term(), explicit_type() ) -> boolean().
 % First, our own simple types, as always in definition order:
@@ -1758,7 +1760,8 @@ is_of_type( Term, _Type={ union, Types } ) ->
 
 is_of_type( Term, Type ) ->
     %get_type_of( Term ) =:= Type.
-    throw( { cannot_type_check, Term, Type } ).
+    throw( { cannot_type_check, { term, Term }, { against_type, Type } } ).
+
 
 
 -doc """
@@ -1840,6 +1843,8 @@ same actual type / are aliases).
 
 Even if restraining to explicit types is safer, this function remains
 unreliable, as for example the order of types in an union should not matter.
+
+Quite often a more relevant test can be done with `is_subtype_of/2`.
 """.
 -spec are_types_identical( explicit_type(), explicit_type() ) -> boolean().
 are_types_identical( ExplType, ExplType ) ->
@@ -1847,6 +1852,92 @@ are_types_identical( ExplType, ExplType ) ->
 
 are_types_identical( _FirstExplType, _SecondExplType ) ->
 	false.
+
+
+
+-doc """
+Tells whether the first type can be considered as a subtype of the second one,
+i.e. whether the set of values corresponding to the first (explicit) type is
+(non-strictly) included in the one of the second (explicit) type.
+
+Said otherwise, all values covered by the first type must be valid values for
+the second type.
+
+As a result, any type is considered as a subtype of itself.
+
+Note: still quite incomplete (mostly conservative/pessimistic).
+""".
+-spec is_subtype_of( explicit_type(), explicit_type() ) -> boolean().
+% For equal types:
+is_subtype_of( _FirstType=T, _SecondType=T ) ->
+    true;
+
+% For second type as any:
+is_subtype_of( _FirstType, _SecondType={ any, [] } ) ->
+    true;
+
+% For a literal as first type:
+is_subtype_of( _FirstType={ TName, _Literal }, _SecondType={ TName, [] } )
+        when TName =:= atom orelse TName =:= binary orelse TName =:= float
+             orelse TName =:= integer orelse TName =:= pid orelse TName =:= port
+             orelse  TName =:= reference orelse TName =:= string->
+    true;
+
+
+% For (second) type as option:
+is_subtype_of( _FirstType={ atom, undefined },
+               _SecondType={ option, _ElemType } ) ->
+    true;
+
+is_subtype_of( _FirstType={ option, FirstElemType },
+               _SecondType={ option, SecondElemType } ) ->
+    is_subtype_of( FirstElemType, SecondElemType );
+
+
+% For (second) type as list:
+is_subtype_of( _FirstType={ list, FirstElemType },
+               _SecondType={ list, SecondElemType } ) ->
+    is_subtype_of( FirstElemType, SecondElemType );
+
+
+% For (second) type as table:
+is_subtype_of( _FirstType={ table, { FirstKeyType, FirstValueType } },
+               _SecondType={ table, { SecondKeyType, SecondalueType } } ) ->
+    is_subtype_of( FirstKeyType, SecondKeyType ) andalso
+        is_subtype_of( FirstValueType, SecondalueType );
+
+
+% For (second) type as tuple:
+is_subtype_of( _FirstType={ tuple, FirstTypes },
+               _SecondType={ tuple, SecondTypes } ) ->
+    case length( FirstTypes ) =:= length( SecondTypes ) of
+
+        true ->
+            TPairs = lists:zip( FirstTypes, SecondTypes ),
+            lists:all( _Pred=fun( { FT, ST } ) -> is_subtype_of( FT, ST ) end,
+                       TPairs );
+
+        false ->
+            false
+
+    end;
+
+
+% For second type as union:
+is_subtype_of( FirstType, _SecondType={ union, SecondTypes } ) ->
+    lists:any( _Pred=fun( ST ) -> is_subtype_of( FirstType, ST ) end,
+               SecondTypes );
+
+% For first type as union:
+is_subtype_of( _FirstType={ union, FirstTypes }, SecondType ) ->
+    lists:any( _Pred=fun( FT ) -> is_subtype_of( FT, SecondType ) end,
+               FirstTypes );
+
+
+% Includes _SecondType equal to {none,[]}, {void,[]}, etc.:
+is_subtype_of( _FirstType, _SecondType ) ->
+    false.
+
 
 
 -doc """
@@ -2032,8 +2123,8 @@ parse_type( TypeStr ) ->
 parse_type_helper( TypeStr ) ->
 
     % (no cond_utils:if_defined/2 usable in a pioneer module)
-    %DoTrace = false,
-    DoTrace = true,
+    DoTrace = false,
+    %DoTrace = true,
 
     DoTrace andalso
         trace_utils:debug_fmt( "Parsing the '~ts' type.", [ TypeStr ] ),
@@ -2133,7 +2224,7 @@ A. all native compounding structures into F2 terms; for example, resulting in
 B. all free types to type variables; for example:
   `Rep("U")` (thus, as AST: `{var,_,'U'}`), shall become `{typevar, 'U'}`
 
-C. all standalone atoms into their F2 form; for example:
+C. all standalone booleans otherwise atoms into their F2 form; for example:
   `Rep("foo")` (thus, as AST, `{atom,_,foo}`) shall become `{atom,foo}`
 
 D. all pseudo local calls to a F2 sub-type reference; for example:
@@ -2170,6 +2261,12 @@ transform_for_contextual_type( { var, _FileLoc, AtomTypeName } ) ->
     { typevar, AtomTypeName };
 
 % Case C (standalone atoms):
+transform_for_contextual_type( { atom, _FileLoc, BoolLiteral=true } ) ->
+    { boolean, BoolLiteral };
+
+transform_for_contextual_type( { atom, _FileLoc, BoolLiteral=false } ) ->
+    { boolean, BoolLiteral };
+
 transform_for_contextual_type( { atom, _FileLoc, AtomLiteral } ) ->
     { atom, AtomLiteral };
 
@@ -2579,8 +2676,10 @@ coerce_stringified_to_type( ValueStr, Type ) ->
 -doc """
 Returns a textual description (in canonical form, notably without whitespaces)
 of the specified contextual type.
+
+Expected to return a string that can be parsed back as a contextual type.
 """.
--spec type_to_string( contextual_type() ) -> user_text_type().
+-spec type_to_string( contextual_type() ) -> text_type(). % user_text_type().
 % First, simple types, as always in definition order:
 % The atom/0 type:
 type_to_string( _Type={ atom, [] } ) ->
@@ -2673,21 +2772,31 @@ type_to_string( _Type={ table, { Tk, Tv } } ) ->
 
 type_to_string( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
 
-	TypeString = text_utils:join( _Separator=", ",
+	TypeStr = text_utils:join( _Separator=", ",
 		[ type_to_string( T ) || T <- TypeList ] ),
 
-	text_utils:format( "{~ts}", [ TypeString ] );
+	text_utils:format( "{~ts}", [ TypeStr ] );
 
 
 type_to_string( _Type={ union, TypeList } ) when is_list( TypeList ) ->
-	text_utils:join( _Separator="|",
-					 [ type_to_string( T ) || T <- TypeList ] );
+    % Would not be easily parsable:
+	%text_utils:join( _Separator="|",
+	%                 [ type_to_string( T ) || T <- TypeList ] );
+
+	TypeStr = text_utils:join( _Separator=", ",
+		[ type_to_string( T ) || T <- TypeList ] ),
+
+	text_utils:format( "union(~ts)", [ TypeStr ] );
+
 
 type_to_string( _Type={ typevar, T } ) ->
 	text_utils:atom_to_string( T );
 
-type_to_string( _Type={ NonBuiltinType, TypeList } ) ->
-    TypeStr = text_utils:join( _Sep=", ", TypeList ),
+type_to_string( _Type={ NonBuiltinType, TypeList } ) when is_list( TypeList ) ->
+
+	TypeStr = text_utils:join( _Separator=", ",
+                               [ type_to_string( T ) || T <- TypeList ] ),
+
 	text_utils:format( "~ts(~ts)", [ NonBuiltinType, TypeStr ] );
 
 
