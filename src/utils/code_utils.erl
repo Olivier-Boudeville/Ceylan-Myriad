@@ -1544,9 +1544,10 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 
 			end,
 
+            % No trailing dot wanted (extra information may have to be added):
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
 				"yet it does not export a ~ts/~B function; as it exports "
-				"this function for ~ts.",
+				"this function for ~ts",
 				[ ModuleName, ModulePath, FunctionName, Arity, ArStr ] )
 
 	end.
