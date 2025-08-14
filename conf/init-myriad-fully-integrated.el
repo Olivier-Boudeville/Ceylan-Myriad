@@ -1,14 +1,17 @@
 ;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
 
-;; To find the next init-myriad-base.el and all, we put the Myriad configuration
+;; To find the next init-myriad-*.el, we put the Myriad configuration
 ;; directory in **last** position, so that it is used as a last resort (instead
 ;; of shadowing any file that the user would have put in ~/.emacs.d/).
 ;;
-;; Note that apparently the ~/.emacs.d directory is by default not in the
-;; load-path, so, to let the user define overriding files there, we add it as
-;; well, but just prior to the aforementioned Myriad configuration directory:
 
-(push "~/.emacs.d" (cdr (last load-path)))
+;; Note that the ~/.emacs.d directory is by default not in the load-path, as "it
+;; would be likely to cause problems", so we recommend using any
+;; ~/.emacs.d/myriad-local-override directory instead; to let the user define
+;; overriding files there, we add it as well, but just prior to the
+;; aforementioned Myriad configuration directory:
+
+(push "~/.emacs.d/myriad-local-override" (cdr (last load-path)))
 (push (file-name-concat (getenv "CEYLAN_MYRIAD") "conf") (cdr (last load-path)))
 
 
