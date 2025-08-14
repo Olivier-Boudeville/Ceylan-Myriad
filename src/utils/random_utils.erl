@@ -32,7 +32,7 @@ Gathering of various **random-related** facilities, based on probability
 distributions, either as Myriad built-in ones (uniform, exponential, gaussian,
 etc.) or user-defined, arbitrary ones.
 
-See random_utils_test.erl for the corresponding test.
+See `random_utils_test.erl` for the corresponding test.
 """.
 
 

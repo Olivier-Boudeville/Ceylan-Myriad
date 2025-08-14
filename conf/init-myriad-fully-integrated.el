@@ -1,8 +1,25 @@
 ;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
 
+;; To find the next init-myriad-*.el, we put the Myriad configuration
+;; directory in **last** position, so that it is used as a last resort (instead
+;; of shadowing any file that the user would have put in ~/.emacs.d/).
+;;
 
-;; To find the next init-myriad-base.el:
-(add-to-list 'load-path (file-name-concat (getenv "CEYLAN_MYRIAD") "conf"))
+;; Note that the ~/.emacs.d directory is by default not in the load-path, as "it
+;; would be likely to cause problems", so we recommend using any
+;; ~/.emacs.d/myriad-local-override directory instead; to let the user define
+;; overriding files there, we add it as well, but just prior to the
+;; aforementioned Myriad configuration directory:
+
+(push "~/.emacs.d/myriad-local-override" (cdr (last load-path)))
+(push (file-name-concat (getenv "CEYLAN_MYRIAD") "conf") (cdr (last load-path)))
+
+
+; This would add the Myriad directory at beginning, thus having it
+;; top-priority, whereas we want it to be the least prioritary:
+;; (add-to-list 'load-path (file-name-concat (getenv "CEYLAN_MYRIAD") "conf"))
+
+;;(message "The load path is: %s" load-path)
 
 
 ;; For all general-purpose basics:
@@ -27,16 +44,23 @@
 (require 'init-myriad-python-base)
 
 
-;; For host-specific settings; intentionally searched in local configuration
-;; directory, so that none applies by default (the one in myriad/conf is just an
-;; example).
-;;
-;; Not done later, as the local settings may specify the use of a proxy, which
-;; must be setup priori to the package management below:
-;;
-(setq local-conf-file "~/.emacs.d/init-myriad-local.el")
+;;(message "Before myriad-local")
 
-(if (file-exists-p local-conf-file) (require 'init-myriad-local) nil)
+;; Not done later, as the local settings may specify the use of a proxy, which
+;; must be setup prior to the package management below:
+
+;; Hence to be found through the original load path, otherwise in ~/.emacs.d,
+;; otherwise in Myriad configuration directory:
+
+(setq myriad-conf-file "init-myriad-local.el")
+
+(if (locate-file myriad-conf-file load-path)
+    (require 'init-myriad-local)
+    (message
+	 (concat "(no '" myriad-conf-file "' Myriad local configuration found)")))
+
+;;(message "After myriad-local")
+
 
 
 ;; To be able to rely on a package manager:
