@@ -44,7 +44,7 @@ actual need is a set!
 
 See `set_utils_test.erl` for the corresponding test.
 
-See also: `list_utils.erl` and `set_utils_test.erl`.
+See also `list_utils.erl` and `set_utils_test.erl`.
 """.
 
 
@@ -304,7 +304,7 @@ to_list( Set ) ->
 
 
 -doc """
-Returns `true` iff the specified element is an element of the specified set.
+Returns whether the specified element is an element of the specified set.
 """.
 -spec member( element(), set() ) -> boolean().
 member( Element, Set ) ->
