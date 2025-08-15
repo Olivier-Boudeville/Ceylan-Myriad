@@ -31,20 +31,25 @@
 Implementation of an **associative table relying on a simple list of key/value
 pairs**.
 
-Beware of multiple entries having the same key in such a list_table, as the
+Beware of multiple entries having the same key in such a `list_table`, as the
 first one will eclipse all others; this may happen if not building explicitly,
-with this API, one's list_table instance.
+with this API, one's `list_table` instance.
+
+By design a `list_table` maintains an order in this entries (for example unlike
+a `table`), which may be convenient (e.g. if needing to list actions in a
+specific order). Note though that many operations (e.g. `add_entry/3`) add
+elements at the tail of the specified list (not at its head).
 
 See `list_table_test.erl` for the corresponding test.
 
-We provide different multiple types of tables, including:
-- 'hashtable', the most basic, safest, reference implementation - and quite
+Multiple types of tables are provided by Myriad, including:
+- `hashtable`, the most basic, safest, reference implementation - and quite
 efficient as well
-- 'tracked_table', an attempt of optimisation of it (not necessarily the best)
-- 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
-- 'map_table', which is probably the most efficient implementation (speed/size
+- `tracked_table`, an attempt of optimisation of it (not necessarily the best)
+- `lazy_table`, deciding to optimise in a less costly way than `tracked_table`
+- `map_table`, which is probably the most efficient implementation (speed/size
 compromise)
-- 'list_table' (this module), a list-based implementation, efficient for smaller
+- `list_table` (this module), a list-based implementation, efficient for smaller
 table (and only them)
 
 They are to provide the same API (signatures and contracts).
@@ -57,7 +62,7 @@ possibly containing pairs and also single atoms (e.g. see
 
 
 % The standard table API:
--export([ new/0, new/1, check_proper/1,
+-export([ new/0, new/1, check_proper/1, check_keys_unique/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
@@ -140,6 +145,9 @@ Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 % We always rely on the first element whose key matches a specified key; so here
 % a given key should never be present more than once in a given list.
 %
+% We recommend against having duplicated keys (even if relying only on the first
+% found).
+%
 % The proplists module could be used as well.
 
 
@@ -181,17 +189,17 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 -doc """
 Checks that the specified term corresponds to a so-called "proper" table, i.e. a
-list_table with no duplicate key, i.e. whether:
+`list_table` with no duplicate key, i.e. whether:
 
 - its structure is legit, i.e. that it is a list of pairs, whose first value is
-  a atom; if not, throws an exception
+  an atom; if not, throws an exception
 
 - all its keys are different, as no duplicates are accepted when defining a
-proper table; if not, returns a table (i.e. a map_hashtable) whose keys are the
-duplicated keys in the input table, and whose values are their associated
+proper table; if not, returns a `table/2` (i.e. a map_hashtable) whose keys are
+the duplicated keys in the input table, and whose values are their associated
 duplicate values
 
-Return `ok` if the table is correct.
+Return `ok` if the specified table respects these specific conventions.
 
 For example `list_table:check_proper([{a, 11}, {b,7}, {a,10}, {c,2}])`
 shall return a table with a single entry: `{a, [10,11]}`.
@@ -244,10 +252,43 @@ check_proper( NonList, _DupTable ) ->
 
 
 -doc """
+Checks that each key in the specified table is present only once; returns, for
+chaining, the same table once checked.
+
+This should be true by design if using only the API, yet reasons may exist to
+break the abstraction.
+""".
+-spec check_keys_unique( list_table() ) -> list_table().
+check_keys_unique( Table ) ->
+    check_keys_unique( Table, _KeySet=set_utils:new() ),
+    Table.
+
+
+% (helper)
+check_keys_unique( _Table=[], _KeySet ) ->
+    ok;
+
+check_keys_unique( _Table=[ { K, _V } | T ], KeySet ) ->
+    case set_utils:member( _Elem=K, KeySet ) of
+
+        true ->
+            throw( { duplicated_key, K } );
+
+        false ->
+            check_keys_unique( T, set_utils:add( K, KeySet ) )
+
+    end.
+
+
+
+-doc """
 Adds the specified key/value pair in the specified table.
 
 If there is already a pair with this key, then its previous value will be
 replaced by the specified one.
+
+This should not matter, but a new entry will be put at the tail of that
+underlying list (not at the head).
 """.
 -spec add_entry( key(), value(), list_table() ) -> list_table().
 add_entry( Key, Value, Table ) ->
@@ -260,6 +301,9 @@ Adds the specified list of key/value pairs in the specified table.
 
 If there is already a pair with this key, then its previous value will be
 replaced by the specified one.
+
+This should not matter, but new entries will be at the tail of that underlying
+list (not at the head), and in reverse order.
 """.
 -spec add_entries( entries(), list_table() ) -> list_table().
 add_entries( _EntryList=[], Table ) ->
@@ -276,6 +320,9 @@ add_entries( [ Other | _Rest ], _Table ) ->
 -doc """
 Adds the specified key/value pair in the specified table, expecting this key not
 to be already defined in this table.
+
+This should not matter, but a new entry will be put at the tail of that
+underlying list (not at the head).
 """.
 -spec add_new_entry( key(), value(), list_table() ) -> list_table().
 add_new_entry( Key, Value, Table ) ->
@@ -299,6 +346,9 @@ add_new_entry( Key, Value, Table ) ->
 Adds the specified list of key/value pairs in the specified table, expecting
 that none of these keys is already defined in this table (otherwise an exception
 is thrown).
+
+This should not matter, but new entries will be at the tail of that underlying
+list (not at the head), and in reverse order.
 """.
 -spec add_new_entries( hashtable:entries(), list_table() ) -> list_table().
 add_new_entries( EntryList, Table ) ->
@@ -346,8 +396,8 @@ remove_entries( Keys, Table ) ->
 -doc """
 Looks-up the specified entry (designated by its key) in the specified table.
 
-Returns either 'key_not_found' if no such key is registered in the table, or
-{value, Value}, with Value being the value associated to the specified key.
+Returns either `key_not_found` if no such key is registered in the table, or
+`{value, Value}`, with Value being the value associated to the specified key.
 """.
 -spec lookup_entry( key(), list_table() ) ->
 								'key_not_found' | { 'value', value() }.
@@ -365,10 +415,7 @@ lookup_entry( Key, Table ) ->
 
 
 
--doc """
-Tells whether the specified key exists in the specified table: returns true or
-false.
-""".
+-doc "Tells whether the specified key exists in the specified table.".
 -spec has_entry( key(), list_table() ) -> boolean().
 has_entry( Key, Table ) ->
 	lists:keymember( Key, _N=1, Table ).
