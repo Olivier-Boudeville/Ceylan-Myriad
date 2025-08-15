@@ -1238,6 +1238,9 @@ calling a `get_execution_target/0` function defined in a key module of that
 layer, based on Myriad's `basic_utils.hrl`), as otherwise the one that would
 apply is the one of Myriad - not the one of the calling layer.
 
+With these settings, no significant child is expected to be declared (otherwise
+`auto_shutdown` should be set to `{any|all}_significant`).
+
 See [https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags]
 for further information.
 """.
