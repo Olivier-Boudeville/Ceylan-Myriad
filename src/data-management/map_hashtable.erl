@@ -200,7 +200,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 
 -doc """
-Creates a table from the specified list of key/values pairs, expecting no
+Creates a table from the specified list of key/value pairs, expecting no
 duplicate in the keys, otherwise throwing an exception.
 
 Allows to safely load entries in a table without risking a silent overwrite of
