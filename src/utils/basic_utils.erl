@@ -189,19 +189,69 @@ pair).
 
 -doc """
 Return type for operations that may fail (with a sufficient likelihood that no
-exception is to be raised then, thus the choice is left to the caller).
-""".
--type fallible( TSuccess ) :: { 'ok', TSuccess } | error_term().
-
-
-
--doc """
-Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller), when
 wanting to specify the error type as well.
 """.
 -type fallible( TSuccess, TFailure ) ::
-    { 'ok', TSuccess } | { 'error', TFailure }.
+    successful( TSuccess ) | failing( TFailure ).
+
+
+-doc """
+Return type for operations that may return `{ok,SuccessStr}` or
+`{error,FailureStr}`.
+""".
+-type string_fallible() ::
+    fallible( TSuccess :: ustring(), TFailure :: ustring() ).
+
+
+-doc """
+Return type for operations that may fail (with a sufficient likelihood that no
+exception is to be raised then, thus the choice is left to the caller).
+""".
+-type fallible( TSuccess ) :: fallible( TSuccess, TFailure :: any() ).
+
+
+-doc """
+Return type for operations that may fail (with a sufficient likelihood that no
+exception is to be raised then, thus the choice is left to the caller).
+""".
+-type fallible() :: fallible( TSuccess :: any() ).
+
+
+
+
+
+-doc """
+Return type for operations that may only succeed.
+
+(typically useful for fallible-like signatures induced by a framework)
+""".
+-type successful( TSuccess ) :: { 'ok', TSuccess }.
+
+
+-doc """
+Return type for operations that may only succeed.
+
+(typically useful for fallible-like signatures induced by a framework)
+""".
+-type successful() :: successful( TSuccess :: any() ).
+
+
+
+-doc """
+Return type for operations that may only fail.
+
+(typically useful for fallible-like signatures induced by a framework)
+""".
+-type failing( TFailure ) :: { 'error', TFailure }.
+
+
+-doc """
+Return type for operations that may only fail.
+
+(typically useful for fallible-like signatures induced by a framework)
+""".
+-type failing() :: failing( TFailure :: any() ).
 
 
 
@@ -495,7 +545,8 @@ eliminate afterwards).
 			   error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
 			   base_status/0, base_outcome/0,
 
-			   fallible/1, fallible/2,
+			   fallible/0, fallible/1, fallible/2, string_fallible/0,
+               successful/0, successful/1, failing/0, failing/1,
 
                tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
                tagged_fallible/1, tagged_fallible/2,

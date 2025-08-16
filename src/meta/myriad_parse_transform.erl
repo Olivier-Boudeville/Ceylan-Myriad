@@ -401,8 +401,9 @@ get_myriad_ast_transforms_for( #module_info{
 	%                          {atom,FileLoc,void}, [] ] }'
 
 	% We also manage option/1 here: if used as 'option(T)', translated as
-	% 'type_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
-	% and diagnosed_fallible/{1,2}.
+	% 'type_utils:option(T)'; the same applies to safe_option/1,
+	% fallible/{0..2}, string_fallible/0, diagnosed_fallible/{0..2},
+	% successful/{0,1}, failing/{0,1}.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -501,24 +502,18 @@ shall_lco_be_disabled( CompileOptTable ) ->
 -doc """
 Returns the table specifying the transformation of the local types.
 
-Regarding local types, we want to replace:
+Regarding local types, to define pseudo-builtin types, we want to prefix:
 
-- `void()` with `type_utils:void()` (i.e. prefixed with `type_utils`)
+- `fallible/{0..2}`, `string_fallible/0`, `successful/{0,1}`, `failing/{0,1}`,
+  `diagnosed_fallible/{1,2}`, `diagnosed_tagged_fallible/{1,2}` with the
+  `basic_utils` module (e.g. resulting in types like `basic_utils:fallible()`,
+  `basic_utils:fallible(TSuccess)`, etc.)
 
-- `option(T)` with `type_utils:option(T)`
-
-- `safe_option(T)` with `type_utils:safe_option(T)`
-
-- `fallible(T)` with `basic_utils:fallible(T)`
-
-- `fallible(TSuccess, TFailure)` with `basic_utils:fallible(TSuccess, TFailure)`
-
-- `diagnosed_fallible(TSuccess, TFailure)` with
-  `basic_utils:diagnosed_fallible(TSuccess, TFailure)`
+- `void/0`, `option/1`, `safe_option/1` with `type_utils`
 
 - `table/N` (e.g. `table()` or `table(K,V)`) with `DesiredTableType/N` (e.g.
 `DesiredTableType:DesiredTableType()` or
-`DesiredTableType:DesiredTableType(K,V)`) (as if `table()` was a builtin type)
+`DesiredTableType:DesiredTableType(K,V)`)
 """.
 -spec get_local_type_transforms( module_name() ) ->
 									ast_transform:local_type_transform_table().
@@ -527,10 +522,13 @@ get_local_type_transforms( DesiredTableType ) ->
 	% Replacements to be done only for the specified arities, here to be found
 	% in the basic_utils module:
 	%
-	BasicUtilsTypes = [ { fallible, 1 },
-						{ fallible, 2 },
-						{ diagnosed_fallible, 1 },
-						{ diagnosed_fallible, 2 } ],
+	BasicUtilsTypes = [ { fallible, 0 }, { fallible, 1 }, { fallible, 2 },
+                        { string_fallible, 0 },
+                        { successful, 0 }, { successful, 1 },
+                        { failing, 0 },    { failing, 1 },
+						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 },
+                        { diagnosed_tagged_fallible, 1 },
+                        { diagnosed_tagged_fallible, 2 } ],
 
 	% Same regarding the type_utils module:
 	TypeUtilsTypes = [ { void, 0 },
