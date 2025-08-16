@@ -167,6 +167,9 @@ elements.
 -type module_name() :: basic_utils:module_name().
 -type error_reason() :: basic_utils:error_reason().
 
+% As in a pioneer module:
+-type fallible( TSuccess ) :: basic_utils:fallible( TSuccess ).
+
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -184,6 +187,7 @@ elements.
 
 -type function_id() :: meta_utils:function_id().
 
+-type value() :: type_utils:value().
 -type option( T ) :: type_utils:option( T ).
 
 
@@ -748,12 +752,10 @@ string_to_expressions( ExprStr, FileLoc ) ->
 Converts the specified source code of a term (that is, a string) into its
 corresponding value.
 
-May throw an exception.
-
-For example `string_to_value("[{tiger,[lion,leopard]}]")` returns the `[{tiger,
-[lion,leopard]}]` term.
+For example `string_to_value("[{tiger,[lion,leopard]}]")` returns the `{ok,
+[{tiger, [lion,leopard]}]}` term.
 """.
--spec string_to_value( ustring() ) -> term().
+-spec string_to_value( ustring() ) -> fallible( value() ).
 string_to_value( ExprStr ) ->
 
 	% Automatically add the necessary final dot:
@@ -764,10 +766,10 @@ string_to_value( ExprStr ) ->
             { value, Result, _NewBindings } =
                 erl_eval:expr( Expr, _Bindings=[] ),
 
-            Result;
+            { ok, Result };
 
         _Exprs ->
-            throw( { multiple_expressions, ExprStr } )
+            { error, { multiple_expressions, ExprStr } }
 
     end.
 

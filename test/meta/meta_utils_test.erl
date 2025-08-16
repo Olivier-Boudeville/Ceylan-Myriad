@@ -136,7 +136,8 @@ run() ->
 
 	TermString = "[ {tiger, [lion, leopard]} ]",
 
-	[ { tiger, [ lion, leopard ] } ] = ast_utils:string_to_value( TermString ),
+	{ ok, [ { tiger, [ lion, leopard ] } ] } =
+        ast_utils:string_to_value( TermString ),
 
 	test_facilities:display( ast_info:module_info_to_string( ModuleInfo ) ),
 

@@ -669,6 +669,10 @@ Specification of a monomorphic container type.
 
 
 
+-doc "Designates a value (of a given type), to clarify typing.".
+-type value() :: term().
+
+
 -doc """
 The "most precise" description of a value.
 
@@ -1094,7 +1098,7 @@ Transient terms are the opposite of permanent ones.
                monomorphic_container_type_name/0,
                compounding_type_spec/0,
                monomorphic_container_type_spec/0,
-               value_description/0,
+               value/0, value_description/0,
                type_variable_name/0, type_definition/0, typevar_binding/0,
                typedef_table/0,
 			   nesting_depth/0, void/0, low_level_type/0,
@@ -1251,6 +1255,9 @@ Transient terms are the opposite of permanent ones.
 -type positive_index() :: basic_utils:positive_index().
 -type tagged_fallible( T ) :: basic_utils:tagged_fallible( T ).
 -type tagged_error_info() :: basic_utils:tagged_error_info().
+
+% As in a pioneer module:
+-type fallible( TSuccess ) :: basic_utils:fallible( TSuccess ).
 
 -type array() :: array:array().
 
@@ -2629,23 +2636,31 @@ the specified type.
 
 For example: `coerce_stringified_to_type("[4,3]", {list,integer}) = [4,3]`.
 """.
--spec coerce_stringified_to_type( any_string(), explicit_type() ) -> term().
+-spec coerce_stringified_to_type( any_string(), explicit_type() ) ->
+                                                        fallible( value() ).
 % To have a plain string in all cases:
 coerce_stringified_to_type( BinStr, Type ) when is_binary( BinStr ) ->
     coerce_stringified_to_type( text_utils:binary_to_string( BinStr ),
                                 Type );
 
 % Now a plain string;
-coerce_stringified_to_type( ValueStr, Type ) ->
-    Value = ast_utils:string_to_value( ValueStr ),
+coerce_stringified_to_type( ValueStr, CtxtType ) ->
+    case ast_utils:string_to_value( ValueStr ) of
 
-    case is_of_type( Value, Type ) of
+        Ro={ ok, V } ->
+            case is_of_type( V, CtxtType ) of
 
-        true ->
-            Value;
+                true ->
+                    Ro;
 
-        false ->
-            throw( { value_not_matching_type, ValueStr, Value, Type } )
+                false ->
+                    Reason = { value_not_matching_type, ValueStr, V, CtxtType },
+                    { error, Reason }
+
+            end;
+
+        Re -> % { error, R } ->
+           Re
 
     end.
 
