@@ -3,15 +3,10 @@
 ;; After relying on package.el then straight.el, we use now Elpaca.
 
 
-;; At least in some cases, the "Package.el loaded before Elpaca" warning is
-;; issued whereas no prior package-related operation could be found.
-
-
 ;; Disabling package.el in our "early"-init file (see
 ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html):
 ;;
 (setq package-enable-at-startup nil)
-
 
 
 ;; Taken verbatim from
@@ -27,8 +22,7 @@
 ;; (apparently triggers in some contexts a 'Package.el loaded before Elpaca'
 ;; warning)
 
-
-(defvar elpaca-installer-version 0.10)
+(defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
@@ -63,7 +57,7 @@
   (unless (require 'elpaca-autoloads nil t)
     (require 'elpaca)
     (elpaca-generate-autoloads "elpaca" repo)
-    (load "./elpaca-autoloads")))
+    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 

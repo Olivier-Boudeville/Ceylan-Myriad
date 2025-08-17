@@ -1,17 +1,22 @@
 ;; This is a more advanced configuration of Emacs regarding Erlang than
 ;; init-myriad-erlang-base.el.
 ;;
-;; It was inspired from
-;; https://github.com/erlang-ls/erlang_ls/blob/main/misc/dotemacs.
+;; Based on LSP.
+;; For Erlang, used to rely on erlang_ls, now on elp.
+;;
+;; Refer to https://howtos.esperide.org/Erlang.html#using-emacs-for-erlang for
+;; guidelines.
 
-;; In a nutshell: quite a lot of these advanced features do not seem ready for
-;; actual use, at least in our context; they lag, use huge CPU resources,
-;; trigger numerous runtime errors ("LSP :: Method not implemented:
-;; textDocument/documentSymbol" and all - origin being erlang_ls), report
-;; essentially spurious errors (e.g. short of finding proper includes), lack
-;; documentation, trigger unsollicited, problematic rebar3-based rebuilds,
-;; freeze randomly and do not provide veritably interesting information. For
-;; projects relying a lot on parse-transforms, they seem borderly unusable.
+
+;; In a nutshell: possibly due to erlang_ls, quite a lot of these advanced
+;; features did not seem ready for actual use, at least in our context; they
+;; lag, use huge CPU resources, trigger numerous runtime errors ("LSP :: Method
+;; not implemented: textDocument/documentSymbol" and all - origin being
+;; erlang_ls), report essentially spurious errors (e.g. short of finding proper
+;; includes), lack documentation, trigger unsollicited, problematic rebar3-based
+;; rebuilds, freeze randomly and do not provide veritably interesting
+;; information. For projects relying a lot on parse-transforms, they seem
+;; borderly unusable.
 ;;
 ;; So we finally selected only the relevant features, which are currently
 ;; auto-completion and display documentation of element at mouse cursor.
@@ -21,10 +26,15 @@
 
 (message "Entering Myriad Erlang-advanced configuration...")
 
+
+
+;; YAML suport.
+
 (add-hook 'yaml-mode-hook 'display-line-numbers-mode)
 
 ;; Not wanting clumsy attempt of spellchecking there:
 (remove-hook 'yaml-mode-hook (lambda () (flyspell-mode 1)))
+
 
 ;; Surprisingly not built-in:
 ;;
@@ -48,75 +58,11 @@
 ;;(use-package yasnippet :ensure (:wait t) :demand t)
 ;;(yas-global-mode t)
 
-(setq lsp-enable-snippet nil)
 
 
 
-;; company-mode section, for auto-completion popups.
+;; LSP Package.
 ;;
-;; Can be deactivated with '(setq lsp-completion-provider :none)'.
-
-
-;; Enable company by default, except for texts:
-
-
-;; This form does not allow to set/unset easily company based on mode and, more
-;; generally, seems at least fragile if not dysfunctioning:
-;;
-;; (use-package company
-;;   :after lsp-mode
-;;   ;; Does not work: ':hook prog-mode' ('company' not found)
-;;   ;;                ':hook (prog-mode . company-mode)'
-;;   :bind (:map company-active-map
-;;          ("<tab>" . company-complete-selection))
-;;         (:map lsp-mode-map
-;;          ("<tab>" . company-indent-or-complete-common))
-;;   :custom
-;;   (company-minimum-prefix-length 1)
-;;   ;; Default is 0.2:
-;;   (company-idle-delay 0.0))
-
-;;(use-package company :ensure (:wait t) :demand t)
-
-;; Does not work: '(add-hook 'after-init-hook 'global-company-mode)'
-(add-hook 'prog-mode-hook 'company-mode)
-
-(setq company-minimum-prefix-length 0)
-
-(setq company-idle-delay
-      (lambda () (if (company-in-string-or-comment) nil 0.2)))
-
-(custom-set-faces
- ;; Rather light grey to be readable / rather blue:
- '(company-tooltip ((t (:background "#dddddd" :foreground "#050566")))))
-
-
-
-
-;; Not working properly either ('No such file or directory, company-box'):
-;;(use-package company-box
-;; :hook (company-mode . company-box-mode))
-
-
-;; Supposedly a tad better:
-(use-package company-box :ensure (:wait t) :demand t)
-(add-hook 'company-mode-hook 'company-box-mode)
-
-
-
-;; lsp-ui: for fancy sideline, popup documentation, VS Code-like peek UI, etc.
-;;
-;; With a dark theme, preferring a lightgrey background color for lsp-ui-doc
-;; windows (and, for a light theme, a darkgrey background):
-;;
-(defface lsp-ui-doc-background
-  '((((background light)) :background "#777777")
-	(t :background "#aaeeee"))
-  "Background color of the documentation.
-Only the `background' is used in this face."
-  :group 'lsp-ui-doc)
-
-
 ;; Refer to https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/ for
 ;; a proper (general-purpose) lsp-mode configuration.
 
@@ -139,27 +85,29 @@ Only the `background' is used in this face."
 ;;(flymake-mode -1)
 
 ;; The way of silencing them all (fly*):
-(setq lsp-diagnostics-provider :none)
+;;(setq lsp-diagnostics-provider :none)
 
 
-;; LSP-related section.
-;; See ~/Software/erlang_ls/misc/dotemacs for a configuration example.
 
-;; Requires erlang_ls; refer to
-;; https://howtos.esperide.org/Emacs.html#regarding-erlang for installation/use
-;; guidelines.
-
-;;(use-package lsp-mode :ensure (:wait t) :demand t)
 (use-package lsp-mode
-  :init
-  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-keymap-prefix "C-c l")
-  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         ;;(XXX-mode . lsp)
-         (erlang-mode . lsp)
-         ;; if you want which-key integration:
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+
+  :config
+  ;; Enable LSP automatically for Erlang files:
+  ;;:hook ((erlang-mode . lsp)) ;; Not working properly
+  (add-hook 'erlang-mode-hook #'lsp)
+
+  ;; ELP, added as priority 0 (> -1) so takes priority over the built-in one:
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection '("elp" "server"))
+                    :major-modes '(erlang-mode)
+                    :priority 0
+                    :server-id 'erlang-language-platform))
+)
+
+(setq lsp-enable-snippet nil)
+
+;; Displayed at the top of a frame (e.g. "src > utils > foo.erl"):
+(setq lsp-headerline-breadcrumb-enable t)
 
 
 ;; Not wanting to be prompted again and again about installing bash-ls and thus
@@ -180,9 +128,6 @@ Only the `background' is used in this face."
 ;;
 ;; Another deactivation option is to use '(setq lsp-lens-enable nil)'.
 
-
-;; Displayed at the top of a frame (e.g. "src > utils > foo.erl"):
-(setq lsp-headerline-breadcrumb-enable t)
 
 
 ;; Enable LSP for Erlang files.
@@ -235,19 +180,20 @@ Only the `background' is used in this face."
 
 
 
-;; Enable logging for lsp-mode:
+;; Activation of the logging for lsp-mode:
 ;;(setq lsp-log-io t)
 (setq lsp-log-io nil)
-
-;; To select options, see:
-;; https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/
 
 
 ;; No effect:
 ;;(setq lsp-completion-enable t)
 
 
+
+
 ;; LSP UI Package.
+;;
+;; For fancy sideline, popup documentation, VS Code-like peek UI, etc.
 ;;
 ;; See https://github.com/emacs-lsp/lsp-ui and
 ;; https://emacs-lsp.github.io/lsp-ui/
@@ -255,7 +201,24 @@ Only the `background' is used in this face."
 ;; Provides "on hover dialogs": when leaving the mouse cursor on an element,
 ;; displays a contextual window describing its type, documentation, etc.
 ;;
-(use-package lsp-ui :ensure (:wait t) :demand t)
+
+;; With a dark theme, preferring a lightgrey background color for lsp-ui-doc
+;; windows (and, for a light theme, a darkgrey background):
+;;
+;; (must be defined *before* using lsp-ui)
+(defface lsp-ui-doc-background
+  '((((background light)) :background "#777777")
+	(t :background "#dddddd"))
+  "Background color of the documentation. Only the `background' is used in
+this face."
+  :group 'lsp-ui-doc)
+
+
+;;(use-package lsp-ui
+;;  :after lsp-mode
+;;  :commands lsp-ui-mode)
+(use-package lsp-ui
+  :ensure (:wait t) :demand t)
 
 
 ;; Regarding sideline (shows on the current line, generally on the right,
@@ -266,7 +229,7 @@ Only the `background' is used in this face."
 ;;(setq lsp-ui-sideline-enable t)
 (setq lsp-ui-sideline-enable nil)
 
-;;(setq lsp-ui-sideline-show-diagnostics t)
+(setq lsp-ui-sideline-show-diagnostics t)
 
 ;;(setq lsp-ui-sideline-show-hover t)
 (setq lsp-ui-sideline-show-hover nil)
@@ -275,9 +238,9 @@ Only the `background' is used in this face."
 (setq lsp-ui-sideline-show-code-actions nil)
 
 ;;(setq lsp-ui-sideline-update-mode 'line)
-(setq lsp-ui-sideline-delay 1)
-;;(setq lsp-ui-sideline-diagnostic-max-lines 20)
+(setq lsp-ui-sideline-delay 0)
 
+;;(setq lsp-ui-sideline-diagnostic-max-lines 20)
 
 
 ;; Regarding peek (to determine which code calls a given function):
@@ -297,20 +260,25 @@ Only the `background' is used in this face."
 ;;(setq lsp-ui-doc-position 'at-point)
 
 ;; Less crowded:
-(setq lsp-ui-doc-side 'right)
+;;(setq lsp-ui-doc-side 'right)
+
+;; Not taken for a notification here:
+(setq lsp-ui-doc-side 'left)
+
 
 ;; Number of seconds before showing the doc:
 (setq lsp-ui-doc-delay 0.2)
 
-;; Emacs (keyboard) cursor disabled, too much noise (only the mouse one
-;; applies):
+;; Emacs (keyboard) cursor disabled, generates some noise:
 ;;
 (setq lsp-ui-doc-show-with-cursor t)
 ;;(setq lsp-ui-doc-show-with-cursor nil)
 
-;; Mouse cursor too random:
-;;(setq lsp-ui-doc-show-with-mouse t)
-(setq lsp-ui-doc-show-with-mouse nil)
+;; Mouse cursor a bit random (appears at mouse position, not in a customisable
+;; direction):
+;;
+(setq lsp-ui-doc-show-with-mouse t)
+;;(setq lsp-ui-doc-show-with-mouse nil)
 
 
 ;; lsp-ui-doc-background previously set above.
@@ -355,6 +323,64 @@ Only the `background' is used in this face."
 ;;			  (side            . bottom)
 ;;			  (reusable-frames . visible)
 ;;			  (window-height   . 0.33)))
+
+
+
+
+
+
+
+;; company-mode section, for auto-completion popups.
+;;
+;; Can be deactivated with '(setq lsp-completion-provider :none)'.
+
+
+;; Enable company by default, except for texts:
+
+
+;; This form does not allow to set/unset easily company based on mode and, more
+;; generally, seems at least fragile if not dysfunctioning:
+;;
+;; (use-package company
+;;   :after lsp-mode
+;;   ;; Does not work: ':hook prog-mode' ('company' not found)
+;;   ;;                ':hook (prog-mode . company-mode)'
+;;   :bind (:map company-active-map
+;;          ("<tab>" . company-complete-selection))
+;;         (:map lsp-mode-map
+;;          ("<tab>" . company-indent-or-complete-common))
+;;   :custom
+;;   (company-minimum-prefix-length 1)
+;;   ;; Default is 0.2:
+;;   (company-idle-delay 0.0))
+
+;;(use-package company :ensure (:wait t) :demand t)
+
+;; Does not work: '(add-hook 'after-init-hook 'global-company-mode)'
+(add-hook 'prog-mode-hook 'company-mode)
+
+(setq company-minimum-prefix-length 0)
+
+(setq company-idle-delay
+      (lambda () (if (company-in-string-or-comment) nil 0.2)))
+
+(custom-set-faces
+;; ;; Rather light grey to be readable / rather blue:
+ '(company-tooltip ((t (:background "#dddddd" :foreground "#050566")))))
+
+
+
+
+
+;; Not working properly either ('No such file or directory, company-box'):
+;;(use-package company-box
+;; :hook (company-mode . company-box-mode))
+
+
+;; Supposedly a tad better:
+(use-package company-box :ensure (:wait t) :demand t)
+(add-hook 'company-mode-hook 'company-box-mode)
+
 
 
 ;; So that it can be loaded with 'require':
