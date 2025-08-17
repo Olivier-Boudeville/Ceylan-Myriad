@@ -34,20 +34,15 @@ Note that such a data format is not at the state of the art: it is very basic
 if not rudimentary, not formalised and quite limited (no meta-data, escaping
 being required, etc.).
 
-See also <https://en.wikipedia.org/wiki/Comma-separated_values>.
+See also [https://en.wikipedia.org/wiki/Comma-separated_values].
 
-See csv_utils_test.erl for the corresponding test.
+See `csv_utils_test.erl` for the corresponding test.
 """.
-
-
-% Usual extension of CSV files, which we recommend:
--define( csv_extension, ".csv" ).
-
 
 
 -doc """
 The field separator (delimiter) used between the values in a row (often comma,
- sometimes semicolon or alike).
+sometimes semicolon or alike).
 """.
 -type separator() :: char().
 
@@ -94,7 +89,8 @@ Starts at #1.
 
 -doc """
 A CSV content, as an (ordered) list of rows that match a row spec (e.g.
-expected number of fields) or not (then represented as a "non-matching" triplet.
+expected number of fields) or not (then represented as a "non-matching"
+triplet).
 """.
 -type mixed_content() :: [ row() | { 'non_matching', row_number(), row() } ].
 
@@ -223,6 +219,8 @@ The result of the parsing of a CSV file, comprised of:
 
 -export([
 
+    get_file_extension/0,
+
 	% For regular, homogeneous CSV files, supposing the separator known a
 	% priori, but not the number of fields to expect :
 	%
@@ -259,6 +257,11 @@ The result of the parsing of a CSV file, comprised of:
 	content_to_string/1 ]).
 
 
+% Local type:
+
+-type line() :: ustring().
+
+
 
 % Type shorthands:
 
@@ -266,19 +269,21 @@ The result of the parsing of a CSV file, comprised of:
 
 -type ustring() :: text_utils:ustring().
 
--type line() :: ustring().
 
 -type any_file_path() :: file_utils:any_file_path().
 -type file() :: file_utils:file().
 
+
+-doc "Returns the recommended dotted extension for CSV files.".
+-spec get_file_extension() -> file_utils:dotted_extension().
+get_file_extension() ->
+    ".csv".
 
 
 -doc """
 Reads the specified file, expected to be in the CSV format and supposed to be
 homogeneous (all non-dropping rows having the same number of fields - otherwise
 an exception is raised), using the default separator.
-
-Returns {Rows, RowCount, FieldCount}, see reading_outcome().
 """.
 -spec read_file( any_file_path() ) -> reading_outcome().
 read_file( FilePath ) ->
@@ -290,8 +295,6 @@ read_file( FilePath ) ->
 Reads the specified file, expected to be in the CSV format and supposed to be
 homogeneous (all non-dropped rows having the same number of fields - otherwise
 an exception is raised), using the specified separator.
-
-Returns {Rows, RowCount, FieldCount}, see reading_outcome().
 """.
 -spec read_file( any_file_path(), separator() ) -> reading_outcome().
 read_file( FilePath, Separator ) when is_integer( Separator ) ->
@@ -313,22 +316,22 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 Interprets the specified file, based on the specified separator and number of
 fields per row.
 
-Returns {MixedContent, MatchingCount, UnmatchCount, DropCount}, where:
+Returns `{MixedContent, MatchingCount, UnmatchCount, DropCount}`, where:
 
-- MixedContent is a list (respecting the in-file order), each element of which
+- `MixedContent` is a list (respecting the in-file order), each element of which
 being either a row (that is a tuple of the legit number of values), or a triplet
-whose first element is the 'non_matching' atom, whose second element is the
+whose first element is the `non_matching` atom, whose second element is the
 in-file number of the corresponding row and whose third element is the
 corresponding row (hence a tuple whose elements were obtained based on the same
 separator - yet in a different number than the expected one)
 
-- MatchingCount is the number of rows that match the row spec (i.e. the
+- `MatchingCount` is the number of rows that match the row spec (i.e. the
 specified number of fields), based on the specified separator
 
-- UnmatchingCount is the number of rows that do not match said constraints
+- `UnmatchingCount` is the number of rows that do not match said constraints
 
-- DropCount is the number of rows that were dropped (typically because they were
-either empty or containing a comment)
+- `DropCount` is the number of rows that were dropped (typically because they
+were either empty or containing a comment)
 """.
 -spec interpret_file( any_file_path(), separator(), field_count() ) ->
 		{ MixedContent :: mixed_content(), MatchingCount :: row_count(),
@@ -355,22 +358,22 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 Interprets the specified file, based on the specified separator, with no prior
 knowledge about the number of fields per row.
 
-Returns {FieldCount, MixedContent, MatchingCount, UnmatchCount, DropCount}
-(i.e. the same as interpret_file/3, except that the detected field count is
+Returns `{FieldCount, MixedContent, MatchingCount, UnmatchCount, DropCount}`
+(i.e. the same as `interpret_file/3`, except that the detected field count is
 prepended):
 
-- FieldCount is the number of fields in each row, as determined thanks to the
+- `FieldCount` is the number of fields in each row, as determined thanks to the
 first non-dropped row
 
-- MixedContent: refer to interpret_file/3 for a detailed description
+- `MixedContent`: refer to `interpret_file/3` for a detailed description
 
-- MatchingCount is the number of rows that match the row spec (i.e. the
+- `MatchingCount` is the number of rows that match the row spec (i.e. the
 specified number of fields), based on the specified separator
 
-- UnmatchingCount is the number of rows that do not match said constraints
+- `UnmatchingCount` is the number of rows that do not match said constraints
 
-- DropCount is the number of rows that were dropped (typically because they were
-either empty or containing a comment)
+- `DropCount` is the number of rows that were dropped (typically because they
+were either empty or containing a comment)
 """.
 -spec interpret_file( any_file_path(), separator() ) ->
 		{ FieldCount :: field_count(), MixedContent :: mixed_content(),
@@ -403,21 +406,21 @@ interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 Interprets the specified file, with no prior knowledge about the separator or
 the number of fields per row.
 
-Returns {Separator, FieldCount, MixedContent, MatchingCount, UnmatchCount,
-DropCount}, i.e. the same as interpret_file/4, except that the detected
+Returns `{Separator, FieldCount, MixedContent, MatchingCount, UnmatchCount,
+DropCount}`, i.e. the same as `interpret_file/4`, except that the detected
 separator is prepended):
 
-- Separator is the most likely separator in use
+- `Separator` is the most likely separator in use
 
-- FieldCount is the number of fields in each row, as determined thanks to the
+- `FieldCount` is the number of fields in each row, as determined thanks to the
 first non-dropped row
 
-- MixedContent: refer to interpret_file/3 for a detailed description
+- `MixedContent`: refer to `interpret_file/3` for a detailed description
 
-- MatchingCount is the number of rows that match the row spec (i.e. the
+- `MatchingCount` is the number of rows that match the row spec (i.e. the
 specified number of fields), based on the detected separator
 
-- UnmatchingCount is the number of rows that do not match said constraints
+- `UnmatchingCount` is the number of rows that do not match said constraints
 
 - DropCount is the number of rows that were dropped (typically because they were
 either empty or containing a comment)
@@ -445,11 +448,11 @@ interpret_file( FilePath ) ->
 
 	% Full version with content:
 	%cond_utils:if_defined( myriad_debug_csv_support,
-	%	trace_utils:debug_fmt( "Read mixed content with detected separator "
-	%		"'~ts' and field count ~B (matching count: ~B, unmatching "
-	%		"count: ~B, drop count: ~B):~n ~p",
-	%		[ [ Separator ], FieldCount, MatchCount, UnmatchCount, DropCount,
-	%		  MixedContent ] ) ),
+	%   trace_utils:debug_fmt( "Read mixed content with detected separator "
+	%       "'~ts' and field count ~B (matching count: ~B, unmatching "
+	%       "count: ~B, drop count: ~B):~n ~p",
+	%       [ [ Separator ], FieldCount, MatchCount, UnmatchCount, DropCount,
+	%         MixedContent ] ) ),
 
 	% Summary:
 	cond_utils:if_defined( myriad_debug_csv_support,
@@ -537,8 +540,6 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 -doc """
 Guesses the number of fields per row, and returns also the first read line so
 that the rest of the file can be read in the same movement.
-
-(helper)
 """.
 -spec guess_field_count( file(), separator(), row_count() ) ->
 								{ row(), field_count(), row_count() }.
@@ -571,10 +572,7 @@ guess_field_count( Device, Separator, DropCount ) ->
 -doc """
 Guesses the separator and number of fields per row, and returns also the first
 read line so that the rest of the file can be read in the same movement.
-
-(helper)
 """.
-
 -spec guess_separator_and_field_count( file(), row_count() ) ->
 						{ row(), separator(), field_count(), row_count() }.
 guess_separator_and_field_count( Device, DropCount ) ->
@@ -668,10 +666,10 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 -doc """
 Parses the specified line into a proper row, guessing the most likely separator
-(that is that not known).
+(that is thus not known).
 """.
 -spec parse_row_no_separator( line() ) ->
-					'dropped' | { row(), separator(), field_count() }.
+		'dropped' | { row(), separator(), field_count() }.
 parse_row_no_separator( Line ) ->
 
 	% Useful also to remove the ending newline:
@@ -762,7 +760,7 @@ parse_line( Line, Separator ) ->
 
 
 -doc """
-Checks that specified row or list of values (typically coming from a row of
+Checks that the specified row or list of values (typically coming from a row of
 unspecified field count) contains only empty values (empty strings).
 """.
 -spec check_all_empty( row() | [ value() ] ) -> void().
@@ -803,7 +801,7 @@ get_usual_separators() ->
 
 
 
--doc "Determines the separator used in specified line.".
+-doc "Determines the separator used in the specified line.".
 -spec guess_separator_from( line() ) -> separator().
 guess_separator_from( Line ) ->
 	%trace_utils:debug_fmt( "Guessing separator used in '~ts'...", [ Line ] ),
@@ -840,13 +838,13 @@ select_most_likely_separator( SepPairs ) ->
 
 -doc """
 Writes the specified content, a list of row tuples whose elements are serialised
-according to the standard Erlang syntax (as ~w), in the specified CSV file,
+according to the standard Erlang syntax (as `~w`), in the specified CSV file,
 using the default separator for that.
 
 Rows may have a different number of elements.
 
-In terms of file extension, we recommend the one specified through our
-csv_extension define.
+In terms of file extension, we recommend the one returned by
+`get_file_extension/0`.
 """.
 -spec write_file( content(), any_file_path() ) -> void().
 write_file( Content, TargetFilePath ) ->
@@ -856,13 +854,13 @@ write_file( Content, TargetFilePath ) ->
 
 -doc """
 Writes the specified content, a list of row tuples whose elements are serialised
-according to the standard Erlang syntax (as ~w), in the specified CSV file,
+according to the standard Erlang syntax (as `~w`), in the specified CSV file,
 using the specified separator for that.
 
 Rows may have a different number of elements.
 
-In terms of file extension, we recommend the one specified through our
-csv_extension define.
+In terms of file extension, we recommend the one returned by
+`get_file_extension/0`.
 """.
 -spec write_file( content(), any_file_path(), separator() ) -> void().
 write_file( Content, TargetFilePath, Separator ) ->
@@ -909,7 +907,7 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 
 
 
--doc "Returns a file handle to read specified file.".
+-doc "Returns a file handle to read the specified file.".
 -spec get_file_for_reading( any_file_path() ) -> file().
 get_file_for_reading( FilePath ) ->
 
@@ -963,7 +961,7 @@ describe_non_matching_rows_in( _MixedContent=[
 		{ non_matching, RowNumber, Row } | T ], AccDesc, AccRows ) ->
 
 	NewAccDesc = [ text_utils:format( "row #~B had ~B field(s): ~p",
-		[ RowNumber, size( Row ), Row ] ) | AccDesc ],
+		[ RowNumber, tuple_size( Row ), Row ] ) | AccDesc ],
 
 	describe_non_matching_rows_in( T, NewAccDesc, [ Row | AccRows ] );
 
