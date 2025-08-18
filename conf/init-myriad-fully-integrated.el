@@ -1,57 +1,52 @@
-;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
+;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.;
 
-;; To find the next init-myriad-*.el, we put the Myriad configuration directory
-;; in **last** position, so that it is used as a last resort (instead of
-;; shadowing any file that the user would have put in ~/.emacs.d/).
 
-;; Not sufficient to avoid Elpaca warning below:
-(setq package-enable-at-startup nil)
+;; Note that our early-init.el file shall be available (as a regular file or a
+;; symlink) in one's user-emacs-directory, typically in ~/.emacs.d/ in order to
+;; avoid the infamous 'Package.el loaded before Elpaca' warning.
 
+
+
+;; To find the next init-myriad-*.el files, we put the Myriad configuration
+;; directory in **last** position, so that it is used as a last resort (instead
+;; of shadowing any file that the user would have put before).
 
 ;; Note that the ~/.emacs.d directory is by default not in the load-path, as "it
 ;; would be likely to cause problems", so we recommend using any
 ;; ~/.emacs.d/myriad-local-override directory instead; to let the user define
 ;; overriding files there, we add it as well, just prior to the aforementioned
-;; Myriad configuration directory:
+;; Myriad configuration directory (both at end of original load-path):
 
 (push "~/.emacs.d/myriad-local-override" (cdr (last load-path)))
 (push (file-name-concat (getenv "CEYLAN_MYRIAD") "conf") (cdr (last load-path)))
 
 
-; This would add the Myriad directory at beginning, thus having it
-;; top-priority, whereas we want it to be the least prioritary:
+;; If instead preferring adding these Myriad-related configuration directories
+;; at the **beginning** of the load-path, for an increased robustness:
+;;
 ;; (add-to-list 'load-path (file-name-concat (getenv "CEYLAN_MYRIAD") "conf"))
+;; (add-to-list 'load-path "~/.emacs.d/myriad-local-override")
+
 
 ;;(message "The load path is: %s" load-path)
+(print load-path)
 
-
-;; To be able to rely on a package manager:
-;; (even by putting it as early, still the Elpaca warning; and load-file does not seem to take the load path into account)
-;;
-;;(load-file "init-myriad-package-management.el")
-(require 'init-myriad-package-management)
 
 ;; For all general-purpose basics:
 ;;
 ;; (loads it iff it has not been loaded already)
 ;;
-;; Apparently 'require' triggers package.el, leading to the following warning in
-;; some versions: "Warning (emacs): Package.el loaded before Elpaca".
-
-;; So instead of:
-;;(require 'init-myriad-base)
-;; we use: (extension could be discarded)
-;;(load-file "init-myriad-base.el")
 (require 'init-myriad-base)
-
-;; However other elements must use the package manager before loading
-;; "init-myriad-package-management.el" as the warning remains; not a huge
-;; problem anyway.
 
 
 ;; For the Erlang base configuration:
 ;;(load-file "init-myriad-erlang-base.el")
 (require 'init-myriad-erlang-base)
+
+
+;; To be able to rely on a package manager:
+(require 'init-myriad-package-management)
+
 
 ;; For the C/C++ base configuration:
 ;;(load-file "init-myriad-c-cpp-base.el")

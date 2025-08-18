@@ -84,12 +84,15 @@
 ;; Same:
 ;;(flymake-mode -1)
 
-;; The way of silencing them all (fly*):
-;;(setq lsp-diagnostics-provider :none)
+;; The way of silencing them all (fly*), otherwise elp is eclipsed:
+(setq lsp-diagnostics-provider :none)
 
 
 
 (use-package lsp-mode
+
+  ;; Allows avoiding many 'xxx loaded before Elpaca activation' warnings:
+  :defer
 
   :config
   ;; Enable LSP automatically for Erlang files:
@@ -101,7 +104,7 @@
    (make-lsp-client :new-connection (lsp-stdio-connection '("elp" "server"))
                     :major-modes '(erlang-mode)
                     :priority 0
-                    :server-id 'erlang-language-platform))
+                    :server-id 'elp-for-myriad))
 )
 
 (setq lsp-enable-snippet nil)
@@ -158,8 +161,8 @@
 (add-hook 'sh-mode-hook     #'lsp)
 
 
-(with-eval-after-load 'lsp-mode
- (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
+;;(with-eval-after-load 'lsp-mode
+;; (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
 
 
 ;; Customize prefix for key-bindings:

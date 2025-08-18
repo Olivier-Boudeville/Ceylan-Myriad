@@ -3,10 +3,8 @@
 ;; After relying on package.el then straight.el, we use now Elpaca.
 
 
-;; Disabling package.el in our "early"-init file (see
-;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html):
-;;
-(setq package-enable-at-startup nil)
+;; Disabling package.el in our "early"-init file (i.e. "early-init.el") works,
+;; whereas '(setq package-enable-at-startup nil)' not.
 
 
 ;; Taken verbatim from
@@ -19,8 +17,6 @@
 ;; directory, elpaca", it may be solved by removing the ~/.emacs.d/elpaca
 ;; directory (possibly created yet no valid to a proxy problem...)
 
-;; (apparently triggers in some contexts a 'Package.el loaded before Elpaca'
-;; warning)
 
 (defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
