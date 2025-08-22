@@ -31,10 +31,10 @@
 Gathering of various convenient facilities regarding the **execution of
 third-party programs**.
 
-See executable_utils_test.erl for the corresponding test, and cmd_line_utils.erl
-for the management of the command lines.
+See `executable_utils_test.erl` for the corresponding test, and
+`cmd_line_utils.erl` for the management of the command lines.
 
-See system_utils.erl for the actual execution of programs.
+See `system_utils.erl` for the actual execution of programs.
 """.
 
 
@@ -172,10 +172,10 @@ See system_utils.erl for the actual execution of programs.
 
 -doc """
 Looks-up the specified executable program, whose name is specified as a string
-(e.g. "gcc") in the current user PATH.
+(e.g. `"gcc"`) in the current user PATH.
 
-Returns an absolute filename of the executable program (e.g. "/usr/bin/gcc"), or
-the 'false' atom if it was not found.
+Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`),
+or the `false` atom if it was not found.
 """.
 -spec lookup_executable( executable_name() ) -> executable_path() | 'false'.
 lookup_executable( ExecutableName ) ->
@@ -191,11 +191,11 @@ lookup_executable( ExecutableName ) ->
 
 -doc """
 Looks-up the specified executable program, whose name is specified as a string
-(e.g. "gcc") in the current user PATH, augmented of the specified list of
+(e.g. `"gcc"`) in the current user PATH, augmented of the specified list of
 directories (whose existence is not checked), placed at first position.
 
-Returns an absolute filename of the executable program (e.g. "/usr/bin/gcc"), or
-the 'false' atom if it was not found.
+Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`),
+or the `false` atom if it was not found.
 
 For example: `lookup_executable("my-foo-program", [".", "/tmp"])`.
 """.
@@ -223,10 +223,11 @@ lookup_executable( ExecutableName, ExtraDirs ) ->
 
 -doc """
 Finds the specified executable program, whose name is specified as a string
-(e.g. "gcc") in the current user PATH.
+(e.g. `"gcc"`) in the current user PATH.
 
-Returns an absolute filename of the executable program (e.g. "/usr/bin/gcc") or
-throws an exception {executable_not_found,ExecutableName} if it was not found.
+Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`)
+or throws an exception `{executable_not_found, ExecutableName}` if it was not
+found.
 """.
 -spec find_executable( executable_name() ) -> executable_path().
 find_executable( ExecutableName ) ->
@@ -467,9 +468,9 @@ display_wide_text_file( TextFilePath, CharacterWidth ) ->
 Returns a string to be inserted into a command-line call to ssh/scp so that it
 can run as much as possible non-interactively.
 
-Tries notably to avoid following message: "The authenticity of host 'Server
+Tries notably to avoid following message: `"The authenticity of host 'Server
 (XXXXX)' can't be established.  RSA key fingerprint is YYYYY. Are you sure you
-want to continue connecting (yes/no)?".
+want to continue connecting (yes/no)?"`.
 
 Note: only to be used in a trusted environment.
 
@@ -589,7 +590,9 @@ get_default_image_browser_path() ->
 -doc "Returns the name of the default web browser.".
 -spec get_default_web_browser_name() -> executable_name().
 get_default_web_browser_name() ->
-	"firefox".
+	%"firefox". % Best
+	%"chrome".
+	"chromium".
 
 
 
@@ -748,9 +751,9 @@ get_default_trace_viewer_path() ->
 Returns an absolute path to the root directory of the current Erlang
 installation.
 
-For example if 'erl' is to be found in
-~/Software/Erlang/Erlang-current-install/bin/erl, will return:
-~/Software/Erlang/Erlang-current-install.
+For example if `erl` is to be found in
+`~/Software/Erlang/Erlang-current-install/bin/erl`, will return:
+`~/Software/Erlang/Erlang-current-install`.
 """.
 -spec get_default_erlang_root() -> directory_path().
 get_default_erlang_root() ->
@@ -854,7 +857,7 @@ get_gnuplot_path() ->
 
 
 -doc """
-Returns, as a tuple (e.g. {4,2} for the 4.2 version), the gnuplot version
+Returns, as a tuple (e.g. `{4,2}` for the 4.2 version), the gnuplot version
 actually available by default (in the PATH) on this computer.
 """.
 -spec get_current_gnuplot_version() -> basic_utils:two_digit_version().
@@ -865,7 +868,7 @@ get_current_gnuplot_version() ->
 
 
 -doc """
-Returns, as a tuple (e.g. {4,2} for the 4.2 version), the gnuplot version
+Returns, as a tuple (e.g. `{4,2}` for the 4.2 version), the gnuplot version
 actually available on this computer.
 """.
 -spec get_current_gnuplot_version( executable_path() ) ->
@@ -975,19 +978,19 @@ get_default_java_runtime() ->
 
 -doc """
 Returns the default path to the .jar file implementing JInterface, namely
-'OtpErlang.jar'.
+`OtpErlang.jar`.
 
-Indeed, to make use of JInterface, OtpErlang.jar must be found by the
+Indeed, to make use of JInterface, `OtpErlang.jar` must be found by the
 counterpart Java program.
 
 We chose conventionally its location to be
-$(ERLANG_ROOT)/lib/erlang/jinterface/priv/OtpErlang.jar, with ERLANG_ROOT being
-typically ~/Software/Erlang/Erlang-current-install.
+`$(ERLANG_ROOT)/lib/erlang/jinterface/priv/OtpErlang.jar`, with ERLANG_ROOT
+being typically `~/Software/Erlang/Erlang-current-install`.
 
-Indeed, we expect that in $(ERLANG_ROOT)/lib/erlang/ a symbolic link named
-'jinterface' has been specifically created in order to point to the directory of
-the corresponding version of JInterface (e.g. lib/jinterface-1.8/); our
-install-erlang.sh script automatically enforces that convention.
+Indeed, we expect that in `$(ERLANG_ROOT)/lib/erlang/` a symbolic link named
+`jinterface` has been specifically created in order to point to the directory of
+the corresponding version of JInterface (e.g. `lib/jinterface-1.8/`); our
+`install-erlang.sh` script automatically enforces that convention.
 """.
 -spec get_default_jinterface_path() -> file_path().
 get_default_jinterface_path() ->
@@ -1050,23 +1053,24 @@ Tells whether the program is run in batch mode.
 By default, a program is not in batch mode (hence is in interactive mode,
 meaning it might trigger graphical displays).
 
-The most prioritary setting is if the "--batch" command line argument has been
+The most prioritary setting is if the `--batch` command line argument has been
 specified, provided it has been set as a plain argument, i.e. one that it is
-specified *after* either "--" or, preferably, "-extra".
+specified *after* either `--` or, preferably, `-extra`.
 
 Otherwise, the application configuration will be read for the is_batch key
-(typically set from any conf/sys.config file defined by the application; see
-also the "-config" command-line option in
-<https://erlang.org/doc/man/config.html>).
+(typically set from any `conf/sys.config` file defined by the application; see
+also the `-config` command-line option in
+[https://erlang.org/doc/man/config.html]).
 
 Finally, if not set elsewhere, the application resource file (*.app) will be
 searched for such an is_batch key.
 
 Note that, if relying on application configuration, the result will depend on
 the {application name, callsite} pair. Indeed, if application foo depends on
-application bar, and foo defined in its conf/sys.config file {is_batch,false}
-whereas bar defined in its own configuration file {is_batch,true}, should a
-process belonging to bar call this function, it will return false.
+application bar, and foo defined in its `conf/sys.config` file
+`{is_batch,false}` whereas bar defined in its own configuration file
+`{is_batch,true}`, should a process belonging to bar call this function, it will
+return `false`.
 """.
 -spec is_batch() -> boolean().
 is_batch() ->

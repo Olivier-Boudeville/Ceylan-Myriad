@@ -32,7 +32,7 @@ Module defining most of the **MyriadGUI constants**, notably so that higher
 level MyriadGUI atom-designated values and backend-specific (wx) ones can be
 translated, generally both ways.
 
-Called by gui:generate_support_modules/0.
+Called by `gui:generate_support_modules/0`.
 """.
 
 
@@ -120,7 +120,7 @@ list_topic_spec_functions() ->
 % used by many MyriadGUI gui_* modules.
 %
 % All topics could be configured maybe-ones (instead of strict-ones) to resist
-% to the lookèup of unknown elements, yet for a GUI we prefer crashing.
+% to the lookup of unknown elements, yet for a GUI we prefer crashing.
 %
 % At least generally the first elements are MyriadGUI ones, and the second ones
 % are backend ones. Entries shall preferably be listed according to the backend
