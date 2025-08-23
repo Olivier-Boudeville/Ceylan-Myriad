@@ -33,10 +33,10 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, April 19, 2025</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, August 23, 2025</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.39</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.40</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
@@ -168,17 +168,18 @@ The next level of information is either to browse the <a class="reference extern
 </ul>
 </li>
 <li><a class="reference internal" href="#about-the-table-module" id="toc-entry-77">About the <tt class="docutils literal">table</tt> module</a></li>
-<li><a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes" id="toc-entry-78">Enabling the Interconnection of Erlang nodes</a><ul>
-<li><a class="reference internal" href="#safety-measures" id="toc-entry-79">Safety Measures</a></li>
-<li><a class="reference internal" href="#testing-troubleshooting" id="toc-entry-80">Testing &amp; Troubleshooting</a></li>
+<li><a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes" id="toc-entry-78">Enabling the Interconnection of Erlang nodes</a></li>
+<li><a class="reference internal" href="#settings-in-terms-of-error-reports" id="toc-entry-79">Settings in terms of Error Reports</a><ul>
+<li><a class="reference internal" href="#rationale" id="toc-entry-80">Rationale</a></li>
+<li><a class="reference internal" href="#myriad-support" id="toc-entry-81">Myriad Support</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#using-the-erlang-shell-for-debugging" id="toc-entry-81">Using the Erlang Shell for Debugging</a></li>
+<li><a class="reference internal" href="#using-the-erlang-shell-for-debugging" id="toc-entry-82">Using the Erlang Shell for Debugging</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#support-for-myriad" id="toc-entry-82">Support for <tt class="docutils literal">Myriad</tt></a></li>
-<li><a class="reference internal" href="#please-react" id="toc-entry-83">Please React!</a></li>
-<li><a class="reference internal" href="#contributions-ending-word" id="toc-entry-84">Contributions &amp; Ending Word</a></li>
+<li><a class="reference internal" href="#support-for-myriad" id="toc-entry-83">Support for <tt class="docutils literal">Myriad</tt></a></li>
+<li><a class="reference internal" href="#please-react" id="toc-entry-84">Please React!</a></li>
+<li><a class="reference internal" href="#contributions-ending-word" id="toc-entry-85">Contributions &amp; Ending Word</a></li>
 </ul>
 </div>
 <p></p>
@@ -253,12 +254,12 @@ $<span class="w"> </span>make<span class="w"> </span>foo_run
 </div>
 <div class="section" id="software-prerequisites">
 <span id="getting-erlang-1"></span><span id="getting-erlang"></span><h3><a class="toc-backref" href="#toc-entry-9">Software Prerequisites</a></h3>
-<p>The main tool prerequisite is of course having the <a class="reference external" href="http://erlang.org">Erlang</a> environment available, in its <tt class="docutils literal">24.0</tt> version <a class="footnote-reference" href="#footnote-3" id="footnote-reference-3">[5]</a> or more recent.</p>
+<p>The main tool prerequisite is of course having the <a class="reference external" href="http://erlang.org">Erlang</a> environment available, in its <tt class="docutils literal">28.0</tt> version <a class="footnote-reference" href="#footnote-3" id="footnote-reference-3">[5]</a> or more recent.</p>
 <table class="docutils footnote" frame="void" id="footnote-3" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-3">[5]</a></td><td><p class="first">Most probably that older versions of Erlang would be more than sufficient in order to build Myriad (possibly at the expense of minor changes in a few calls to standard modules having been deprecated since then). It is just that in general we prefer to stick to the latest stable versions of software such as Erlang, and advise you to do so.</p>
-<p class="last">To determine programmatically the recommended version of Myriad-based code, just execute our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a> script with its <tt class="docutils literal"><span class="pre">--version</span></tt> option (this is the sole source of reference, and is used in our full software stack).</p>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-3">[5]</a></td><td><p class="first">Most probably that older versions of Erlang would be more than sufficient in order to build Myriad (possibly at the expense of minor changes in a few calls to standard modules having been deprecated since then). It is just that in general we prefer sticking to the latest stable versions of software such as Erlang, and advise you to do so.</p>
+<p class="last">To determine programmatically the recommended version of Myriad-based code, just execute our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a> script with its <tt class="docutils literal"><span class="pre">--version</span></tt> option (this is the sole source of reference, and it is used in our full software stack).</p>
 </td></tr>
 </tbody>
 </table>
@@ -266,7 +267,7 @@ $<span class="w"> </span>make<span class="w"> </span>foo_run
 <table class="docutils footnote" frame="void" id="footnote-4" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-4">[6]</a></td><td>For example, as root: <tt class="docutils literal"><span class="pre">apt-get</span> install erlang</tt> on Debian, <tt class="docutils literal">pacman <span class="pre">-Sy</span> erlang</tt> in Arch Linux, etc.; just ensure that its version is not outdated then. Refer to our <a class="reference external" href="http://howtos.esperide.org/Erlang.html#installation">Erlang HOWTO</a> for further details.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-4">[6]</a></td><td>For example, as root: <tt class="docutils literal"><span class="pre">apt-get</span> install erlang</tt> on Debian, <tt class="docutils literal">pacman <span class="pre">-Sy</span> erlang</tt> on Arch Linux, etc.; just ensure that its version is not outdated then. Refer to <a class="reference external" href="http://howtos.esperide.org/Erlang.html#installation">this section</a> of our Erlang HOWTO for further details.</td></tr>
 </tbody>
 </table>
 <p>A simple use of it is:</p>
@@ -275,6 +276,7 @@ $<span class="w"> </span>./install-erlang.sh<span class="w"> </span>--doc-instal
 </pre>
 <p>As using a Just-In-Time compiler increases the performances significantly, we chose to force its use. As a result, a C++ 17 compiler, like a recent enough <tt class="docutils literal">g++</tt> one,  is required by our script.</p>
 <p>One may execute <tt class="docutils literal"><span class="pre">./install-erlang.sh</span> <span class="pre">--help</span></tt> for more guidance about how to configure it, notably in order to enable all modules of interest (<tt class="docutils literal">crypto</tt>, <tt class="docutils literal">wx</tt>, etc.). See also the <a class="reference internal" href="#base-gui-backend">Base GUI Backend</a> section to secure any related prerequisite.</p>
+<p>By default, such an installation is done so that it requires no specific permissions, and will be available only from the account of the current user. For all uses requiring a system-wide availability of that version, root-like permissions will be needed at some point; this script shall then be run with sudo, like in: <tt class="docutils literal">sudo <span class="pre">install-erlang.sh</span> <span class="pre">[...]</span></tt>, and for example the interpreter will be available as <tt class="docutils literal">/usr/local/bin/erl</tt>.</p>
 </div>
 </div>
 <div class="section" id="getting-myriad-s-sources">
@@ -360,6 +362,7 @@ $<span class="w"> </span>rebar3<span class="w"> </span>upgrade<span class="w"> <
 </pre>
 <p>where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).</p>
 <p>Myriad-based projects should better execute their (inherited, more robust/integrated) <tt class="docutils literal"><span class="pre">rebar3-upgrade-lock</span></tt> make target instead.</p>
+<p>See also our (Ceylan) <a class="reference internal" href="#release-conventions">Release Conventions</a>.</p>
 <p><span class="raw-html"><a name="otp"></a></span></p>
 </div>
 <div class="section" id="otp-build-1">
@@ -784,7 +787,7 @@ $ make rebar3-local-update
 <li>it may thus be convenient to add <tt class="docutils literal"><span class="pre">-define(table_type,</span> map_hashtable).</tt> in a user module, so that the <tt class="docutils literal">table</tt> pseudo-module can be relied upon when building a <tt class="docutils literal">json_term</tt>, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure</li>
 <li>no comments shall be specified (even though some parsers may be configured to support them)</li>
 <li>strings shall be specified as binary ones</li>
-<li>the actual JSON backend used are any buit-in <a class="reference external" href="https://www.erlang.org/doc/apps/stdlib/json.html">json</a> one, otherwise <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to <a class="reference external" href="https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping">this section of EEP 68</a>, otherwise to <a class="reference external" href="https://github.com/talentdeficit/jsx/#json---erlang-mapping">this section</a> of the jsx documentation and to <a class="reference external" href="https://github.com/davisp/jiffy#data-format">this one</a> regarding jiffy</li>
+<li>the actual JSON backend used is by default the built-in <a class="reference external" href="https://www.erlang.org/doc/apps/stdlib/json.html">json</a> one, otherwise <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to <a class="reference external" href="https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping">this section of EEP 68</a>, otherwise to <a class="reference external" href="https://github.com/talentdeficit/jsx/#json---erlang-mapping">this section</a> of the jsx documentation and to <a class="reference external" href="https://github.com/davisp/jiffy#data-format">this one</a> regarding jiffy</li>
 </ul>
 <p>Example:</p>
 <pre class="code erlang literal-block">
@@ -2447,13 +2450,11 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <h2><a class="toc-backref" href="#toc-entry-66">Tooling Conventions</a></h2>
 <div class="section" id="erlang-ls">
 <span id="lsp"></span><h3><a class="toc-backref" href="#toc-entry-67">Erlang LS</a></h3>
-<p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language Server Protocol</a> (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang.</p>
-<p>For that <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> should be used. We then recommend to rely on our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config">erlang_ls.config</a> configuration file, which may be installed that way:</p>
-<pre class="code bash literal-block">
-$<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.config/erlang_ls<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/.config/erlang_ls/<span class="w">
-</span>$<span class="w"> </span>ln<span class="w"> </span>-sf<span class="w"> </span><span class="si">${</span><span class="nv">CEYLAN_MYRIAD</span><span class="si">}</span>/conf/erlang_ls.config
-</pre>
-<p>As for the installation of <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> itself, we rely on:</p>
+<p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language Server Protocol</a> (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang, thanks to <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a>.</p>
+<p>Another option is to use <tt class="docutils literal">ctags</tt> to generate Emacs' compliant <a class="reference external" href="https://www.emacswiki.org/emacs/EmacsTags">tags</a> (see the <tt class="docutils literal"><span class="pre">generate-tags</span></tt> make target) - however this solution is probably now superseded by Erlang LS.</p>
+<div class="section" id="installing-erlang-ls">
+<h4>Installing Erlang LS</h4>
+<p>For that we rely on:</p>
 <pre class="code bash literal-block">
 $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Software<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software<span class="w">
 </span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/erlang-ls/erlang_ls<span class="w">
@@ -2463,9 +2464,27 @@ $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>
 </span>$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>../_build/default/bin/erlang_ls
 </pre>
 <p>Then one would just have to ensure that <tt class="docutils literal">~/Software/erlang_ls/bin</tt> is indeed in one's PATH.</p>
-<p>Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed; as a result we did find LS features much useful.</p>
-<p>The Emacs configuration that we use (see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/init.el">init.el</a>) attempts to find some sweet spot in this matter.</p>
-<p>Another option is to use <tt class="docutils literal">ctags</tt> to generate Emacs' compliant <a class="reference external" href="https://www.emacswiki.org/emacs/EmacsTags">tags</a> (see the <tt class="docutils literal"><span class="pre">generate-tags</span></tt> make target); we did not find this solution very satisfactory either.</p>
+</div>
+<div class="section" id="configuring-erlang-ls">
+<h4>Configuring  Erlang LS</h4>
+<p>We then recommend to rely on our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config">erlang_ls.config</a> configuration file, which preferably is at the root of the project it applies to <a class="footnote-reference" href="#footnote-28" id="footnote-reference-28">[30]</a> (hence the symbolic link at this root, pointing to the actual file in the <tt class="docutils literal">conf</tt> subdirectory).</p>
+<table class="docutils footnote" frame="void" id="footnote-28" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-28">[30]</a></td><td>Rather than being centralised in the <em>user</em> configuration directory, typically in <tt class="docutils literal"><span class="pre">~/.config/erlang_ls/erlang_ls.config</span></tt>.</td></tr>
+</tbody>
+</table>
+<p>As we understand when reading the <a class="reference external" href="https://erlang-ls.github.io/configuration/">Erlang LS documentation</a>, in this YAML-based <tt class="docutils literal">erlang_ls.config</tt>:</p>
+<ul class="simple">
+<li>the current project is referenced by <tt class="docutils literal">apps_dirs</tt>, whose default value must contain <tt class="docutils literal">.</tt>; hence nothing needs to be done to designate our project</li>
+<li>our convention being that all layers above Myriad are expected to be found as sibling directories (e.g. <tt class="docutils literal">wooper</tt> having the same parent directory as <tt class="docutils literal">myriad</tt>), possibly as symbolic links, in order to designate a prerequisite of the current layer it should be enough to include, in the <tt class="docutils literal">deps_dirs</tt> entry, a relative path to that specific directory (e.g. <tt class="docutils literal"><span class="pre">../wooper</span></tt>)</li>
+</ul>
+</div>
+<div class="section" id="using-erlang-ls">
+<h4>Using Erlang LS</h4>
+<p>Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed (as most tools operate on sources rather than on BEAM files); as a result, we did not find all LS features useful.</p>
+<p>The Emacs configuration on which we rely (see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/init.el">init.el</a>) attempts to find some sweet spot in this matter.</p>
+</div>
 </div>
 <div class="section" id="for-documentation-generation">
 <h3><a class="toc-backref" href="#toc-entry-68">For Documentation Generation</a></h3>
@@ -2513,10 +2532,16 @@ See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more deta
 <div class="section" id="release-conventions">
 <h2><a class="toc-backref" href="#toc-entry-69">Release Conventions</a></h2>
 <p>These conventions apply to the release of any Myriad-based package, i.e. either Myriad itself or packages depending, directly or not, from it.</p>
-<p>The recommended procedure is (while being at the root of a clone):</p>
+<p>The recommended procedure is (while being at the root of a clone of the package of interest):</p>
 <ol class="arabic simple">
-<li>ensure that your version of Erlang (see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a>) and of rebar3 (see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh">install-rebar3.sh</a>) are up to date</li>
+<li>ensure that your version of <tt class="docutils literal">Erlang</tt> (see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a>), of <tt class="docutils literal">rebar3</tt> (see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh">install-rebar3.sh</a>) and possibly of <tt class="docutils literal">erlang_ls</tt> (see <a class="reference external" href="https://howtos.esperide.org/Emacs.html#regarding-erlang">this section</a>) are up to date</li>
 <li>merge all new developments in the <tt class="docutils literal">master</tt> (or <tt class="docutils literal">main</tt>) branch</li>
+<li>possibly update dependencies, then:<ul>
+<li>in the corresponding <tt class="docutils literal">GNUmakevars.inc</tt> settings if needed (for example if adding/removing dependencies)</li>
+<li>in any <tt class="docutils literal"><span class="pre">priv/bin/deploy-*-native-build.sh</span></tt> script</li>
+<li>in <tt class="docutils literal">conf/rebar.config.template</tt>; in which case then run, still from the root of the package clone, <tt class="docutils literal">make <span class="pre">set-rebar-conf</span></tt></li>
+</ul>
+</li>
 <li>in <tt class="docutils literal">GNUmakevars.inc</tt>:<ul>
 <li>ensure that all debug/check flags (like, for Myriad: <tt class="docutils literal">MYRIAD_DEBUG_FLAGS += <span class="pre">-Dmyriad_debug_code_path</span></tt>) are disabled, and that non-release elements (e.g. <tt class="docutils literal">MYRIAD_LCO_OPT</tt>) and optional ones are disabled as well</li>
 <li>bump the version of this local package (e.g. in <tt class="docutils literal">MYRIAD_VERSION</tt>)</li>
@@ -2525,7 +2550,8 @@ See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more deta
 <li>for packages having dependencies: upgrade their reference known of rebar3, with <tt class="docutils literal">make <span class="pre">rebar3-upgrade-lock</span></tt></li>
 <li>rebuild and test all from the root: <tt class="docutils literal">make rebuild test</tt>, fix any problem</li>
 <li>optional: perform <a class="reference external" href="#type-checking-myriad">static code checking</a></li>
-<li>if all went well, ensure that all files are committed (including <tt class="docutils literal">ebin/THIS_PACKAGE.app</tt>)</li>
+<li>recommended: update the documentation: <tt class="docutils literal">cd doc &amp;&amp; make <span class="pre">export-doc</span></tt>; check the result (<a class="reference external" href="https://myriad.esperide.org/">example for Myriad</a>; this includes ensuring that no error is displayed <a class="reference external" href="https://myriad.esperide.org/#myriad_bottom">at the bottom</a> of the page, and that the <a class="reference external" href="https://myriad.esperide.org/Ceylan-Myriad-Layer-technical-manual-english.pdf">corresponding PDF</a> is well-formed and has a proper table of contents)</li>
+<li>if all went well, ensure that all files are committed (including <tt class="docutils literal">ebin/THIS_PACKAGE.app</tt> and <tt class="docutils literal">rebar.lock</tt>)</li>
 <li>push them, it will trigger the CI/CD services; ensure that everything is correct there as well</li>
 <li>go back to a development branch and merge/rebase the master/main one there</li>
 </ol>
@@ -2557,8 +2583,14 @@ See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more deta
 <li>either mandatory or optional</li>
 <li>needed starting from build-time (e.g. if relying on their headers and/or modules - including parse-transforms), or only at runtime</li>
 </ul>
-<p>For a given <strong>optional</strong> dependency (e.g. regarding JSON), a USE make variable is to be defined in the layer that introduced this dependency (e.g. <tt class="docutils literal">USE_JSON</tt>, introduced by Myriad, therefore to be listed in its <tt class="docutils literal">GNUmakevars.inc</tt>). This variable allows to have our native build system register the associated additional include and ebin directories.</p>
-<p>The first step to enable such a dependency (e.g. the JSON support) is to set its USE variable to <tt class="docutils literal">true</tt> (e.g. <tt class="docutils literal">USE_JSON = true</tt>), as it is expected to be disabled by default. Depending on the service at hand, a specific backend may have also to be selected (e.g. either <tt class="docutils literal">USE_JSX = true</tt> or <tt class="docutils literal">USE_JIFFY = true</tt> to select a suitable JSON parser).</p>
+<p>For a given <strong>optional</strong> dependency (e.g. regarding JSON <a class="footnote-reference" href="#footnote-29" id="footnote-reference-29">[31]</a>), a USE make variable is to be defined in the layer that introduced this dependency (e.g. <tt class="docutils literal">USE_JSON</tt>, introduced by Myriad, therefore to be listed in its <tt class="docutils literal">GNUmakevars.inc</tt>). This variable allows to have our native build system register the associated additional include and ebin directories.</p>
+<table class="docutils footnote" frame="void" id="footnote-29" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-29">[31]</a></td><td>JSON is just an example, knowing moreover that now Erlang provides a built-in JSON support on which we rely by default.</td></tr>
+</tbody>
+</table>
+<p>The first step to enable such a dependency (e.g. the JSON support) is to set its USE variable to <tt class="docutils literal">true</tt> (e.g. <tt class="docutils literal">USE_JSON = true</tt>), as it is expected to be disabled by default. Depending on the service at hand, a specific (non-builtin) backend may have also to be selected (e.g. either <tt class="docutils literal">USE_JSX = true</tt> or <tt class="docutils literal">USE_JIFFY = true</tt> to select a suitable JSON parser).</p>
 <p>Finally, some supports may depend on others (e.g. enabling <tt class="docutils literal">USE_REST</tt> will enable <tt class="docutils literal">USE_JSON</tt> in turn).</p>
 <div class="section" id="runtime-only-third-party-dependencies">
 <h3><a class="toc-backref" href="#toc-entry-74">Runtime-only Third-Party Dependencies</a></h3>
@@ -2571,13 +2603,13 @@ See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more deta
 <div class="section" id="build-time-third-party-dependencies">
 <h3><a class="toc-backref" href="#toc-entry-75">Build-time Third-Party Dependencies</a></h3>
 <p>Myriad does not have such dependencies, but layers above in the software stack (like a layer that would be named <tt class="docutils literal">Foo</tt>) may.</p>
-<p>To have such dependencies (e.g. let's suppose that the <tt class="docutils literal">jsx</tt> JSON parser defined header files that one wants to include) <em>installed</em> as well when building one's project (e.g. <tt class="docutils literal">Foo</tt>), one may rely on rebar, and list them in the project's <tt class="docutils literal">foo/conf/rebar.config.template</tt> file (e.g. <tt class="docutils literal">{deps, [bar, <span class="pre">jsx]}.</span></tt>) from which the actual <tt class="docutils literal">rebar.config</tt> is to be generated (use the <tt class="docutils literal">make <span class="pre">set-rebar-conf</span></tt> target for that).</p>
+<p>To have such dependencies (e.g., just for the sake of example, let's suppose that the <tt class="docutils literal">jsx</tt> JSON parser defined header files that one wants to include) <em>installed</em> as well when building one's project (e.g. <tt class="docutils literal">Foo</tt>), one may rely on rebar, and list them in the project's <tt class="docutils literal">foo/conf/rebar.config.template</tt> file (e.g. <tt class="docutils literal">{deps, [bar, <span class="pre">jsx]}.</span></tt>) from which the actual <tt class="docutils literal">rebar.config</tt> is to be generated (use the <tt class="docutils literal">make <span class="pre">set-rebar-conf</span></tt> target for that).</p>
 <p>The actual compilation will be done by our native build system in all cases, either directly (when running <tt class="docutils literal">make all</tt>) or when using <tt class="docutils literal">rebar compile</tt> (rebar hooks will then ensure that in practice the application is compiled with our native rules anyway). Therefore appropriate make variables (e.g. <tt class="docutils literal">JSX_REBAR_BASE</tt>, in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>) shall be defined so that the corresponding BEAM files installed through rebar can be found in this native context as well (through the <tt class="docutils literal">BEAM_DIRS</tt> make variable).</p>
-<p>Finally, such dependencies may or may not be listed in the <tt class="docutils literal">deps</tt> entry of the  <tt class="docutils literal">conf/foo.app.src</tt> file <a class="footnote-reference" href="#footnote-28" id="footnote-reference-28">[30]</a>, depending on whether they are optional or not.</p>
-<table class="docutils footnote" frame="void" id="footnote-28" rules="none">
+<p>Finally, such dependencies may or may not be listed in the <tt class="docutils literal">deps</tt> entry of the  <tt class="docutils literal">conf/foo.app.src</tt> file <a class="footnote-reference" href="#footnote-30" id="footnote-reference-30">[32]</a>, depending on whether they are optional or not.</p>
+<table class="docutils footnote" frame="void" id="footnote-30" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-28">[30]</a></td><td>After having edited this file, run <tt class="docutils literal">make <span class="pre">create-app-file</span></tt> afterwards in order to have the three other versions of it properly generated (namely <tt class="docutils literal">./_build/lib/foo/ebin/foo.app</tt>, <tt class="docutils literal">ebin/foo.app</tt> and <tt class="docutils literal">src/foo.app.src</tt>).</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-30">[32]</a></td><td>After having edited this file, run <tt class="docutils literal">make <span class="pre">create-app-file</span></tt> afterwards in order to have the three other versions of it properly generated (namely <tt class="docutils literal">./_build/lib/foo/ebin/foo.app</tt>, <tt class="docutils literal">ebin/foo.app</tt> and <tt class="docutils literal">src/foo.app.src</tt>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -2590,7 +2622,7 @@ See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more deta
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/Python_(programming_language)">Python</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/utils/python_utils.erl">python_utils</a> module), thanks to <a class="reference external" href="https://github.com/hdima/erlport">erlport</a></li>
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/SQLite">SQLite</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/sql_support.erl">sql_support</a> module), thanks to the SQLite 3 Erlang binding that we retained, <a class="reference external" href="https://github.com/alexeyr/erlang-sqlite3.git">erlang-sqlite3</a></li>
 </ul>
-<p id="jsx-install">As an example, let's suppose that we need a JSON support and that we want to rely on the <tt class="docutils literal">jsx</tt> parser (our default choice) for that.</p>
+<p id="jsx-install">As an example, let's suppose that we need a JSON support and that we want to rely on the <tt class="docutils literal">jsx</tt> parser (our previous default choice) for that.</p>
 <p>If applying our conventions, supposing that Erlang and Rebar3 are already installed (otherwise refer to the <a class="reference internal" href="#getting-erlang-1">getting Erlang</a> and <a class="reference internal" href="#getting-rebar3-1">getting Rebar3</a> sections), <tt class="docutils literal">jsx</tt> may be installed with:</p>
 <pre class="code bash literal-block">
 $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Software/jsx<span class="w">
@@ -2604,75 +2636,42 @@ $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>
 </div>
 <div class="section" id="about-the-table-module">
 <h2><a class="toc-backref" href="#toc-entry-77">About the <tt class="docutils literal">table</tt> module</a></h2>
-<p>This is a pseudo module, which is not meant to exist as such (no <tt class="docutils literal">table.erl</tt>, no <tt class="docutils literal">table.beam</tt>).</p>
+<p>This is a pseudo module, which is not meant to exist as such (no <tt class="docutils literal">table.erl</tt>, no <tt class="docutils literal">table.beam</tt> <a class="footnote-reference" href="#footnote-31" id="footnote-reference-31">[33]</a>).</p>
+<table class="docutils footnote" frame="void" id="footnote-31" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-31">[33]</a></td><td>We may nevertheless introduce them in the future, so that tools (IDEs, type checkers) can still be aware of the types and functions exposed by this pseudo-module.</td></tr>
+</tbody>
+</table>
 <p>The <tt class="docutils literal">Myriad</tt> parse transform replaces references to the <tt class="docutils literal">table</tt> module by (generally) references to the <tt class="docutils literal">map_hashtable</tt> module. See <a class="reference internal" href="#table-transformations">table transformations</a> for more information.</p>
 </div>
 <div class="section" id="enabling-the-interconnection-of-erlang-nodes">
 <h2><a class="toc-backref" href="#toc-entry-78">Enabling the Interconnection of Erlang nodes</a></h2>
-<p>This is not a Myriad gotcha per se, but rather an Erlang one.</p>
-<p>Way too often, for obscure reasons Erlang nodes fail to connect to each other (especially with long names), and little to no information is available to diagnose the issue.</p>
-<div class="section" id="safety-measures">
-<h3><a class="toc-backref" href="#toc-entry-79">Safety Measures</a></h3>
-<p>In order to maximise the chances that nodes are able to <tt class="docutils literal">net_adm:ping/1</tt> successfully each other:</p>
-<ul class="simple">
-<li>at least for testing, run VMs spawned with preferably the same <strong>version</strong> of Erlang</li>
-<li>ensure that they rely on the same <strong>EPMD</strong> (TCP) port (default Erlang one is <tt class="docutils literal">4369</tt>, while Myriad default one is <tt class="docutils literal">4506</tt>); check for example that all launched nodes of interest can be seen with: <tt class="docutils literal">epmd <span class="pre">-port</span> 4506 <span class="pre">-names</span></tt></li>
-<li>ensure that both nodes use either short names (start a new node with <tt class="docutils literal"><span class="pre">-sname</span></tt>) or long names (start a new node with <tt class="docutils literal"><span class="pre">-name</span></tt>)</li>
-<li>check that they use the same <strong>cookie</strong>, either from the start (use the <tt class="docutils literal"><span class="pre">-setcookie</span> MY_COOKIE</tt> command-line option) or after having changed it after the VM was launched (use <tt class="docutils literal">erlang:set_cookie/1</tt> for that / check with <tt class="docutils literal">erlang:get_cookie/0</tt>)</li>
-<li>ensure that no <strong>firewall</strong> gets in the way; one may take inspiration for example from our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/iptables.rules-FullDisabling.sh">iptables.rules-FullDisabling.sh</a> script</li>
-<li>finally check that the local <strong>DNS resolution</strong> complies with the surprisingly picky constraints demanded by the Erlang VM</li>
-</ul>
-<p>For this last point, <tt class="docutils literal">/etc/hosts</tt> is often the scene of the disaster. If your hostname is <tt class="docutils literal">hurricane</tt> and your domain is <tt class="docutils literal">foobar.org</tt>, then a line like the following one is known to work (whereas many variations of it may be deemed &quot;incorrrect&quot;):</p>
-<pre class="literal-block">
-127.0.0.1  hurricane.foobar.org hurricane localhost.localdomain localhost
-</pre>
-<p>provided of course that, still in that file, you have not also a declaration such as:</p>
-<pre class="literal-block">
-192.168.0.5 hurricane.foobar.org hurricane
-</pre>
-<p>(setting one's IP shall better be done in one's profile in <tt class="docutils literal">/etc/netctl</tt>, right?)</p>
+<p>This is not a Myriad gotcha per se, but rather an Erlang one, so we documented it in <a class="reference external" href="http://howtos.esperide.org/Erlang.html#general-information">this section</a> of our Erlang HOWTO.</p>
+<p>Regarding the <strong>EPMD</strong> (TCP) port, the default Erlang one is <tt class="docutils literal">4369</tt>, while Myriad default one is <tt class="docutils literal">4506</tt>. Check for example that all launched nodes of interest can be seen with: <tt class="docutils literal">epmd <span class="pre">-port</span> 4506 <span class="pre">-names</span></tt>.</p>
 </div>
-<div class="section" id="testing-troubleshooting">
-<h3><a class="toc-backref" href="#toc-entry-80">Testing &amp; Troubleshooting</a></h3>
-<p>In order to <strong>quick-check</strong> whether long-name connectivity is available and to rule out the most obvious culprits, open two terminals.</p>
-<p>In the first:</p>
-<pre class="code bash literal-block">
-<span class="c1"># Check (with root permissions) that the firewall rules are safe; for example:
-</span>$<span class="w"> </span>iptables<span class="w"> </span>-nL<span class="w">
-</span>Chain<span class="w"> </span>INPUT<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
-</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
-
-</span>Chain<span class="w"> </span>FORWARD<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
-</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
-
-</span>Chain<span class="w"> </span>OUTPUT<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
-</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
-
-</span><span class="c1"># Just to be on the safer side for this test:
-</span>$<span class="w"> </span>killall<span class="w"> </span>beam.smp<span class="w"> </span>epmd<span class="w">
-
-</span><span class="c1"># Then launch the target first node:
-</span>$<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span><span class="w"> </span>erl<span class="w"> </span>-name<span class="w"> </span>n1<span class="w"> </span>-setcookie<span class="w"> </span>aa<span class="w">
-</span>Erlang/OTP<span class="w"> </span><span class="m">23</span><span class="w"> </span><span class="o">[</span>erts-11.1.4<span class="o">]</span><span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span><span class="w"> </span><span class="o">[</span>smp:4:4<span class="o">]</span><span class="w"> </span><span class="o">[</span>ds:4:4:10<span class="o">]</span><span class="w"> </span><span class="o">[</span>async-threads:1<span class="o">]</span><span class="w"> </span><span class="o">[</span>hipe<span class="o">]</span><span class="w">
-
-</span>Eshell<span class="w"> </span>V11.1.4<span class="w">  </span><span class="o">(</span>abort<span class="w"> </span>with<span class="w"> </span>^G<span class="o">)</span><span class="w">
-</span><span class="o">(</span>n1&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;
-</pre>
-<p>In the second terminal, try to find the previous node:</p>
-<pre class="code bash literal-block">
-$<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span><span class="w"> </span>erl<span class="w"> </span>-name<span class="w"> </span>n2<span class="w"> </span>-setcookie<span class="w"> </span>aa<span class="w">
-</span>Erlang/OTP<span class="w"> </span><span class="m">23</span><span class="w"> </span><span class="o">[</span>erts-11.1.4<span class="o">]</span><span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span><span class="w"> </span><span class="o">[</span>smp:4:4<span class="o">]</span><span class="w"> </span><span class="o">[</span>ds:4:4:10<span class="o">]</span><span class="w"> </span><span class="o">[</span>async-threads:1<span class="o">]</span><span class="w"> </span><span class="o">[</span>hipe<span class="o">]</span><span class="w">
-
-</span>Eshell<span class="w"> </span>V11.1.4<span class="w">  </span><span class="o">(</span>abort<span class="w"> </span>with<span class="w"> </span>^G<span class="o">)</span><span class="w">
-</span><span class="o">(</span>n2&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;<span class="w"> </span>net_adm:ping<span class="o">(</span><span class="s1">'n1&#64;hurricane.foobar.org'</span><span class="o">)</span>.<span class="w">
-</span>pong
-</pre>
-<p>If you see <tt class="docutils literal">pang</tt> here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the <a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes">Enabling the Interconnection of Erlang nodes</a> section.</p>
-<p>To better troubleshoot, one may also spawn two test nodes and see whether they are able to ping each other.</p>
+<div class="section" id="settings-in-terms-of-error-reports">
+<h2><a class="toc-backref" href="#toc-entry-79">Settings in terms of Error Reports</a></h2>
+<div class="section" id="rationale">
+<h3><a class="toc-backref" href="#toc-entry-80">Rationale</a></h3>
+<p>In order to ease the <strong>debugging of programs</strong>, it is convenient to determine, when a crash happens, <strong>what kind of error report should be output, and how</strong>.</p>
+<p>At least in some cases, dumping a full state on the console is not desirable (way too much content, which cannot be realistically read, especially if it includes larger terms), so we tend to <strong>ellipse</strong> (i.e., here, truncate after a maximum length) such error content.</p>
+<p>This works well... until the parts of interest would have appeared after the ellipsing maximum length. This is especially common when having to list multiple items (elements of a stacktrace, arguments of a function call, etc.): a longer element should not result in the next ones to disappear; per-element ellipsing is certainly better in such cases.</p>
+<p>Also, reporting errors through the standard (console) output is surely the most convenient, but, as mentioned, it is limited in terms of space and, also, of time: such printouts are transient, whereas having them stored fully and durably may be a debugging life-saver (notably when errors are difficult to reproduce or happen after a long time).</p>
+</div>
+<div class="section" id="myriad-support">
+<h3><a class="toc-backref" href="#toc-entry-81">Myriad Support</a></h3>
+<p>To cover at least a bit the previous needs, Myriad provides a few facilities - for its own use and the one of all layers above it - which are configured as a whole based on the <tt class="docutils literal">basic_utils:error_report_output/0</tt> type, which allows selecting:</p>
+<ul class="simple">
+<li>whether the errors shall be reported <strong>only on the standard (error) output</strong>, in a full (non-ellipsed) form (then with <tt class="docutils literal">standard_full</tt>) or ellipsed (with <tt class="docutils literal">standard_ellipsed</tt>)</li>
+<li>or if error reports should be ellipsed on the standard (error) output and <strong>also stored in-file</strong> (a file by default named <tt class="docutils literal"><span class="pre">myriad-error-report.txt</span></tt> and written in the current directory), either in full (with <tt class="docutils literal">standard_ellipsed_file_full</tt>) or ellipsed there as well - but with an higher maximum length than for the console (with <tt class="docutils literal">standard_and_file_ellipsed</tt>)</li>
+</ul>
+<p>By default the <tt class="docutils literal">standard_ellipsed</tt> setting applies. It can be set (preferably as early as possible in the program execution) with <tt class="docutils literal">basic_utils:set_error_report_output/1</tt>, and read with <tt class="docutils literal">basic_utils:get_error_report_output/0</tt>.</p>
+<p>Various error-reporting facilities integrate these conventions; notably, in Myriad, the stacktraces automatically respect the current setting in terms of error report output (see for example <tt class="docutils literal">code_utils:interpret_stacktrace_for_error_output/0</tt>).</p>
 </div>
 </div>
 <div class="section" id="using-the-erlang-shell-for-debugging">
-<h2><a class="toc-backref" href="#toc-entry-81">Using the Erlang Shell for Debugging</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-82">Using the Erlang Shell for Debugging</a></h2>
 <p>It may be convenient to run an Erlang shell in order to investigate and fix issues.</p>
 <p>One may execute <tt class="docutils literal">make shell</tt> to launch a shell that is parameterised so that all modules of all layers (hence having Myriad from Myriad) are in its code path.</p>
 <p>The <a class="reference external" href="https://erlang.org/doc/man/shell.html#shell-commands">built-in shell commands</a> are then very convenient, notably:</p>
@@ -2686,7 +2685,7 @@ $<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=<
 </div>
 </div>
 <div class="section" id="support-for-myriad">
-<span id="support"></span><h1><a class="toc-backref" href="#toc-entry-82">Support for <tt class="docutils literal">Myriad</tt></a></h1>
+<span id="support"></span><h1><a class="toc-backref" href="#toc-entry-83">Support for <tt class="docutils literal">Myriad</tt></a></h1>
 <p>So you respected the <a class="reference internal" href="#prerequisites">prerequisites</a> and <a class="reference internal" href="#build">build</a> sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.</p>
 <p>The simpler solution is then to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/issues">create a relevant issue</a>.</p>
 <p>For all other needs, please drop an email to the address listed on top of document. We do our best to answer on a timely basis.</p>
@@ -2694,11 +2693,11 @@ $<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=<
 <p></p>
 </div>
 <div class="section" id="please-react">
-<h1><a class="toc-backref" href="#toc-entry-83">Please React!</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-84">Please React!</a></h1>
 <p>If you have information more detailed or more recent than those presented in this document, if you noticed errors, neglects or points insufficiently discussed, drop us a line! (for that, follow the <a class="reference internal" href="#support">Support</a> guidelines).</p>
 </div>
 <div class="section" id="contributions-ending-word">
-<h1><a class="toc-backref" href="#toc-entry-84">Contributions &amp; Ending Word</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-85">Contributions &amp; Ending Word</a></h1>
 <p>Each time that you need a basic service that:</p>
 <ul class="simple">
 <li>seems neither provided by the Erlang <a class="reference external" href="http://erlang.org/doc/man_index.html">built-in modules</a> nor by this <tt class="docutils literal">Myriad</tt> layer</li>

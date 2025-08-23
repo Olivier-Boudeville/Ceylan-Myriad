@@ -23,8 +23,12 @@
 <p><code>local_designator() = pid() | <a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a></code></p>
 
 
-<h3 class="typedecl"><a name="type-look_up_scope">look_up_scope()</a></h3>
-<p><code>look_up_scope() = global | local | local_and_global | local_otherwise_global | global_otherwise_local</code></p>
+<h3 class="typedecl"><a name="type-lookup_info">lookup_info()</a></h3>
+<p><code>lookup_info() = {<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, <a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>}</code></p>
+
+
+<h3 class="typedecl"><a name="type-lookup_scope">lookup_scope()</a></h3>
+<p><code>lookup_scope() = global | local | local_and_global | local_otherwise_global | global_otherwise_local</code></p>
 
 
 <h3 class="typedecl"><a name="type-registration_name">registration_name()</a></h3>
@@ -35,30 +39,63 @@
 <p><code>registration_scope() = global_only | local_only | local_and_global | none</code></p>
 
 
+<h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
+<p><code>ustring() = <a href="text_utils.html#type-ustring" docgen-rel="seetype" docgen-href="text_utils#ustring/0">text_utils:ustring()</a></code></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#display_registered-0">display_registered/0</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#check_lookup_scope-1">check_lookup_scope/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_registration_name-1">check_registration_name/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_registration_scope-1">check_registration_scope/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#display_registered-0">display_registered/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_locally_registered_pid_for-2">get_locally_registered_pid_for/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_maybe_locally_registered_pid_for-2">get_maybe_locally_registered_pid_for/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_maybe_registered_pid_for-1">get_maybe_registered_pid_for/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_maybe_registered_pid_for-2">get_maybe_registered_pid_for/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_maybe_registered_pid_from-2">get_maybe_registered_pid_from/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_registered_names-1">get_registered_names/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_registered_pid_for-1">get_registered_pid_for/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_registered_pid_for-2">get_registered_pid_for/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_registered_pid_from-2">get_registered_pid_from/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_registered-1">is_registered/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_registered-2">is_registered/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#lookup_info_to_string-1">lookup_info_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_as-2">register_as/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_as-3">register_as/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_or_return_registered-2">register_or_return_registered/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#registration_to_look_up_scope-1">registration_to_look_up_scope/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#registration_to_lookup_scope-1">registration_to_lookup_scope/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#unregister-2">unregister/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#vet_lookup_scope-1">vet_lookup_scope/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#vet_registration_name-1">vet_registration_name/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#vet_registration_scope-1">vet_registration_scope/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_global_registration_of-1">wait_for_global_registration_of/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_global_registration_of-2">wait_for_global_registration_of/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_local_registration_of-1">wait_for_local_registration_of/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_local_registration_of-2">wait_for_local_registration_of/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#wait_for_registration_of-1">wait_for_registration_of/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_registration_of-2">wait_for_registration_of/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#wait_for_remote_local_registrations_of-2">wait_for_remote_local_registrations_of/2</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="check_lookup_scope-1">check_lookup_scope/1</a></h3>
+<div class="spec">
+<p><code>check_lookup_scope(Term::term()) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="check_registration_name-1">check_registration_name/1</a></h3>
+<div class="spec">
+<p><code>check_registration_name(Term::term()) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="check_registration_scope-1">check_registration_scope/1</a></h3>
+<div class="spec">
+<p><code>check_registration_scope(Term::term()) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
 
 <h3 class="function"><a name="display_registered-0">display_registered/0</a></h3>
 <div class="spec">
@@ -68,25 +105,55 @@
 
 <h3 class="function"><a name="get_locally_registered_pid_for-2">get_locally_registered_pid_for/2</a></h3>
 <div class="spec">
-<p><code>get_locally_registered_pid_for(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, TargetNode::<a href="#type-atom_node_name" docgen-rel="seetype" docgen-href="#atom_node_name/0">atom_node_name()</a>) -&gt; pid()</code><br></p>
+<p><code>get_locally_registered_pid_for(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, TargetNode::<a href="#type-atom_node_name" docgen-rel="seetype" docgen-href="#atom_node_name/0">atom_node_name()</a>) -&gt; pid()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_maybe_locally_registered_pid_for-2">get_maybe_locally_registered_pid_for/2</a></h3>
+<div class="spec">
+<p><code>get_maybe_locally_registered_pid_for(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, TargetNode::<a href="#type-atom_node_name" docgen-rel="seetype" docgen-href="#atom_node_name/0">atom_node_name()</a>) -&gt; <a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(pid())</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_maybe_registered_pid_for-1">get_maybe_registered_pid_for/1</a></h3>
+<div class="spec">
+<p><code>get_maybe_registered_pid_for(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a> | <a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>) -&gt; <a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(pid())</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_maybe_registered_pid_for-2">get_maybe_registered_pid_for/2</a></h3>
+<div class="spec">
+<p><code>get_maybe_registered_pid_for(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookupScope::<a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>) -&gt; <a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(pid())</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_maybe_registered_pid_from-2">get_maybe_registered_pid_from/2</a></h3>
+<div class="spec">
+<p><code>get_maybe_registered_pid_from(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a>, TargetNode::<a href="#type-atom_node_name" docgen-rel="seetype" docgen-href="#atom_node_name/0">atom_node_name()</a>) -&gt; <a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(pid())</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="get_registered_names-1">get_registered_names/1</a></h3>
 <div class="spec">
-<p><code>get_registered_names(LookUpScope::<a href="#type-look_up_scope" docgen-rel="seetype" docgen-href="#look_up_scope/0">look_up_scope()</a>) -&gt; [<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>]</code><br></p>
+<p><code>get_registered_names(LookUpScope::<a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>) -&gt; [<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>]</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="get_registered_pid_for-1">get_registered_pid_for/1</a></h3>
 <div class="spec">
-<p><code>get_registered_pid_for(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>) -&gt; pid()</code><br></p>
+<p><code>get_registered_pid_for(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a> | <a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>) -&gt; pid()</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="get_registered_pid_for-2">get_registered_pid_for/2</a></h3>
 <div class="spec">
-<p><code>get_registered_pid_for(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, RegistrationScope::<a href="#type-look_up_scope" docgen-rel="seetype" docgen-href="#look_up_scope/0">look_up_scope()</a>) -&gt; pid()</code><br></p>
+<p><code>get_registered_pid_for(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookupScope::<a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>) -&gt; pid()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_registered_pid_from-2">get_registered_pid_from/2</a></h3>
+<div class="spec">
+<p><code>get_registered_pid_from(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a>, TargetNode::<a href="#type-atom_node_name" docgen-rel="seetype" docgen-href="#atom_node_name/0">atom_node_name()</a>) -&gt; pid()</code><br></p>
 <p> </p>
 </div>
 
@@ -98,43 +165,55 @@
 
 <h3 class="function"><a name="is_registered-2">is_registered/2</a></h3>
 <div class="spec">
-<p><code>is_registered(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookUpScope::<a href="#type-look_up_scope" docgen-rel="seetype" docgen-href="#look_up_scope/0">look_up_scope()</a>) -&gt; pid() | not_registered</code><br></p>
+<p><code>is_registered(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookUpScope::<a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>) -&gt; pid() | not_registered</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="lookup_info_to_string-1">lookup_info_to_string/1</a></h3>
+<div class="spec">
+<p><code>lookup_info_to_string(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="register_as-2">register_as/2</a></h3>
 <div class="spec">
-<p><code>register_as(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, RegistrationScope::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p><code>register_as(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, RegScope::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="register_as-3">register_as/3</a></h3>
 <div class="spec">
-<p><code>register_as(Pid::pid(), Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, Other::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p><code>register_as(Pid::pid(), RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, Other::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="register_or_return_registered-2">register_or_return_registered/2</a></h3>
 <div class="spec">
-<p><code>register_or_return_registered(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, Scope::global_only | local_only) -&gt; registered | pid()</code><br></p>
+<p><code>register_or_return_registered(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, RegScope::global_only | local_only) -&gt; registered | pid()</code><br></p>
 <p> </p>
 </div>
 
-<h3 class="function"><a name="registration_to_look_up_scope-1">registration_to_look_up_scope/1</a></h3>
+<h3 class="function"><a name="registration_to_lookup_scope-1">registration_to_lookup_scope/1</a></h3>
 <div class="spec">
-<p><code>registration_to_look_up_scope(Scope::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-look_up_scope" docgen-rel="seetype" docgen-href="#look_up_scope/0">look_up_scope()</a></code><br></p>
+<p><code>registration_to_lookup_scope(RegScope::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a></code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="unregister-2">unregister/2</a></h3>
 <div class="spec">
-<p><code>unregister(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, X2::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p><code>unregister(RegName::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, X2::<a href="#type-registration_scope" docgen-rel="seetype" docgen-href="#registration_scope/0">registration_scope()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="vet_lookup_scope-1">vet_lookup_scope/1</a></h3>
+<div class="spec">
+<p><code>vet_lookup_scope(Other::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="vet_registration_name-1">vet_registration_name/1</a></h3>
 <div class="spec">
-<p><code>vet_registration_name(Name::term()) -&gt; boolean()</code><br></p>
+<p><code>vet_registration_name(RegName::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
@@ -168,9 +247,15 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="wait_for_registration_of-1">wait_for_registration_of/1</a></h3>
+<div class="spec">
+<p><code>wait_for_registration_of(LookUpInfo::<a href="#type-lookup_info" docgen-rel="seetype" docgen-href="#lookup_info/0">lookup_info()</a>) -&gt; pid()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="wait_for_registration_of-2">wait_for_registration_of/2</a></h3>
 <div class="spec">
-<p><code>wait_for_registration_of(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookUpScope::<a href="#type-look_up_scope" docgen-rel="seetype" docgen-href="#look_up_scope/0">look_up_scope()</a>) -&gt; pid()</code><br></p>
+<p><code>wait_for_registration_of(Name::<a href="#type-registration_name" docgen-rel="seetype" docgen-href="#registration_name/0">registration_name()</a>, LookUpScope::<a href="#type-lookup_scope" docgen-rel="seetype" docgen-href="#lookup_scope/0">lookup_scope()</a>) -&gt; pid()</code><br></p>
 <p> </p>
 </div>
 

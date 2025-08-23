@@ -107,6 +107,10 @@
 <p><code>stack_trace() = [<a href="#type-stack_item" docgen-rel="seetype" docgen-href="#stack_item/0">stack_item()</a>]</code></p>
 
 
+<h3 class="typedecl"><a name="type-stacktrace_error_output">stacktrace_error_output()</a></h3>
+<p><code>stacktrace_error_output() = {StdOutputStackStr::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>, MaybeFileOutputStackStr::<a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>)}</code></p>
+
+
 <h3 class="typedecl"><a name="type-time_out">time_out()</a></h3>
 <p><code>time_out() = <a href="time_utils.html#type-time_out" docgen-rel="seetype" docgen-href="time_utils#time_out/0">time_utils:time_out()</a></code></p>
 
@@ -144,10 +148,12 @@
 <tr><td valign="top"><a href="#get_stacktrace-0">get_stacktrace/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_stacktrace-1">get_stacktrace/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_error-2">interpret_error/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#interpret_shortened_stacktrace-1">interpret_shortened_stacktrace/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_stacktrace-0">interpret_stacktrace/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_stacktrace-1">interpret_stacktrace/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_stacktrace-2">interpret_stacktrace/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#interpret_stacktrace_for_error_output-0">interpret_stacktrace_for_error_output/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#interpret_stacktrace_for_error_output-2">interpret_stacktrace_for_error_output/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#interpret_truncated_stacktrace-1">interpret_truncated_stacktrace/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_undef_exception-3">interpret_undef_exception/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_beam_in_path-1">is_beam_in_path/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_loaded_module_same_on_filesystem-1">is_loaded_module_same_on_filesystem/1</a></td><td></td></tr>
@@ -333,12 +339,6 @@
 <p> </p>
 </div>
 
-<h3 class="function"><a name="interpret_shortened_stacktrace-1">interpret_shortened_stacktrace/1</a></h3>
-<div class="spec">
-<p><code>interpret_shortened_stacktrace(SkipLastElemCount::<a href="basic_utils.html#type-count" docgen-rel="seetype" docgen-href="basic_utils#count/0">basic_utils:count()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
-<p> </p>
-</div>
-
 <h3 class="function"><a name="interpret_stacktrace-0">interpret_stacktrace/0</a></h3>
 <div class="spec">
 <p><code>interpret_stacktrace() -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
@@ -354,6 +354,24 @@
 <h3 class="function"><a name="interpret_stacktrace-2">interpret_stacktrace/2</a></h3>
 <div class="spec">
 <p><code>interpret_stacktrace(Stacktrace::<a href="#type-stack_trace" docgen-rel="seetype" docgen-href="#stack_trace/0">stack_trace()</a>, MaybeErrorTerm::<a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(<a href="#type-error_term" docgen-rel="seetype" docgen-href="#error_term/0">error_term()</a>)) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="interpret_stacktrace_for_error_output-0">interpret_stacktrace_for_error_output/0</a></h3>
+<div class="spec">
+<p><code>interpret_stacktrace_for_error_output() -&gt; <a href="#type-stacktrace_error_output" docgen-rel="seetype" docgen-href="#stacktrace_error_output/0">stacktrace_error_output()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="interpret_stacktrace_for_error_output-2">interpret_stacktrace_for_error_output/2</a></h3>
+<div class="spec">
+<p><code>interpret_stacktrace_for_error_output(Stacktrace::<a href="#type-stack_trace" docgen-rel="seetype" docgen-href="#stack_trace/0">stack_trace()</a>, MaybeErrorTerm::<a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(<a href="#type-error_term" docgen-rel="seetype" docgen-href="#error_term/0">error_term()</a>)) -&gt; <a href="#type-stacktrace_error_output" docgen-rel="seetype" docgen-href="#stacktrace_error_output/0">stacktrace_error_output()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="interpret_truncated_stacktrace-1">interpret_truncated_stacktrace/1</a></h3>
+<div class="spec">
+<p><code>interpret_truncated_stacktrace(SkipLastElemCount::<a href="#type-count" docgen-rel="seetype" docgen-href="#count/0">count()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
 <p> </p>
 </div>
 

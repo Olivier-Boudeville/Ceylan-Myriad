@@ -215,6 +215,10 @@
 <p><code>link_path() = <a href="#type-file_path" docgen-rel="seetype" docgen-href="#file_path/0">file_path()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-maybe_list">maybe_list()</a></h3>
+<p><code>maybe_list(T) = <a href="list_utils.html#type-maybe_list" docgen-rel="seetype" docgen-href="list_utils#maybe_list/0">list_utils:maybe_list</a>(T)</code></p>
+
+
 <h3 class="typedecl"><a name="type-parent_creation">parent_creation()</a></h3>
 <p><code>parent_creation() = create_no_parent | create_parents</code></p>
 
@@ -293,6 +297,9 @@
 <tr><td valign="top"><a href="#create_temporary_directory-0">create_temporary_directory/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#decompress-1">decompress/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#decompress-2">decompress/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#describe_group_of-1">describe_group_of/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#describe_owner_of-1">describe_owner_of/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#describe_permissions_of-1">describe_permissions_of/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#ensure_path_is_absolute-1">ensure_path_is_absolute/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#ensure_path_is_absolute-2">ensure_path_is_absolute/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#escape_path-1">escape_path/1</a></td><td></td></tr>
@@ -329,12 +336,15 @@
 <tr><td valign="top"><a href="#get_data_directory-1">get_data_directory/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_default_encoding-0">get_default_encoding/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_default_encoding_option-0">get_default_encoding_option/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_directory_access_denied_info-1">get_directory_access_denied_info/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_dotted_extension_for-1">get_dotted_extension_for/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_element_access_denied_info-1">get_element_access_denied_info/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_extension-1">get_extension/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_extension_for-1">get_extension_for/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_extensions-1">get_extensions/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_extra_configuration_directories-1">get_extra_configuration_directories/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_extra_data_directories-1">get_extra_data_directories/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_file_access_denied_info-1">get_file_access_denied_info/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_first_existing_directory_in-1">get_first_existing_directory_in/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_first_file_or_link_for-2">get_first_file_or_link_for/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_group_of-1">get_group_of/1</a></td><td></td></tr>
@@ -644,6 +654,24 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="describe_group_of-1">describe_group_of/1</a></h3>
+<div class="spec">
+<p><code>describe_group_of(Path::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="describe_owner_of-1">describe_owner_of/1</a></h3>
+<div class="spec">
+<p><code>describe_owner_of(Path::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="describe_permissions_of-1">describe_permissions_of/1</a></h3>
+<div class="spec">
+<p><code>describe_permissions_of(EntryPath::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="ensure_path_is_absolute-1">ensure_path_is_absolute/1</a></h3>
 <div class="spec">
 <p><code>ensure_path_is_absolute(Path::<a href="#type-path" docgen-rel="seetype" docgen-href="#path/0">path()</a>) -&gt; <a href="#type-path" docgen-rel="seetype" docgen-href="#path/0">path()</a></code><br></p><p><code>ensure_path_is_absolute(Path::<a href="#type-bin_path" docgen-rel="seetype" docgen-href="#bin_path/0">bin_path()</a>) -&gt; <a href="#type-bin_path" docgen-rel="seetype" docgen-href="#bin_path/0">bin_path()</a></code><br></p>
@@ -677,13 +705,13 @@
 
 <h3 class="function"><a name="files_to_zipped_term-1">files_to_zipped_term/1</a></h3>
 <div class="spec">
-<p><code>files_to_zipped_term(FilenameList::[<a href="#type-file_name" docgen-rel="seetype" docgen-href="#file_name/0">file_name()</a>]) -&gt; binary()</code><br></p>
+<p><code>files_to_zipped_term(Filenames::[<a href="#type-file_name" docgen-rel="seetype" docgen-href="#file_name/0">file_name()</a>]) -&gt; binary()</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="files_to_zipped_term-2">files_to_zipped_term/2</a></h3>
 <div class="spec">
-<p><code>files_to_zipped_term(FilenameList::[<a href="#type-file_name" docgen-rel="seetype" docgen-href="#file_name/0">file_name()</a>], BaseDirectory::<a href="#type-any_directory_name" docgen-rel="seetype" docgen-href="#any_directory_name/0">any_directory_name()</a>) -&gt; binary()</code><br></p>
+<p><code>files_to_zipped_term(Filenames::[<a href="#type-file_name" docgen-rel="seetype" docgen-href="#file_name/0">file_name()</a>], BaseDirectory::<a href="#type-any_directory_path" docgen-rel="seetype" docgen-href="#any_directory_path/0">any_directory_path()</a>) -&gt; binary()</code><br></p>
 <p> </p>
 </div>
 
@@ -861,9 +889,21 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="get_directory_access_denied_info-1">get_directory_access_denied_info/1</a></h3>
+<div class="spec">
+<p><code>get_directory_access_denied_info(AnyDirPath::<a href="#type-any_directory_path" docgen-rel="seetype" docgen-href="#any_directory_path/0">any_directory_path()</a>) -&gt; term()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="get_dotted_extension_for-1">get_dotted_extension_for/1</a></h3>
 <div class="spec">
 <p><code>get_dotted_extension_for(CompressionFormat::<a href="#type-compression_format" docgen-rel="seetype" docgen-href="#compression_format/0">compression_format()</a>) -&gt; <a href="#type-dotted_extension" docgen-rel="seetype" docgen-href="#dotted_extension/0">dotted_extension()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_element_access_denied_info-1">get_element_access_denied_info/1</a></h3>
+<div class="spec">
+<p><code>get_element_access_denied_info(AnyElemPath::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; term()</code><br></p>
 <p> </p>
 </div>
 
@@ -897,6 +937,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="get_file_access_denied_info-1">get_file_access_denied_info/1</a></h3>
+<div class="spec">
+<p><code>get_file_access_denied_info(AnyFilePath::<a href="#type-any_file_path" docgen-rel="seetype" docgen-href="#any_file_path/0">any_file_path()</a>) -&gt; term()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="get_first_existing_directory_in-1">get_first_existing_directory_in/1</a></h3>
 <div class="spec">
 <p><code>get_first_existing_directory_in(DirPaths::[<a href="#type-any_directory_path" docgen-rel="seetype" docgen-href="#any_directory_path/0">any_directory_path()</a>]) -&gt; <a href="#type-any_directory_path" docgen-rel="seetype" docgen-href="#any_directory_path/0">any_directory_path()</a></code><br></p>
@@ -917,7 +963,7 @@
 
 <h3 class="function"><a name="get_image_extensions-0">get_image_extensions/0</a></h3>
 <div class="spec">
-<p><code>get_image_extensions() -&gt; [<a href="#type-extension" docgen-rel="seetype" docgen-href="#extension/0">extension()</a>]</code><br></p>
+<p><code>get_image_extensions() -&gt; [<a href="#type-dotted_extension" docgen-rel="seetype" docgen-href="#dotted_extension/0">dotted_extension()</a>]</code><br></p>
 <p> </p>
 </div>
 
@@ -1387,7 +1433,7 @@
 
 <h3 class="function"><a name="resolve_symlink_fully-1">resolve_symlink_fully/1</a></h3>
 <div class="spec">
-<p><code>resolve_symlink_fully(SymlinkPath::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; <a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a></code><br></p>
+<p><code>resolve_symlink_fully(SymlinkPath::<a href="#type-any_path" docgen-rel="seetype" docgen-href="#any_path/0">any_path()</a>) -&gt; <a href="#type-abs_directory_path" docgen-rel="seetype" docgen-href="#abs_directory_path/0">abs_directory_path()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -1423,7 +1469,7 @@
 
 <h3 class="function"><a name="to_permission_mask-1">to_permission_mask/1</a></h3>
 <div class="spec">
-<p><code>to_permission_mask(PermissionList::<a href="#type-permission" docgen-rel="seetype" docgen-href="#permission/0">permission()</a> | [<a href="#type-permission" docgen-rel="seetype" docgen-href="#permission/0">permission()</a>]) -&gt; <a href="#type-permission_mask" docgen-rel="seetype" docgen-href="#permission_mask/0">permission_mask()</a></code><br></p>
+<p><code>to_permission_mask(PermissionList::<a href="#type-maybe_list" docgen-rel="seetype" docgen-href="#maybe_list/0">maybe_list</a>(<a href="#type-permission" docgen-rel="seetype" docgen-href="#permission/0">permission()</a>)) -&gt; <a href="#type-permission_mask" docgen-rel="seetype" docgen-href="#permission_mask/0">permission_mask()</a></code><br></p>
 <p> </p>
 </div>
 

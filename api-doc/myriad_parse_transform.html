@@ -19,12 +19,24 @@
 <p><code>ast() = <a href="ast_base.html#type-ast" docgen-rel="seetype" docgen-href="ast_base#ast/0">ast_base:ast()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-ast_expression">ast_expression()</a></h3>
+<p><code>ast_expression() = <a href="ast_expression.html#type-ast_expression" docgen-rel="seetype" docgen-href="ast_expression#ast_expression/0">ast_expression:ast_expression()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-ast_transforms">ast_transforms()</a></h3>
 <p><code>ast_transforms() = <a href="ast_transform.html#type-ast_transforms" docgen-rel="seetype" docgen-href="ast_transform#ast_transforms/0">ast_transform:ast_transforms()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><code>file_loc() = <a href="ast_base.html#type-file_loc" docgen-rel="seetype" docgen-href="ast_base#file_loc/0">ast_base:file_loc()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-file_name">file_name()</a></h3>
 <p><code>file_name() = <a href="file_utils.html#type-file_name" docgen-rel="seetype" docgen-href="file_utils#file_name/0">file_utils:file_name()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-form">form()</a></h3>
+<p><code>form() = <a href="ast_base.html#type-form" docgen-rel="seetype" docgen-href="ast_base#form/0">ast_base:form()</a></code></p>
 
 
 <h3 class="typedecl"><a name="type-module_info">module_info()</a></h3>
@@ -37,6 +49,7 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply_myriad_transform-2">apply_myriad_transform/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_formatting_call_3p-5">handle_formatting_call_3p/5</a></td><td></td></tr>
 <tr><td valign="top"><a href="#parse_transform-2">parse_transform/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#run_standalone-1">run_standalone/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#run_standalone-2">run_standalone/2</a></td><td></td></tr>
@@ -48,6 +61,12 @@
 <h3 class="function"><a name="apply_myriad_transform-2">apply_myriad_transform/2</a></h3>
 <div class="spec">
 <p><code>apply_myriad_transform(InputAST::<a href="#type-ast" docgen-rel="seetype" docgen-href="#ast/0">ast()</a>, Options::<a href="#type-parse_transform_options" docgen-rel="seetype" docgen-href="#parse_transform_options/0">parse_transform_options()</a>) -&gt; {<a href="#type-ast" docgen-rel="seetype" docgen-href="#ast/0">ast()</a>, <a href="#type-module_info" docgen-rel="seetype" docgen-href="#module_info/0">module_info()</a>}</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="handle_formatting_call_3p-5">handle_formatting_call_3p/5</a></h3>
+<div class="spec">
+<p><code>handle_formatting_call_3p(FileLoc::<a href="#type-file_loc" docgen-rel="seetype" docgen-href="#file_loc/0">file_loc()</a>, ModNameForm::<a href="#type-form" docgen-rel="seetype" docgen-href="#form/0">form()</a>, FunNameForm::<a href="#type-form" docgen-rel="seetype" docgen-href="#form/0">form()</a>, ParamExprs::[<a href="#type-ast_expression" docgen-rel="seetype" docgen-href="#ast_expression/0">ast_expression()</a>], Transforms::<a href="#type-ast_transforms" docgen-rel="seetype" docgen-href="#ast_transforms/0">ast_transforms()</a>) -&gt; {[<a href="#type-ast_expression" docgen-rel="seetype" docgen-href="#ast_expression/0">ast_expression()</a>], <a href="#type-ast_transforms" docgen-rel="seetype" docgen-href="#ast_transforms/0">ast_transforms()</a>}</code><br></p>
 <p> </p>
 </div>
 

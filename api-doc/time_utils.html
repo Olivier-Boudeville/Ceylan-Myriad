@@ -87,6 +87,18 @@
 <p><code>dhms_duration() = {D::<a href="#type-days" docgen-rel="seetype" docgen-href="#days/0">days()</a>, H::<a href="#type-hours" docgen-rel="seetype" docgen-href="#hours/0">hours()</a>, M::<a href="#type-minutes" docgen-rel="seetype" docgen-href="#minutes/0">minutes()</a>, S::<a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a>}</code></p>
 
 
+<h3 class="typedecl"><a name="type-extended_date">extended_date()</a></h3>
+<p><code>extended_date() = <a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a> | yesterday | today | tomorrow</code></p>
+
+
+<h3 class="typedecl"><a name="type-extended_time">extended_time()</a></h3>
+<p><code>extended_time() = <a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a> | now</code></p>
+
+
+<h3 class="typedecl"><a name="type-extended_timestamp">extended_timestamp()</a></h3>
+<p><code>extended_timestamp() = {<a href="#type-extended_date" docgen-rel="seetype" docgen-href="#extended_date/0">extended_date()</a>, <a href="#type-extended_time" docgen-rel="seetype" docgen-href="#extended_time/0">extended_time()</a>} | {next_possible_day, <a href="#type-extended_time" docgen-rel="seetype" docgen-href="#extended_time/0">extended_time()</a>} | in_5_minutes | in_1_hour</code></p>
+
+
 <h3 class="typedecl"><a name="type-finite_second_time_out">finite_second_time_out()</a></h3>
 <p><code>finite_second_time_out() = <a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a></code></p>
 
@@ -160,7 +172,7 @@
 
 
 <h3 class="typedecl"><a name="type-precise_timestamp">precise_timestamp()</a></h3>
-<p><code>precise_timestamp() = {<a href="#type-megaseconds" docgen-rel="seetype" docgen-href="#megaseconds/0">megaseconds()</a>, <a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a>, <a href="#type-microseconds" docgen-rel="seetype" docgen-href="#microseconds/0">microseconds()</a>}</code></p>
+<p><code>precise_timestamp() = {MegaSecs::<a href="#type-megaseconds" docgen-rel="seetype" docgen-href="#megaseconds/0">megaseconds()</a>, Secs::<a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a>, MicroSecs::<a href="#type-microseconds" docgen-rel="seetype" docgen-href="#microseconds/0">microseconds()</a>}</code></p>
 
 
 <h3 class="typedecl"><a name="type-second_duration">second_duration()</a></h3>
@@ -228,14 +240,17 @@
 <tr><td valign="top"><a href="#canonicalise_month-1">canonicalise_month/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#canonicalise_time_frame-1">canonicalise_time_frame/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_canonical_date-1">check_canonical_date/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_canonical_time-1">check_canonical_time/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_date_order-2">check_date_order/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_maybe_timestamp-1">check_maybe_timestamp/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_month_canonical-1">check_month_canonical/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_month_order-2">check_month_order/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_time_frame-1">check_time_frame/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_time_order-2">check_time_order/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_timestamp-1">check_timestamp/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_user_date-1">check_user_date/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#compare_dates-2">compare_dates/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#compare_times-2">compare_times/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#date_to_weekday-1">date_to_weekday/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#days_to_seconds-1">days_to_seconds/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#dhms_to_seconds-1">dhms_to_seconds/1</a></td><td></td></tr>
@@ -283,6 +298,7 @@
 <tr><td valign="top"><a href="#get_textual_timestamp_with_dashes-1">get_textual_timestamp_with_dashes/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_time2_textual_timestamp-0">get_time2_textual_timestamp/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_time2_textual_timestamp-1">get_time2_textual_timestamp/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_time_difference-2">get_time_difference/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_timestamp-0">get_timestamp/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_user_friendly_textual_timestamp-1">get_user_friendly_textual_timestamp/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_week_day-1">get_week_day/1</a></td><td></td></tr>
@@ -290,6 +306,7 @@
 <tr><td valign="top"><a href="#hours_to_seconds-1">hours_to_seconds/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_bank_holiday-2">is_bank_holiday/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_canonical_date-1">is_canonical_date/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_canonical_time-1">is_canonical_time/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_date-1">is_date/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_dhms_duration-1">is_dhms_duration/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_leap_year-1">is_leap_year/1</a></td><td></td></tr>
@@ -302,6 +319,9 @@
 <tr><td valign="top"><a href="#next_month-1">next_month/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#offset_time-2">offset_time/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#offset_timestamp-2">offset_timestamp/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#resolve_date-1">resolve_date/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#resolve_time-1">resolve_time/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#resolve_timestamp-1">resolve_timestamp/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#seconds_to_dhms-1">seconds_to_dhms/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#short_string_to_timestamp-1">short_string_to_timestamp/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#string_to_dhms-1">string_to_dhms/1</a></td><td></td></tr>
@@ -353,6 +373,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="check_canonical_time-1">check_canonical_time/1</a></h3>
+<div class="spec">
+<p><code>check_canonical_time(Time::term()) -&gt; <a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="check_date_order-2">check_date_order/2</a></h3>
 <div class="spec">
 <p><code>check_date_order(StartDate::<a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a>, StopDate::<a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
@@ -383,6 +409,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="check_time_order-2">check_time_order/2</a></h3>
+<div class="spec">
+<p><code>check_time_order(StartTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>, StopTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="check_timestamp-1">check_timestamp/1</a></h3>
 <div class="spec">
 <p><code>check_timestamp(Term::term()) -&gt; <a href="#type-timestamp" docgen-rel="seetype" docgen-href="#timestamp/0">timestamp()</a></code><br></p>
@@ -398,6 +430,12 @@
 <h3 class="function"><a name="compare_dates-2">compare_dates/2</a></h3>
 <div class="spec">
 <p><code>compare_dates(FirstDate::<a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a>, SecondDate::<a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a>) -&gt; <a href="basic_utils.html#type-comparison_result" docgen-rel="seetype" docgen-href="basic_utils#comparison_result/0">basic_utils:comparison_result()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="compare_times-2">compare_times/2</a></h3>
+<div class="spec">
+<p><code>compare_times(FirstTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>, SecondTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>) -&gt; <a href="basic_utils.html#type-comparison_result" docgen-rel="seetype" docgen-href="basic_utils#comparison_result/0">basic_utils:comparison_result()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -683,6 +721,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="get_time_difference-2">get_time_difference/2</a></h3>
+<div class="spec">
+<p><code>get_time_difference(FirstTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>, SecondTime::<a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a>) -&gt; <a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="get_timestamp-0">get_timestamp/0</a></h3>
 <div class="spec">
 <p><code>get_timestamp() -&gt; <a href="#type-timestamp" docgen-rel="seetype" docgen-href="#timestamp/0">timestamp()</a></code><br></p>
@@ -722,6 +766,12 @@
 <h3 class="function"><a name="is_canonical_date-1">is_canonical_date/1</a></h3>
 <div class="spec">
 <p><code>is_canonical_date(Date::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_canonical_time-1">is_canonical_time/1</a></h3>
+<div class="spec">
+<p><code>is_canonical_time(Time::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
@@ -794,6 +844,24 @@
 <h3 class="function"><a name="offset_timestamp-2">offset_timestamp/2</a></h3>
 <div class="spec">
 <p><code>offset_timestamp(Timestamp::<a href="#type-timestamp" docgen-rel="seetype" docgen-href="#timestamp/0">timestamp()</a>, DHMS::<a href="#type-dhms_duration" docgen-rel="seetype" docgen-href="#dhms_duration/0">dhms_duration()</a> | <a href="#type-seconds" docgen-rel="seetype" docgen-href="#seconds/0">seconds()</a>) -&gt; <a href="#type-timestamp" docgen-rel="seetype" docgen-href="#timestamp/0">timestamp()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="resolve_date-1">resolve_date/1</a></h3>
+<div class="spec">
+<p><code>resolve_date(ExtDate::<a href="#type-extended_date" docgen-rel="seetype" docgen-href="#extended_date/0">extended_date()</a>) -&gt; <a href="#type-date" docgen-rel="seetype" docgen-href="#date/0">date()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="resolve_time-1">resolve_time/1</a></h3>
+<div class="spec">
+<p><code>resolve_time(ExtTime::<a href="#type-extended_time" docgen-rel="seetype" docgen-href="#extended_time/0">extended_time()</a>) -&gt; <a href="#type-time" docgen-rel="seetype" docgen-href="#time/0">time()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="resolve_timestamp-1">resolve_timestamp/1</a></h3>
+<div class="spec">
+<p><code>resolve_timestamp(ExtTimestamp::<a href="#type-extended_timestamp" docgen-rel="seetype" docgen-href="#extended_timestamp/0">extended_timestamp()</a>) -&gt; <a href="#type-timestamp" docgen-rel="seetype" docgen-href="#timestamp/0">timestamp()</a></code><br></p>
 <p> </p>
 </div>
 

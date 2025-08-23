@@ -53,7 +53,7 @@
 
 <h3 class="typedecl"><a name="type-chars">chars()</a></h3>
 <p><code>chars() = <a href="http://www.erlang.org/edoc/doc/stdlib/doc/io_lib.html#type-chars" docgen-rel="seetype" docgen-href="stdlib:io_lib#chars/0">io_lib:chars()</a></code></p>
-<p> Thus [char() | chars()].</p>
+<p> Thus a recursive type: [char() | chars()].</p>
 
 <h3 class="typedecl"><a name="type-control_sequence">control_sequence()</a></h3>
 <p><code>control_sequence() = <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code></p>
@@ -165,6 +165,10 @@
 
 <h3 class="typedecl"><a name="type-scan_format_outcome">scan_format_outcome()</a></h3>
 <p><code>scan_format_outcome() = [<a href="#type-value_description" docgen-rel="seetype" docgen-href="#value_description/0">value_description()</a>] | <a href="#type-format_parsing_error" docgen-rel="seetype" docgen-href="#format_parsing_error/0">format_parsing_error()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-spelling_tree">spelling_tree()</a></h3>
+<p><code>spelling_tree() = [{<a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>, <a href="#type-spelling_tree" docgen-rel="seetype" docgen-href="#spelling_tree/0">spelling_tree()</a>}]</code></p>
 
 
 <h3 class="typedecl"><a name="type-string_like">string_like()</a></h3>
@@ -308,8 +312,11 @@
 <tr><td valign="top"><a href="#is_any_string-1">is_any_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_bin_string-1">is_bin_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_char-1">is_char/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_chars-1">is_chars/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_figure-1">is_figure/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_nested_chars-1">is_nested_chars/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_non_empty_string-1">is_non_empty_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_prefixed_with-2">is_prefixed_with/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_string-1">is_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_string_like-1">is_string_like/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_uppercase-1">is_uppercase/1</a></td><td></td></tr>
@@ -335,8 +342,10 @@
 <tr><td valign="top"><a href="#pid_to_string-1">pid_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#pids_to_short_string-1">pids_to_short_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#pids_to_string-1">pids_to_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#port_to_string-1">port_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#proplist_to_string-1">proplist_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#record_to_string-1">record_to_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#reference_to_string-1">reference_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#remove_empty_lines-1">remove_empty_lines/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#remove_ending_carriage_return-1">remove_ending_carriage_return/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#remove_last_characters-2">remove_last_characters/2</a></td><td></td></tr>
@@ -843,7 +852,7 @@
 
 <h3 class="function"><a name="format_ellipsed-3">format_ellipsed/3</a></h3>
 <div class="spec">
-<p><code>format_ellipsed(FormatString::<a href="#type-format_string" docgen-rel="seetype" docgen-href="#format_string/0">format_string()</a>, Values::<a href="#type-format_values" docgen-rel="seetype" docgen-href="#format_values/0">format_values()</a>, MaxLen::<a href="#type-length" docgen-rel="seetype" docgen-href="#length/0">length()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p><code>format_ellipsed(FormatString::<a href="#type-format_string" docgen-rel="seetype" docgen-href="#format_string/0">format_string()</a>, Values::<a href="#type-format_values" docgen-rel="seetype" docgen-href="#format_values/0">format_values()</a>, EllipseAtLen::<a href="#type-length" docgen-rel="seetype" docgen-href="#length/0">length()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -1021,15 +1030,33 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="is_chars-1">is_chars/1</a></h3>
+<div class="spec">
+<p><code>is_chars(L::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="is_figure-1">is_figure/1</a></h3>
 <div class="spec">
 <p><code>is_figure(Char::char()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
+<h3 class="function"><a name="is_nested_chars-1">is_nested_chars/1</a></h3>
+<div class="spec">
+<p><code>is_nested_chars(L::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="is_non_empty_string-1">is_non_empty_string/1</a></h3>
 <div class="spec">
 <p><code>is_non_empty_string(S::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_prefixed_with-2">is_prefixed_with/2</a></h3>
+<div class="spec">
+<p><code>is_prefixed_with(Str::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>, Prefix::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
@@ -1183,6 +1210,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="port_to_string-1">port_to_string/1</a></h3>
+<div class="spec">
+<p><code>port_to_string(Port::port()) -&gt; <a href="#type-chars" docgen-rel="seetype" docgen-href="#chars/0">chars()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="proplist_to_string-1">proplist_to_string/1</a></h3>
 <div class="spec">
 <p><code>proplist_to_string(Proplist::<a href="list_table.html#type-list_table" docgen-rel="seetype" docgen-href="list_table#list_table/0">list_table:list_table()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
@@ -1192,6 +1225,12 @@
 <h3 class="function"><a name="record_to_string-1">record_to_string/1</a></h3>
 <div class="spec">
 <p><code>record_to_string(Record::term()) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="reference_to_string-1">reference_to_string/1</a></h3>
+<div class="spec">
+<p><code>reference_to_string(Reference::reference()) -&gt; <a href="#type-chars" docgen-rel="seetype" docgen-href="#chars/0">chars()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -1663,7 +1702,7 @@
 
 <h3 class="function"><a name="uppercase_initial_letter-1">uppercase_initial_letter/1</a></h3>
 <div class="spec">
-<p><code>uppercase_initial_letter(Letters::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p><code>uppercase_initial_letter(LettersBin::<a href="#type-any_string" docgen-rel="seetype" docgen-href="#any_string/0">any_string()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
 <p> </p>
 </div>
 
