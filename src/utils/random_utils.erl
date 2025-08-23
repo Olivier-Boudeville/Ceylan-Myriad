@@ -392,7 +392,7 @@ It is a tuple whose first element is a law identifier.
 	uniform_law_spec() | full_uniform_law_spec()
   | integer_uniform_law_spec()
 
-  | exponential_1p_law_spec() %| full_exponential_1p_law_spec()
+  | exponential_1p_law_spec() % | full_exponential_1p_law_spec()
   | exponential_law_spec()
 
   | exponential_2p_law_spec() | full_exponential_2p_law_spec()
@@ -1875,9 +1875,13 @@ Could be named normal_2p_pdf() as well.
 
 
 
-
 % For defines like sqrt_2_pi:
 -include("math_utils.hrl").
+
+
+-import( math, [ pi/0, exp/1, sqrt/1, pow/2 ] ).
+-import( math_utils, [ ln/1 ] ).
+
 
 
 % Type shorthands:
@@ -1913,8 +1917,8 @@ Could be named normal_2p_pdf() as well.
 -type dhms() :: unit_utils:dhms().
 
 
--import( math, [ pi/0, exp/1, sqrt/1, pow/2 ] ).
--import( math_utils, [ ln/1 ] ).
+
+
 
 
 % Apparently, as soon as functions are defined within preprocessor guards, their
@@ -1939,16 +1943,63 @@ Could be named normal_2p_pdf() as well.
 -spec stop_random_source() -> void().
 
 
+
+%-doc """
+%Returns a random float uniformly distributed between 0.0 (included) and 1.0
+%(excluded), updating the random state in the process dictionary.
+%""".
 -spec get_uniform_value() -> float().
 
+
+%-doc """
+%Returns an integer random value generated from an uniform distribution.
+%
+%Given an integer `N >= 1`, returns a random integer uniformly distributed
+%between 1 and N (both included), updating the random state in the process
+%dictionary.
+%""".
 -spec get_uniform_value( pos_integer() ) -> pos_integer().
 
+
+%-doc """
+%Returns an integer random value generated from an uniform distribution in
+%`[Nmin,Nmax]` (i.e. both bounds included), updating the random state in the
+%process dictionary.
+%""".
 -spec get_uniform_value( integer(), integer() ) -> integer().
 
+
+%-doc """
+%Returns a floating-point random value in `[0.0,N[` generated from an uniform
+%distribution.
+%
+%Given a number (integer or float) N (positive or not), returns a random
+%floating-point value uniformly distributed between 0.0 (included) and N
+%(excluded), updating the random state in the process dictionary.
+%""".
 -spec get_uniform_floating_point_value( number() ) -> float().
+
+
+%-doc """
+%Returns a floating-point random value in `[Nmin, Nmax[` generated from an
+%uniform distribution.
+%
+%Given two numbers (integer or float) Nmin and Nmax (each being positive or
+%not), returns a random floating-point value uniformly distributed between Nmin
+%(included) and Nmax (excluded), updating the random state in the process
+%dictionary.
+%""".
 -spec get_uniform_floating_point_value( number(), number() ) -> float().
 
+
+%-doc "Returns the name of the module managing the random generation.".
 -spec get_random_state() -> option( random_state() ).
+
+
+%-doc """
+%Returns the random state of the current process (it is useful for example for
+%process serialisations).
+%""".
 -spec set_random_state( random_state() ) -> void().
 
 
@@ -1960,6 +2011,7 @@ get_uniform_values( N, Count ) ->
 	get_uniform_values_helper( N, Count, _Acc=[] ).
 
 
+% (helper)
 get_uniform_values_helper( _N, _Count=0, Acc ) ->
 	Acc;
 
