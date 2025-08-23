@@ -134,8 +134,8 @@ This works well... until the parts of interest would have appeared after the ell
 Also, reporting errors through the standard (console) output is surely the most convenient, but, as mentioned, it is limited in terms of space and, also, of time: such printouts are transient, whereas having them stored fully and durably may be a debugging life-saver (notably when errors are difficult to reproduce or happen after a long time).
 
 
-Myriad Support
---------------
+Myriad Error Report Support
+---------------------------
 
 To cover at least a bit the previous needs, Myriad provides a few facilities - for its own use and the one of all layers above it - which are configured as a whole based on the ``basic_utils:error_report_output/0`` type, which allows selecting:
 
@@ -143,6 +143,8 @@ To cover at least a bit the previous needs, Myriad provides a few facilities - f
 - or if error reports should be ellipsed on the standard (error) output and **also stored in-file** (a file by default named ``myriad-error-report.txt`` and written in the current directory), either in full (with ``standard_ellipsed_file_full``) or ellipsed there as well - but with an higher maximum length than for the console (with ``standard_and_file_ellipsed``)
 
 By default the ``standard_ellipsed`` setting applies. It can be set (preferably as early as possible in the program execution) with ``basic_utils:set_error_report_output/1``, and read with ``basic_utils:get_error_report_output/0``.
+
+We recommend switching to ``standard_ellipsed_file_full`` to debug tricky issues, and to ``standard_and_file_ellipsed`` when building for the ``production`` execution target - calling ``basic_utils:setup_execution_target/{0,1}`` would take care of it.
 
 Various error-reporting facilities integrate these conventions; notably, in Myriad, the stacktraces automatically respect the current setting in terms of error report output (see for example ``code_utils:interpret_stacktrace_for_error_output/0``).
 

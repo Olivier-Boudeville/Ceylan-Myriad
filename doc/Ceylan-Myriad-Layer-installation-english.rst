@@ -402,7 +402,7 @@ For more details, one may have a look at:
 Other OTP-related Make Targets of Interest
 ------------------------------------------
 
-To populate/update the OTP build tree (by default, from the GIT root, for example ``_build/default/lib/myriad/`` for Myriad) of the current Ceylan layer, one may use::
+To populate/update the OTP build tree (by default, from the Git root, for example ``_build/default/lib/myriad/`` for Myriad) of the current Ceylan layer, one may use::
 
  $ make rebar3-compile
 
