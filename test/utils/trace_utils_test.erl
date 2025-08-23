@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the `trace_utils` toolbox.
 
-See the trace_utils.erl tested module.
+See the `trace_utils` tested module.
 """.
 
 
@@ -155,5 +155,9 @@ run() ->
 	trace_utils:debug( "(test waiting a bit; the next badarith error "
 					   "is intentional)" ),
 	timer:sleep( 2000 ),
+
+    % Uncomment if wanting to test the compile-time argument checking:
+    %trace_utils:debug_fmt( "Three arguments requested: ~w, ~ts, ~B.",
+    %                       [ 4, "hello" ] ), % One is lacking.
 
 	test_facilities:stop().

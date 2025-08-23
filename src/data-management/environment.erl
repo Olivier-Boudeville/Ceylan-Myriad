@@ -1653,7 +1653,7 @@ cache( KeysOrEntries, EnvPid ) when is_pid( EnvPid ) ->
 					% Quite same as before, this environment was not cached yet:
 					trace_utils:error_fmt( "Cannot cache for environment "
 						"server ~w, as the corresponding environment "
-						"registration name is not known.",
+						"registration name is not known.~nElements were: ~p",
 						[ EnvPid, KeysOrEntries ] ),
 					throw( { unknown_environment_for, EnvPid } );
 

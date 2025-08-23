@@ -3935,7 +3935,8 @@ remove_directory( DirectoryPath ) ->
 	Devices =:= [] orelse
 		begin
 			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
-				"as device entries have been found: ~p.", [ Devices ] ),
+				"as device entries have been found: ~p.",
+                [ DirectoryPath, Devices ] ),
 
 			throw( { device_entries_found, Devices } )
 		end,
@@ -3944,7 +3945,7 @@ remove_directory( DirectoryPath ) ->
 		begin
 			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
 				"as unexpected filesystem entries have been found: ~p.",
-				[ OtherFiles ] ),
+				[ DirectoryPath, OtherFiles ] ),
 
 			throw( { unexpected_entries_found, OtherFiles } )
 	end,
