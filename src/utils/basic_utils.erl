@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various **convenient facilities of all sorts**.
 
-See `basic_utils_test.erl` for the corresponding test.
+See the `basic_utils_test` module for the corresponding test.
 """.
 
 
@@ -197,14 +197,6 @@ wanting to specify the error type as well.
 
 
 -doc """
-Return type for operations that may return `{ok,SuccessStr}` or
-`{error,FailureStr}`.
-""".
--type string_fallible() ::
-    fallible( TSuccess :: ustring(), TFailure :: ustring() ).
-
-
--doc """
 Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller).
 """.
@@ -218,6 +210,12 @@ exception is to be raised then, thus the choice is left to the caller).
 -type fallible() :: fallible( TSuccess :: any() ).
 
 
+-doc """
+Return type for operations that may return `{ok,SuccessStr}` or
+`{error,FailureStr}`.
+""".
+-type string_fallible() ::
+    fallible( TSuccess :: ustring(), TFailure :: ustring() ).
 
 
 
@@ -317,6 +315,21 @@ the caller if needed.
 
 
 -doc """
+Return type for operations that may fail, allowing the caller to act based on
+the different causes of errors.
+
+Thus either `{ok,TSuccessValue}` or `{error, {ErrorTag, SomeErrorTuploid}}` like
+`{error, {type_scanning_failed, {ErrStr, ErrorLocation, TypeStr}}}`.
+
+Having the error tag in a pair (rather than in a tuple of potentially variable
+size) facilitates the caller-side error management. The tuploid, which is the
+most relevant form to aggregate extra information, may be further interpreted by
+the caller if needed.
+""".
+-type tagged_fallible() :: tagged_fallible( TSuccess :: any() ).
+
+
+-doc """
 Thus either `{ok,TSuccessValue}` or `{error, {TuploidTFailureValue,ErrorMsg}}`.
 """.
 -type diagnosed_fallible( TSuccess, TFailure ) ::
@@ -339,6 +352,32 @@ selectively (based on the tag) and each time with a proper diagnosis.
 """.
 -type diagnosed_tagged_fallible( TSuccess ) ::
     fallible( TSuccess, diagnosed_error_reason() ).
+
+
+
+-doc """
+Describes a setting in terms of general error reporting.
+
+Typically stored as a persistent term, and read and applied by the various error
+reporting systems.
+
+The default setting is `standard_ellipsed` (ligthest / most convenient,
+generally sufficient); we recommend switching to `standard_ellipsed_file_full`
+to debug tricky issues, and to `standard_and_file_ellipsed` in production.
+""".
+-type error_report_output() ::
+
+     % Full report to be put on standard error output (only):
+    'standard_full'
+
+    % Ellipsed report on standard error output only; the default:
+  | 'standard_ellipsed'
+
+    % Ellipsed report on standard error output, and full version on file:
+  | 'standard_ellipsed_file_full'
+
+    % Ellipsed report on standard error output, and ellipsed (but less) on file:
+  | 'standard_and_file_ellipsed'.
 
 
 
@@ -415,8 +454,10 @@ ReleaseVersion, BuildVersion}`.
 
 
 -doc """
-For all non-null indices (i.e. the ones that start at `1`). This is the
-convention that Myriad enforces as much as possible.
+For all non-null indices, i.e. the strictly positive ones, i.e. the ones that
+start at `1`.
+
+This is the convention that Myriad (and Erlang) enforce as much as possible.
 """.
 -type positive_index() :: pos_integer().
 
@@ -549,10 +590,11 @@ eliminate afterwards).
                successful/0, successful/1, failing/0, failing/1,
 
                tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
-               tagged_fallible/1, tagged_fallible/2,
+               tagged_fallible/0, tagged_fallible/1, tagged_fallible/2,
 
 			   diagnosed_fallible/1, diagnosed_fallible/2,
                diagnosed_tagged_fallible/1,
+               error_report_output/0,
 
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
@@ -613,6 +655,8 @@ eliminate afterwards).
 
 		  display/1, display/2, display_timed/2, display_timed/3,
 		  display_error/1, display_error/2,
+          write_error_on_file/1, write_error_on_file/2,
+
 		  throw_diagnosed/1, throw_diagnosed/2,
 		  debug/1, debug/2,
 
@@ -622,6 +666,7 @@ eliminate afterwards).
 		  get_process_size/1,
 		  is_alive/1, is_alive/2, is_alive/3,
 		  is_debug_mode_enabled/0, get_execution_target/0,
+          setup_execution_target/0, setup_execution_target/1,
 		  describe_term/1,
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
@@ -639,6 +684,10 @@ eliminate afterwards).
 
 
 -compile( { inline, [ set_option/2 ] } ).
+
+
+% To control error output:
+-export([ get_error_report_output/0, set_error_report_output/1 ]).
 
 
 
@@ -693,6 +742,8 @@ eliminate afterwards).
 -type bin_string() :: text_utils:bin_string().
 
 -type directory_path() :: file_utils:directory_path().
+-type file_path() :: file_utils:file_path().
+-type abs_file_path() :: file_utils:abs_file_path().
 
 -type void() :: type_utils:void().
 -type tuploid() :: type_utils:tuploid().
@@ -1973,7 +2024,7 @@ get_process_info( Pid, ItemTerm ) ->
 
 
 -doc """
-Displays information about the process(es) identified by specified PID(s).
+Displays information about the process(es) identified by the specified PID(s).
 """.
 -spec display_process_info( pid() | [ pid() ] ) -> void().
 display_process_info( PidList ) when is_list( PidList ) ->
@@ -2325,6 +2376,49 @@ display_error( Format, Values ) ->
 	display_error( Message ).
 
 
+-doc """
+Reports the specified error message in a dedicated file, named
+`myriad-error-report.txt`, created in the current directory, whose absolute path
+is returned.
+
+Any prior file with the same name will be overwritten.
+
+Useful to record error reports that would be inconveniently long on the console,
+but whose extra information could be nevertheless useful for a post-mortem
+analysis.
+""".
+-spec write_error_on_file( ustring() ) -> abs_file_path().
+write_error_on_file( ErrorMsg ) ->
+    write_error_on_file( ErrorMsg, _FilePath="myriad-error-report.txt" ).
+
+
+-doc """
+Reports the specified error message in a dedicated file, whose name or
+(relative/absolute) path is specified, and whose absolute path is returned.
+
+Any prior file with the same name will be overwritten.
+
+Useful to record error reports that would be inconveniently long on the console,
+but whose extra information could be nevertheless useful for a post-mortem
+analysis.
+""".
+-spec write_error_on_file( ustring(), file_path() ) -> abs_file_path().
+write_error_on_file( ErrorMsg, FilePath ) ->
+
+    AbsFilePath = file_utils:ensure_path_is_absolute( FilePath ),
+
+    Str = text_utils:format( "Myriad error report issued for OS process "
+        "~ts on ~ts:~n~n~ts~n~n== end of Myriad error report ==",
+        [ os:getpid(), time_utils:get_textual_timestamp(), ErrorMsg ] ),
+
+    file_utils:write_whole( AbsFilePath, Str ),
+
+    trace_utils:notice_fmt( "A Myriad error report has been written in '~ts'.",
+                            [ AbsFilePath ] ),
+
+    AbsFilePath.
+
+
 
 -doc """
 Displays, for debugging purposes, the specified string, ensuring as much as
@@ -2586,6 +2680,59 @@ is_debug_mode_enabled() ->
 	false.
 
 -endif. % myriad_debug_mode
+
+
+
+-doc "Applies the settings corresponding to the current execution target.".
+-spec setup_execution_target() -> void().
+setup_execution_target() ->
+    setup_execution_target( get_execution_target() ).
+
+
+-doc """
+Applies the settings corresponding to the specified execution target, if wanting
+to override this build-time setting.
+""".
+-spec setup_execution_target( execution_target() ) -> void().
+setup_execution_target( _ExecTarget=development ) ->
+    set_error_report_output( _ErrortReportOutput=standard_ellipsed );
+
+setup_execution_target( _ExecTarget=production ) ->
+    set_error_report_output( _ErrortReportOutput=standard_and_file_ellipsed ).
+
+
+
+% Key to be used for a persistent term:
+-define( error_report_output_key, myriad_error_report_output ).
+
+
+
+-doc "Returns the current setting in terms of general error reporting.".
+-spec get_error_report_output() -> error_report_output().
+get_error_report_output() ->
+    persistent_term:get( _K=?error_report_output_key,
+                         _Default=standard_ellipsed ).
+
+
+-doc """
+Sets globally how error reporting shall be done in general.
+
+Defines which kind of outputs should be used, and how, and returns information
+about the number of persistent terms and the total amount of memory (in bytes)
+that they use.
+
+Various means of error reporting (in Myriad or in the layers above) should read
+that setting and act accordingly.
+
+Changing such a setting in the course of execution may be expensive if many
+processes exist.
+""".
+-spec set_error_report_output( error_report_output() ) ->
+                                            persistent_term:info().
+set_error_report_output( ErrortReportOutput ) ->
+    persistent_term:put( _K=?error_report_output_key, _V=ErrortReportOutput ).
+
+
 
 
 -doc """

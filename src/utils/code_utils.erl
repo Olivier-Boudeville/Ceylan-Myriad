@@ -57,10 +57,10 @@ determine whether a given function is exported).
 		  recompile/1, recompile/2, recompile/3, recompile/4,
 		  get_erlang_root_path/0,
 		  get_stacktrace/0, get_stacktrace/1,
-		  interpret_stacktrace/0,
+		  interpret_stacktrace/0, interpret_stacktrace_for_error_output/0,
 		  interpret_stacktrace/1,
-		  interpret_stacktrace/2,
-		  interpret_shortened_stacktrace/1,
+		  interpret_stacktrace/2, interpret_stacktrace_for_error_output/2,
+		  interpret_truncated_stacktrace/1,
 		  display_stacktrace/0,
 		  interpret_error/2, interpret_undef_exception/3,
 		  stack_info_to_string/1,
@@ -133,6 +133,17 @@ module.
 -type define() :: define_name() | { define_name(), define_value() }.
 
 
+-doc """
+A pair of stacktrace descriptions for error reporting, regarding the standard
+output and the file output (if any).
+
+See `basic_utils:report_error_on_file/1` to write `MaybeFileOutputStackStr` if
+it is not `undefined`.
+""".
+-type stacktrace_error_output() :: { StdOutputStackStr :: ustring(),
+        MaybeFileOutputStackStr :: option( ustring() ) }.
+
+
 -export_type([ code_path/0, resolvable_code_path/0, code_path_position/0,
 			   stack_info/0, stack_item/0, stack_trace/0, error_map/0,
 			   define_name/0, define_value/0, define/0 ]).
@@ -144,6 +155,12 @@ module.
 
 % The dotted file extension of a BEAM file:
 -define( beam_extension, ".beam" ).
+
+
+% These ellipsing thresholds apply per stack item (not per stacktrace):
+
+-define( standard_error_output_ellipse_len, 1000 ).
+-define( file_error_output_ellipse_len, 25000 ).
 
 
 % For the file_info record:
@@ -160,6 +177,7 @@ module.
 -type error_term() :: basic_utils:error_term().
 
 -type ustring() :: text_utils:ustring().
+-type length() :: text_utils:length().
 
 -type directory_path() :: file_utils:directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
@@ -1162,7 +1180,8 @@ get_stacktrace( SkipLastElemCount ) ->
 
 
 -doc """
-Returns a "smart" textual representation of the current stacktrace.
+Returns (without crashing the program) a "smart" textual representation of the
+current stacktrace.
 """.
 -spec interpret_stacktrace() -> ustring().
 interpret_stacktrace() ->
@@ -1173,13 +1192,32 @@ interpret_stacktrace() ->
 	interpret_stacktrace( Stacktrace ).
 
 
+-doc """
+Returns (without crashing the program), regarding standard output and file
+output, a textual representation of the current stacktrace, crafted according to
+the current global Myriad setting regarding error output (see
+`basic_utils:error_report_output/0`).
+""".
+-spec interpret_stacktrace_for_error_output() -> stacktrace_error_output().
+interpret_stacktrace_for_error_output() ->
+
+	% We do not want to include interpret_stacktrace/0 in the stack:
+	Stacktrace = get_stacktrace( _SkipLastElemCount=1 ),
+
+	interpret_stacktrace_for_error_output( Stacktrace,
+                                           _MaybeErrorTerm=undefined ).
+
+
 
 -doc """
 Returns a "smart" textual representation of the specified stacktrace.
+
+Applies the current Myriad setting in terms of general error reporting (see
+`basic_utils:error_report_output/0`).
 """.
 -spec interpret_stacktrace( stack_trace() ) -> ustring().
 interpret_stacktrace( Stacktrace ) ->
-	interpret_stacktrace( Stacktrace, _ErrorTerm=undefined ).
+	interpret_stacktrace( Stacktrace, _MaybeErrorTerm=undefined ).
 
 
 
@@ -1191,23 +1229,91 @@ the filename of the corresponding source files (no full path wanted).
 -spec interpret_stacktrace( stack_trace(), option( error_term() ) ) ->
 										ustring().
 interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
-	interpret_stacktrace( Stacktrace, MaybeErrorTerm, _FullPathsWanted=false ).
+	interpret_stacktrace( Stacktrace, MaybeErrorTerm, _FullPathsWanted=false,
+                          _MaybeAtEllipseLen=1000 ).
+
+
+-doc """
+Returns, regarding standard output and file output, a "smart" textual
+description of the specified error stacktrace, including any argument-level
+analysis of the failure, listing just the filename of the corresponding source
+files (no full path wanted).
+
+Applies the current Myriad setting in terms of general error reporting (see
+`basic_utils:error_report_output/0`).
+""".
+-spec interpret_stacktrace_for_error_output( stack_trace(),
+        option( error_term() ) ) -> stacktrace_error_output().
+interpret_stacktrace_for_error_output( Stacktrace, MaybeErrorTerm ) ->
+
+    % FileChoice ::
+    %   'false' (none used) | 'undefined' (non-ellipsed) | EllipseLen
+
+    { MaybeStdOutputEllipseLen, FileChoice } =
+            case basic_utils:get_error_report_output() of
+
+        standard_full ->
+            { undefined, false };
+
+        standard_ellipsed ->
+            { ?standard_error_output_ellipse_len, false };
+
+        standard_ellipsed_file_full ->
+            { ?standard_error_output_ellipse_len, undefined };
+
+        standard_and_file_ellipsed ->
+           { ?standard_error_output_ellipse_len,
+             ?file_error_output_ellipse_len }
+
+    end,
+
+    StdOutputStr = interpret_stacktrace( Stacktrace, MaybeErrorTerm,
+        _FullPathsWanted=false, MaybeStdOutputEllipseLen ),
+
+    MaybeFileOutputStr = case FileChoice of
+
+        false ->
+            undefined;
+
+        undefined ->
+            % Possibly already obtained:
+            case MaybeStdOutputEllipseLen of
+
+                undefined ->
+                    StdOutputStr;
+
+                _ ->
+                    interpret_stacktrace( Stacktrace, MaybeErrorTerm,
+                        _FullPathsW=false,
+                        _MaybeStdOutputEllipseLen=undefined )
+
+            end;
+
+        FileEllipseLen ->
+            interpret_stacktrace( Stacktrace, MaybeErrorTerm,
+                                  _FullP=false, FileEllipseLen )
+
+    end,
+
+    { StdOutputStr, MaybeFileOutputStr }.
 
 
 
 -doc """
 Returns a "smart", complete textual description of the specified error
 stacktrace, including any argument-level analysis of the failure, listing either
-the full path of the corresponding source files, or just their filename.
+the full path of the corresponding source files, or just their filename, with
+stack items that are either full or ellipsed after the specified length.
 """.
 -spec interpret_stacktrace( stack_trace(), option( error_term() ),
-							boolean() ) -> ustring().
+							boolean(), option( length() ) ) -> ustring().
 % At least one stack item expected:
 interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
-					  MaybeErrorTerm, FullPathsWanted ) ->
+					  MaybeErrorTerm, FullPathsWanted, MaybeEllipseAtLen ) ->
 
 	% Use any error diagnosis regarding top-level stack item:
-	ErrorStr = interpret_stack_item( FirstStackItem, FullPathsWanted )
+	ErrorStr = interpret_stack_item( FirstStackItem, FullPathsWanted,
+                                     MaybeEllipseAtLen )
 		++ case MaybeErrorTerm of
 
 			undefined ->
@@ -1218,8 +1324,9 @@ interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
 
 		   end,
 
-	OtherItemStrs = [ interpret_stack_item( I, FullPathsWanted )
-							|| I <- OtherStackItems ],
+	OtherItemStrs =
+        [ interpret_stack_item( I, FullPathsWanted, MaybeEllipseAtLen )
+                                        || I <- OtherStackItems ],
 
 	StringItems = [ ErrorStr | OtherItemStrs ],
 
@@ -1229,28 +1336,28 @@ interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
 
 -doc """
 Returns a "smart" textual representation of the current stacktrace, once
-specified extra depth has been skipped (not counting this call).
+specified extra stack depth has been skipped (not counting this call).
 
-Removing the specified number of last calls allows to skip unwanted
-error-reporting functions and to return only a relevant stacktrace.
+Removing the specified number of last calls allows skipping unwanted
+error-reporting functions, and to return a more relevant stacktrace.
 """.
--spec interpret_shortened_stacktrace( basic_utils:count() ) -> ustring().
-interpret_shortened_stacktrace( SkipLastElemCount ) ->
+-spec interpret_truncated_stacktrace( count() ) -> ustring().
+interpret_truncated_stacktrace( SkipLastElemCount ) ->
 	interpret_stacktrace( get_stacktrace( SkipLastElemCount ) ).
 
 
 
 % Helper:
 interpret_stack_item( { Module, Function, Arity, StackInfo },
-					  FullPathsWanted ) when is_integer( Arity ) ->
+		FullPathsWanted, _MaybeEllipseAtLen ) when is_integer( Arity ) ->
 	text_utils:format( "~ts:~ts/~B~ts", [ Module, Function, Arity,
 		get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Here we have not a raw arity, but the list of actual arguments (thus a lot
 % more informative):
 %
-interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
-									when is_list( Args ) ->
+interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
+                      MaybeEllipseAtLen ) when is_list( Args ) ->
 
 	ArgStr = text_utils:format( "~p", [ Args ] ),
 
@@ -1270,16 +1377,29 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 				 end ++ EscapedArgStr,
 
 	% As FullArgStr must be interpreted, not used verbatim:
-	text_utils:format(
-		"~ts:~ts/~B called with the following list of arguments:"
-			++ FullArgStr ++ "~ts",
-		[ Module, Function, length( Args ),
-		  get_location_from( StackInfo, FullPathsWanted ) ] );
+    FormatStr = "~ts:~ts/~B called with the following list of arguments:"
+        ++ FullArgStr ++ "~ts",
+
+    FormatValues = [ Module, Function, length( Args ),
+                     get_location_from( StackInfo, FullPathsWanted ) ],
+
+    case MaybeEllipseAtLen of
+
+        undefined ->
+            text_utils:format( FormatStr, FormatValues );
+
+        EllipseAtLen ->
+            text_utils:format_ellipsed( FormatStr, FormatValues, EllipseAtLen )
+
+    end;
 
 % Never fail:
-interpret_stack_item( I, _FullPathsWanted ) ->
-	text_utils:format( "~p (error: unexpected stack item)", [ I ] ).
+interpret_stack_item( I, _FullPathsWanted, _MaybeEllipseAtLen=undefined ) ->
+	text_utils:format( "~p (error: unexpected stack item)", [ I ] );
 
+interpret_stack_item( I, _FullPathsWanted, EllipseAtLen ) ->
+	text_utils:format_ellipsed( "~p (error: unexpected stack item)", [ I ],
+                                EllipseAtLen ).
 
 
 -doc """
