@@ -401,9 +401,10 @@ get_myriad_ast_transforms_for( #module_info{
 	%                          {atom,FileLoc,void}, [] ] }'
 
 	% We also manage option/1 here: if used as 'option(T)', translated as
-	% 'type_utils:option(T)'; the same applies to safe_option/1,
-	% fallible/{0..2}, string_fallible/0, diagnosed_fallible/{0..2},
-	% successful/{0,1}, failing/{0,1}.
+    % 'type_utils:option(T)'; the same applies to safe_option/1,
+    % fallible/{0..2}, string_fallible/0, successful/{0,1}, failing/{0,1},
+    % tagged_fallible/{0..2}, diagnosed_fallible/{0..2},
+    % and diagnosed_tagged_fallible/{1,2}`.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -505,8 +506,9 @@ Returns the table specifying the transformation of the local types.
 Regarding local types, to define pseudo-builtin types, we want to prefix:
 
 - `fallible/{0..2}`, `string_fallible/0`, `successful/{0,1}`, `failing/{0,1}`,
-  `diagnosed_fallible/{1,2}`, `diagnosed_tagged_fallible/{1,2}` with the
-  `basic_utils` module (e.g. resulting in types like `basic_utils:fallible()`,
+  `tagged_fallible/{0..2}`, `diagnosed_fallible/{1,2}`,
+  `diagnosed_tagged_fallible/{1,2}` with the `basic_utils` module
+  (e.g. resulting in types like `basic_utils:fallible()`,
   `basic_utils:fallible(TSuccess)`, etc.)
 
 - `void/0`, `option/1`, `safe_option/1` with `type_utils`
@@ -526,6 +528,8 @@ get_local_type_transforms( DesiredTableType ) ->
                         { string_fallible, 0 },
                         { successful, 0 }, { successful, 1 },
                         { failing, 0 },    { failing, 1 },
+                        { tagged_fallible, 0 }, { tagged_fallible, 1 },
+                        { tagged_fallible, 2 },
 						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 },
                         { diagnosed_tagged_fallible, 1 },
                         { diagnosed_tagged_fallible, 2 } ],
@@ -1329,20 +1333,24 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
                                        Params, Transforms );
 
 
-        % For trace_bridge:*_fmt:/2, just checking send/3, on which they all
-        % rely, is not an option: we have to intercept the overall, user-level
-        % calls.
+        % For trace_{utils,bridge}:*_fmt:/2:
+        % (for the bridge-based functions, just checking send/3, on which they
+        % all rely, is not an option: we have to intercept the overall,
+        % user-level calls).
         %
 		( _FileLocCall,
 		  _FunctionRef={ remote, _FileLoc1,
-						 ModNameForm={atom,FileLoc2,_ModName=trace_bridge},
+						 ModNameForm={atom,FileLoc2,ModName},
 						 FunNameForm={atom,_FileLoc3,FunName} },
 		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
-		  Transforms ) when FunName =:= debug_fmt orelse FunName =:= info_fmt
+		  Transforms ) when ( ModName =:= trace_utils
+                              orelse ModName =:= trace_bridge )
+                            andalso (
+                       FunName =:= debug_fmt orelse FunName =:= info_fmt
                 orelse FunName =:= notice_fmt orelse FunName =:= warning_fmt
                 orelse FunName =:= error_fmt orelse FunName =:= critical_fmt
                 orelse FunName =:= alert_fmt orelse FunName =:= emergency_fmt
-                orelse FunName =:= void_fmt ->
+                orelse FunName =:= void_fmt ) ->
 
             handle_formatting_call_2p( FileLoc2, ModNameForm, FunNameForm,
                                        Params, Transforms );
