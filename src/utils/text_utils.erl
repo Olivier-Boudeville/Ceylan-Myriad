@@ -187,7 +187,7 @@ See `text_utils_test.erl` for the corresponding test.
 		  to_unicode_binary/2 ]).
 
 
-% Restructured-Text (RST) related functions.
+% Restructured-Text (RST) related functions:
 -export([ generate_title/2 ]).
 
 
@@ -196,7 +196,8 @@ See `text_utils_test.erl` for the corresponding test.
 		  report_not_a_list/1, report_not_a_number/1 ]).
 
 
-% Miscellaneous functions.
+
+% Miscellaneous functions:
 -export([ generate_text_name_from/1, match_types/3 ]).
 
 
@@ -515,6 +516,7 @@ information.
 
 
 
+
 -type format_parsing_error() ::
 	{ 'format_parsing_failed', ReasonStr :: ustring() }.
 
@@ -533,7 +535,7 @@ information.
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
 			   translation_table/0, length/0, width/0, depth/0,
-			   indentation_level/0, distance/0,
+			   indentation_level/0, distance/0, float_option/0,
 
 			   format_parsing_error/0, scan_format_outcome/0 ]).
 
@@ -575,7 +577,7 @@ information.
 % Defining here length/1, so having to prefix the otherwise auto-imported
 % length/1 with its 'erlang' module.
 
- -compile([ {nowarn_unused_function, [ local_display/1, local_display/2 ]} ]).
+-compile([ {nowarn_unused_function, [ local_display/1, local_display/2 ]} ]).
 
 
 
@@ -732,7 +734,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 Converts the specified integer into a plain string.
 
 Avoids to have to use `lists:flatten/1` when converting an integer to a
-string. Useless when using functions like `io:format/2`, that accept iolists as
+string. Useless when using functions like `io:format/2` that accept iolists as
 parameters.
 """.
 -spec integer_to_string( integer() ) -> ustring().
@@ -2429,7 +2431,7 @@ interpret_faulty_format( FormatString, Values ) ->
 
 	% To track origin (not always obvious):
 	Diagnosis ++ "; corresponding stack trace was: "
-		++ code_utils:interpret_shortened_stacktrace( _SkipLastElemCount=2 ).
+		++ code_utils:interpret_truncated_stacktrace( _SkipLastElemCount=2 ).
 
 
 
@@ -3028,8 +3030,8 @@ inputs resulting on crashes afterwards.
 """.
 -spec format_ellipsed( format_string(), format_values(), length() ) ->
 							ustring().
-format_ellipsed( FormatString, Values, MaxLen ) ->
-	ellipse( format( FormatString, Values ), MaxLen ).
+format_ellipsed( FormatString, Values, EllipseAtLen ) ->
+	ellipse( format( FormatString, Values ), EllipseAtLen ).
 
 
 
@@ -3416,7 +3418,7 @@ Directly inspired from
 [https://rosettacode.org/wiki/Levenshtein_distance#Erlang] and
 [https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Erlang].
 
-See also: <https://en.wikipedia.org/wiki/Levenshtein_distance
+See also [https://en.wikipedia.org/wiki/Levenshtein_distance].
 """.
 %-spec get_lexicographic_distance_variant( ustring(), ustring() ) -> distance().
 
@@ -6143,7 +6145,8 @@ to_unicode_list( Data, CanFail ) ->
 				"a proper Unicode string:~nafter prefix '~ts', "
 				"cannot convert '~w'.~nStacktrace was: ~ts",
 				[ Data, Prefix, Remaining,
-				  code_utils:interpret_shortened_stacktrace( 1 ) ] ),
+				  code_utils:interpret_truncated_stacktrace(
+                    _SkipLastElemCount=1 ) ] ),
 
 			case CanFail of
 
@@ -6392,7 +6395,8 @@ fix_characters( _S=[ H | T ], Acc ) ->
 
 
 
-% As too often (e.g. with gen_statem) no relevant origin location is specified:
+% As, too often (e.g. with gen_statem), no relevant origin location is
+% specified:
 
 
 -doc "Reports that the specified term is not a plain string.".
