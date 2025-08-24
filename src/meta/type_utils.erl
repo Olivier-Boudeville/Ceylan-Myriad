@@ -1125,7 +1125,10 @@ Transient terms are the opposite of permanent ones.
 
 % Type-related functions:
 -export([ type_to_string/1, get_type_of/1,
+
           interpret_type_of/1, interpret_type_of/2,
+          describe_type_of/1,
+
 		  get_immediate_types/0, get_ast_builtin_types/0,
 		  get_elementary_types/0, get_plain_builtin_types/0,
 		  is_type/1, is_of_type/2,
@@ -1353,8 +1356,10 @@ get_type_of( Term ) ->
 
 
 -doc """
+
 Returns a string describing, in a user-friendly manner, the type of the
-specified term (up to one level of nesting detailed).
+specified term (up to one level of nesting detailed), and giving some
+information about its value.
 """.
 -spec interpret_type_of( term() ) -> ustring().
 interpret_type_of( Term ) ->
@@ -1365,7 +1370,8 @@ interpret_type_of( Term ) ->
 -doc """
 Returns a string describing, in a user-friendly manner, the type of the
 specified term, up to the specified nesting level (either a positive integer or
-the 'infinite' atom, to go as deep as possible in the term structure).
+the `infinite` atom, to go as deep as possible in the term structure), and
+giving some information about its value.
 """.
 -spec interpret_type_of( term(), level() | 'infinite' ) -> ustring().
 interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
@@ -1375,7 +1381,8 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 
 -doc """
 Returns a string describing, in a user-friendly manner, the type of the
-specified term, describing any nested subterms up to the specified level.
+specified term, describing any nested subterms up to the specified level, and
+giving some information about its value.
 """.
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
@@ -1491,17 +1498,75 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 		text_utils:strings_to_enumerated_string( Elems,
 												 CurrentNestingLevel ) ] );
 
-interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-                                            when is_port( Term ) ->
-	text_utils:format( "port of value '~p'", [ Term ] );
-
-interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-                                            when is_reference( Term ) ->
-	text_utils:format( "reference of value '~p'", [ Term ] );
-
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
 	text_utils:format( "unknown type for '~p'", [ Term ] ).
 
+
+
+-doc """
+Returns any short string describing, in a Erlang-level (thus mentioning maps,
+not tables) user-friendly manner, the type of the specified term (only the top
+level of nesting being described), if it could be identified.
+
+Useful to describe error terms, as for example they may ellipsed if too long.
+""".
+-spec describe_type_of( term() ) -> option( ustring() ).
+describe_type_of( Term ) when is_boolean( Term ) ->
+    "a boolean";
+
+describe_type_of( Term ) when is_atom( Term ) ->
+    "an atom";
+
+describe_type_of( Term ) when is_binary( Term ) ->
+    "a binary";
+
+describe_type_of( Term ) when is_float( Term ) ->
+    "a float";
+
+describe_type_of( Term ) when is_function( Term ) ->
+    "a function";
+
+describe_type_of( Term ) when is_integer( Term ) ->
+    "an integer";
+
+describe_type_of( Term ) when is_pid( Term ) ->
+    "a PID";
+
+describe_type_of( Term ) when is_port( Term ) ->
+    "a port";
+
+describe_type_of( Term ) when is_reference( Term ) ->
+    "a reference";
+
+describe_type_of( _Term=[] ) ->
+    "an empty list/string";
+
+describe_type_of( Term ) when is_list( Term ) ->
+	case text_utils:is_string( Term ) of
+
+		true ->
+			"a plain string";
+
+		false ->
+            text_utils:format( "a list of ~B elements", [ length( Term ) ] )
+
+    end;
+
+describe_type_of( Term ) when is_map( Term ) ->
+	text_utils:format( "a map of ~B entries", [ maps:size( Term ) ] );
+
+describe_type_of( _Term={ _A, _B } ) ->
+	"a pair";
+
+describe_type_of( _Term={ _A, _B, _C } ) ->
+	"a triplet";
+
+describe_type_of( Term ) when is_tuple( Term ) ->
+	text_utils:format( "a tuple of ~B elements", [ size( Term ) ] );
+
+% Unknown:
+describe_type_of( _Term ) ->
+    undefined.
 
 
 -doc "Returns a list of the possible types for immediate values.".
@@ -1517,7 +1582,6 @@ Returns a list of the possible types for immediate values (typically found in an
 AST like, like `undefined` in `{atom,42,undefined}`).
 
 From [http://erlang.org/doc/apps/erts/absform.html]:
-
 ```
 There are five kinds of atomic literals, which are represented in the same
 way in patterns, expressions, and guards:
