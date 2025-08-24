@@ -1282,6 +1282,9 @@ interpret_stacktrace_for_error_output( Stacktrace, MaybeErrorTerm ) ->
     { MaybeStdOutputEllipseLen, FileChoice } =
         get_error_report_output_ellipsings(),
 
+    trace_utils:debug_fmt( "For stack: StdOutput = ~p, FileChoice = ~p.",
+                           [ MaybeStdOutputEllipseLen, FileChoice ] ),
+
     StdOutputStr = interpret_stacktrace( Stacktrace, MaybeErrorTerm,
         _FullPathsWanted=false, MaybeStdOutputEllipseLen ),
 
@@ -1362,7 +1365,9 @@ interpret_truncated_stacktrace( SkipLastElemCount ) ->
 
 
 
-% Helper:
+% (helper)
+%
+% Here just an arity (no arguments):
 interpret_stack_item( { Module, Function, Arity, StackInfo },
 		FullPathsWanted, _MaybeEllipseAtLen ) when is_integer( Arity ) ->
 	text_utils:format( "~ts:~ts/~B~ts", [ Module, Function, Arity,
@@ -1373,6 +1378,9 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 %
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
                       MaybeEllipseAtLen ) when is_list( Args ) ->
+
+    %trace_utils:debug_fmt( "interpret_stack_item: MaybeEllipseAtLen = ~p.",
+    %                       [ MaybeEllipseAtLen ] ),
 
     % We will ellipse globally at MaybeEllipseAtLen, but we preventively ellipse
     % each argument at a fraction of it:
@@ -1426,7 +1434,9 @@ interpret_arguments( Args, EllipseAtLen ) ->
 	[ interpret_argument( Arg, ArgEllipseAtLen ) || Arg <- Args ].
 
 
--spec interpret_arguments( argument(), option( length() ) ) -> ustring().
+
+-doc "Returns an interpretation of the specified function argument.".
+-spec interpret_argument( argument(), option( length() ) ) -> ustring().
 interpret_argument( Arg, MaybeEllipseAtLen ) ->
 
     ArgDescStr = text_utils:term_to_string( Arg ),
@@ -1501,7 +1511,7 @@ arguments_to_string( ArgStrs ) ->
 
 	OrderedStrs = lists:reverse( ReversedStrs ),
 
-	text_utils:format( "~ts~n", [ lists:flatten( OrderedStrs ) ] ).
+	lists:flatten( OrderedStrs ).
 
 
 

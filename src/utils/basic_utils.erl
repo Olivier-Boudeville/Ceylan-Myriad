@@ -686,8 +686,9 @@ eliminate afterwards).
 -compile( { inline, [ set_option/2 ] } ).
 
 
-% To control error output:
--export([ get_error_report_output/0, set_error_report_output/1 ]).
+% To manage error output:
+-export([ get_all_error_report_outputs/0, check_error_report_output/1,
+          get_error_report_output/0, set_error_report_output/1 ]).
 
 
 
@@ -2407,8 +2408,8 @@ write_error_on_file( ErrorMsg, FilePath ) ->
 
     AbsFilePath = file_utils:ensure_path_is_absolute( FilePath ),
 
-    Str = text_utils:format( "Myriad error report issued for OS process "
-        "~ts on ~ts:~n~n~ts~n~n=== END OF MYRIAD ERROR REPORT ==+",
+    Str = text_utils:format( "=== Myriad error report issued for OS process "
+        "~ts on ~ts ===~n~n~ts~n~n=== End of Myriad error report ===",
         [ os:getpid(), time_utils:get_textual_timestamp(), ErrorMsg ] ),
 
     file_utils:write_whole( AbsFilePath, Str ),
@@ -2706,6 +2707,29 @@ setup_execution_target( _ExecTarget=production ) ->
 -define( error_report_output_key, myriad_error_report_output ).
 
 
+-doc """
+Returns a list of all valid settings in terms of general error reporting.
+""".
+-spec get_all_error_report_outputs() -> [ error_report_output() ].
+get_all_error_report_outputs() ->
+    [ standard_full, standard_ellipsed, standard_ellipsed_file_full,
+      standard_and_file_ellipsed ].
+
+
+-doc "Checks the specified setting in terms of general error reporting.".
+-spec check_error_report_output( term() ) -> error_report_output().
+check_error_report_output( T ) ->
+    case lists:member( _Elem=T, _List=get_all_error_report_outputs() ) of
+
+        true ->
+            T;
+
+        false ->
+            throw( { invalid_error_report_output, T } )
+
+    end.
+
+
 
 -doc "Returns the current setting in terms of general error reporting.".
 -spec get_error_report_output() -> error_report_output().
@@ -2730,7 +2754,8 @@ processes exist.
 -spec set_error_report_output( error_report_output() ) ->
                                             persistent_term:info().
 set_error_report_output( ErrortReportOutput ) ->
-    persistent_term:put( _K=?error_report_output_key, _V=ErrortReportOutput ).
+    persistent_term:put( _K=?error_report_output_key,
+                         _V=check_error_report_output( ErrortReportOutput ) ).
 
 
 -doc """
