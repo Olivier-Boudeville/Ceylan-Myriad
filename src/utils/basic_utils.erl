@@ -2408,7 +2408,7 @@ write_error_on_file( ErrorMsg, FilePath ) ->
     AbsFilePath = file_utils:ensure_path_is_absolute( FilePath ),
 
     Str = text_utils:format( "Myriad error report issued for OS process "
-        "~ts on ~ts:~n~n~ts~n~n== end of Myriad error report ==",
+        "~ts on ~ts:~n~n~ts~n~n=== END OF MYRIAD ERROR REPORT ==+",
         [ os:getpid(), time_utils:get_textual_timestamp(), ErrorMsg ] ),
 
     file_utils:write_whole( AbsFilePath, Str ),
@@ -2731,8 +2731,6 @@ processes exist.
                                             persistent_term:info().
 set_error_report_output( ErrortReportOutput ) ->
     persistent_term:put( _K=?error_report_output_key, _V=ErrortReportOutput ).
-
-
 
 
 -doc """
