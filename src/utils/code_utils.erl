@@ -57,10 +57,12 @@ determine whether a given function is exported).
 		  recompile/1, recompile/2, recompile/3, recompile/4,
 		  get_erlang_root_path/0,
 		  get_stacktrace/0, get_stacktrace/1,
+          get_error_report_output_ellipsings/0,
 		  interpret_stacktrace/0, interpret_stacktrace_for_error_output/0,
 		  interpret_stacktrace/1,
 		  interpret_stacktrace/2, interpret_stacktrace_for_error_output/2,
 		  interpret_truncated_stacktrace/1,
+          interpret_arguments/2, arguments_to_string/1,
 		  display_stacktrace/0,
 		  interpret_error/2, interpret_undef_exception/3,
 		  stack_info_to_string/1,
@@ -159,8 +161,8 @@ it is not `undefined`.
 
 % These ellipsing thresholds apply per stack item (not per stacktrace):
 
--define( standard_error_output_ellipse_len, 1000 ).
--define( file_error_output_ellipse_len, 25000 ).
+-define( standard_error_output_ellipse_len, 2000 ).
+-define( file_error_output_ellipse_len, 50000 ).
 
 
 % For the file_info record:
@@ -171,6 +173,7 @@ it is not `undefined`.
 
 -type module_name() :: basic_utils:module_name().
 -type function_name() :: basic_utils:function_name().
+-type argument() :: basic_utils:argument().
 -type count() :: basic_utils:count().
 -type base_status() :: basic_utils:base_status().
 -type error_reason() :: basic_utils:error_reason().
@@ -1179,6 +1182,32 @@ get_stacktrace( SkipLastElemCount ) ->
 
 
 
+-doc "Returns any ellipsing maximum length, for console and file output.".
+-spec get_error_report_output_ellipsings() ->
+        { StdErrorOutputEllipseLen :: option( length() ),
+          FileErrorOutputChoice ::  'false' % (none used)
+                                  | 'undefined' % (non-ellipsed)
+                                  | EllipseLen :: count() }.
+get_error_report_output_ellipsings() ->
+    case basic_utils:get_error_report_output() of
+
+        standard_full ->
+            { undefined, false };
+
+        standard_ellipsed ->
+            { ?standard_error_output_ellipse_len, false };
+
+        standard_ellipsed_file_full ->
+            { ?standard_error_output_ellipse_len, undefined };
+
+        standard_and_file_ellipsed ->
+           { ?standard_error_output_ellipse_len,
+             ?file_error_output_ellipse_len }
+
+    end.
+
+
+
 -doc """
 Returns (without crashing the program) a "smart" textual representation of the
 current stacktrace.
@@ -1233,6 +1262,7 @@ interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
                           _MaybeAtEllipseLen=1000 ).
 
 
+
 -doc """
 Returns, regarding standard output and file output, a "smart" textual
 description of the specified error stacktrace, including any argument-level
@@ -1250,22 +1280,7 @@ interpret_stacktrace_for_error_output( Stacktrace, MaybeErrorTerm ) ->
     %   'false' (none used) | 'undefined' (non-ellipsed) | EllipseLen
 
     { MaybeStdOutputEllipseLen, FileChoice } =
-            case basic_utils:get_error_report_output() of
-
-        standard_full ->
-            { undefined, false };
-
-        standard_ellipsed ->
-            { ?standard_error_output_ellipse_len, false };
-
-        standard_ellipsed_file_full ->
-            { ?standard_error_output_ellipse_len, undefined };
-
-        standard_and_file_ellipsed ->
-           { ?standard_error_output_ellipse_len,
-             ?file_error_output_ellipse_len }
-
-    end,
+        get_error_report_output_ellipsings(),
 
     StdOutputStr = interpret_stacktrace( Stacktrace, MaybeErrorTerm,
         _FullPathsWanted=false, MaybeStdOutputEllipseLen ),
@@ -1359,28 +1374,18 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
                       MaybeEllipseAtLen ) when is_list( Args ) ->
 
-	ArgStr = text_utils:format( "~p", [ Args ] ),
+    % We will ellipse globally at MaybeEllipseAtLen, but we preventively ellipse
+    % each argument at a fraction of it:
+    %
+    ArgStrs = interpret_arguments( Args, MaybeEllipseAtLen ),
 
-	% Any '~' in arguments must be escaped, otherwise next format will fail:
-	EscapedArgStr = string:replace( _In=ArgStr, _SearchPattern="~",
-									_Replacement="\~", _Where=all ),
-
-	% Based on actual characters:
-	FullArgStr = case length( ArgStr ) > 50 of
-
-		true ->
-			"~n  ";
-
-		false ->
-			" "
-
-				 end ++ EscapedArgStr,
+    ArgCount = length( Args ),
 
 	% As FullArgStr must be interpreted, not used verbatim:
-    FormatStr = "~ts:~ts/~B called with the following list of arguments:"
-        ++ FullArgStr ++ "~ts",
+    FormatStr = "~ts:~ts/~B"
+        ++ format_arg_interpretations( ArgCount, ArgStrs ),
 
-    FormatValues = [ Module, Function, length( Args ),
+    FormatValues = [ Module, Function, ArgCount,
                      get_location_from( StackInfo, FullPathsWanted ) ],
 
     case MaybeEllipseAtLen of
@@ -1388,8 +1393,8 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
         undefined ->
             text_utils:format( FormatStr, FormatValues );
 
-        EllipseAtLen ->
-            text_utils:format_ellipsed( FormatStr, FormatValues, EllipseAtLen )
+        MaxLen ->
+            text_utils:format_ellipsed( FormatStr, FormatValues, MaxLen )
 
     end;
 
@@ -1400,6 +1405,104 @@ interpret_stack_item( I, _FullPathsWanted, _MaybeEllipseAtLen=undefined ) ->
 interpret_stack_item( I, _FullPathsWanted, EllipseAtLen ) ->
 	text_utils:format_ellipsed( "~p (error: unexpected stack item)", [ I ],
                                 EllipseAtLen ).
+
+
+
+-doc "Returns an interpretation of each of the specified function arguments.".
+-spec interpret_arguments( [ argument() ], option( length() ) ) ->
+                                            [ ustring() ].
+interpret_arguments( Args, MaybeEllipseAtLen=undefined ) ->
+	[ interpret_argument( Arg, MaybeEllipseAtLen ) || Arg <- Args ];
+
+interpret_arguments( _Args=[ Arg ], EllipseAtLen ) ->
+    % With a single argument, full length allowed:
+	[ interpret_argument( Arg, EllipseAtLen ) ];
+
+interpret_arguments( Args, EllipseAtLen ) ->
+
+    % Up to 3 "very long arguments" before parent ellipsing:
+    ArgEllipseAtLen = EllipseAtLen div 3,
+
+	[ interpret_argument( Arg, ArgEllipseAtLen ) || Arg <- Args ].
+
+
+-spec interpret_arguments( argument(), option( length() ) ) -> ustring().
+interpret_argument( Arg, MaybeEllipseAtLen ) ->
+
+    ArgDescStr = text_utils:term_to_string( Arg ),
+
+    NewlineStr = basic_utils:if_else( length( ArgDescStr ) > 50, _True="\n",
+                                      "" ),
+
+    RawArgStr = text_utils:format( "~ts: ~ts~p",
+        [ describe_argument( Arg ), NewlineStr, Arg ] ),
+
+    EllipsedArgStr = case MaybeEllipseAtLen of
+
+        undefined ->
+            RawArgStr;
+
+        EllipseAtLen ->
+            text_utils:ellipse( RawArgStr, EllipseAtLen )
+
+    end,
+
+	% Any '~' in arguments must be escaped, otherwise next format will fail:
+	string:replace( _In=EllipsedArgStr, _SearchPattern="~", _Replacement="\~",
+                    _Where=all ).
+
+
+
+-doc "Describes the specified argument in terms of type, if possible.".
+-spec describe_argument( term() ) -> ustring().
+describe_argument( Arg ) ->
+    case type_utils:describe_type_of( Arg ) of
+
+        undefined ->
+            "";
+
+        Desc ->
+            text_utils:format( " (~ts)", [ Desc ] )
+
+    end.
+
+
+-doc "Formats the specified argument interpretations.".
+-spec format_arg_interpretations( count(), [ ustring() ] ) -> ustring().
+format_arg_interpretations( _ArgCount=0, _ArgStrs ) ->
+    "";
+
+format_arg_interpretations( _ArgCount=1, _ArgStrs=[ ArgStr ] ) ->
+    text_utils:format( " called with a single argument: ~ts",
+                       [ ArgStr ] );
+
+format_arg_interpretations( ArgCount, ArgStrs ) ->
+    text_utils:format( " called with the following ~B arguments:~n ~ts",
+        [ ArgCount, arguments_to_string( ArgStrs ) ] ) ++ "~ts~n".
+
+
+% Special-cased compared to text_utils:strings_to_enumerated_string/3; indented
+% relative to the parent item:
+%
+-spec arguments_to_string( [ ustring() ] ) -> ustring().
+arguments_to_string( ArgStrs ) ->
+
+    { _FinalCount, ReversedStrs } = lists:foldl(
+		fun( String, _Acc={ Count, Strs } ) ->
+
+			NewStrs = [ text_utils:format( "~n      * argument #~B~ts~n",
+                                           [ Count, String ] ) | Strs ],
+
+			{ Count+1, NewStrs }
+
+		end,
+		_Acc0={ 1, [] },
+		_List=ArgStrs ),
+
+	OrderedStrs = lists:reverse( ReversedStrs ),
+
+	text_utils:format( "~ts~n", [ lists:flatten( OrderedStrs ) ] ).
+
 
 
 -doc """
