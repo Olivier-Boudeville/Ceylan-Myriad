@@ -129,7 +129,8 @@
 ;; myriad/conf/erlang_ls.config, to which ~/.config/erlang_ls is supposed to
 ;; point (as a symbolic link).
 ;;
-;; Another deactivation option is to use '(setq lsp-lens-enable nil)'.
+;; Another deactivation option is to use here:
+(setq lsp-lens-enable nil)
 
 
 
