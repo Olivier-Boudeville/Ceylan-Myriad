@@ -1282,8 +1282,8 @@ interpret_stacktrace_for_error_output( Stacktrace, MaybeErrorTerm ) ->
     { MaybeStdOutputEllipseLen, FileChoice } =
         get_error_report_output_ellipsings(),
 
-    trace_utils:debug_fmt( "For stack: StdOutput = ~p, FileChoice = ~p.",
-                           [ MaybeStdOutputEllipseLen, FileChoice ] ),
+    %trace_utils:debug_fmt( "For stack: StdOutput = ~p, FileChoice = ~p.",
+    %                       [ MaybeStdOutputEllipseLen, FileChoice ] ),
 
     StdOutputStr = interpret_stacktrace( Stacktrace, MaybeErrorTerm,
         _FullPathsWanted=false, MaybeStdOutputEllipseLen ),

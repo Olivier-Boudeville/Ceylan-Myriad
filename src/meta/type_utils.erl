@@ -1541,14 +1541,18 @@ describe_type_of( Term ) when is_reference( Term ) ->
 describe_type_of( _Term=[] ) ->
     "an empty list/string";
 
+describe_type_of( _Term=[ _ ] )  ->
+    "a single-element list/string";
+
 describe_type_of( Term ) when is_list( Term ) ->
+    Len = length( Term ),
 	case text_utils:is_string( Term ) of
 
 		true ->
-			"a plain string";
+			text_utils:format( "a plain string (of ~B characters)", [ Len ] );
 
 		false ->
-            text_utils:format( "a list of ~B elements", [ length( Term ) ] )
+            text_utils:format( "a list of ~B elements", [ length( Len ) ] )
 
     end;
 
@@ -1567,6 +1571,7 @@ describe_type_of( Term ) when is_tuple( Term ) ->
 % Unknown:
 describe_type_of( _Term ) ->
     undefined.
+
 
 
 -doc "Returns a list of the possible types for immediate values.".

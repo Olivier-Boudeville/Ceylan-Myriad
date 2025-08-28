@@ -47,6 +47,7 @@
 			clean clean-erlang clean-layer-ebin clean-python clean-protobuf    \
 			clean-database clean-recurse clean-outputs clean-ast-debug         \
 			clean-previous real-clean track check-ci                           \
+            list-src-dirs list-extra-src-dirs                                  \
 			info-platform info-hardware info-software info-source-layout       \
 			info-erlang-target-version                                         \
 			info info-files info-meta info-erlang info-python info-java        \
@@ -1083,6 +1084,22 @@ clean-api-alt-doc:
 	@echo "  Cleaning alternate generated API documentation"
 	@/bin/rm -rf "$(API_DOC_ALT_ROOT)" 2>/dev/null
 
+
+
+# Returns a comma-separated list of all directories containing Erlang source
+# files found recursively from the root of this layer.
+#
+# Useful to configure tools inspecting source files (for example output to be
+# inserted in the src_dirs entry of conf/buid_info.json)
+#
+# No need to take header files into account; removes the last comma:
+list-src-dirs:
+	@echo $$(for d in $$(find . \( -path ./_build -prune -o -path ./test -prune \) -o -name '*\.erl' -exec dirname '{}' ';' | sort | uniq); do echo "           \"$$d\","; done) | sed 's|,$$|\n|'
+
+
+# Same for the extra source directories:
+list-extra-src-dirs:
+	@echo $$(for d in $$(find test -path ./_build -prune -o -name '*\.erl' -exec dirname '{}' ';' | sort | uniq); do echo "           \"$$d\","; done) | sed 's|,$$|\n|'
 
 
 # Allows to generate a file listing all the types defined in the specified

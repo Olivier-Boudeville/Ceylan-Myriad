@@ -88,7 +88,6 @@
 (setq lsp-diagnostics-provider :none)
 
 
-
 (use-package lsp-mode
 
   ;; Allows avoiding many 'xxx loaded before Elpaca activation' warnings:
@@ -107,10 +106,40 @@
                     :server-id 'elp-for-myriad))
 )
 
+
+;; Refer to https://emacs-lsp.github.io/lsp-mode/page/lsp-erlang-elp/:
+
+;; Still unable to display the doc of remote, exported types when hovering
+;; on them (whereas it works for corresponding functions...).
+
+;; When the overall layer is sufficiently correct:
+;;(setq lsp-elp-eqwalizer-all t)
+
+(setq lsp-elp-hover-actions-enable t)
+(setq lsp-elp-hover-actions-doc-links-enable t)
+
+;;(setq lsp-elp-lens-enable t)
+;;(setq lsp-elp-lens-debug-enable t)
+;;(setq lsp-elp-lens-links-enable t)
+;;(setq lsp-elp-lens-run-coverage-enable t)
+;;(setq lsp-elp-lens-run-enable t)
+;;(setq lsp-elp-lens-run-interactive-enable t)
+
+(setq lsp-elp-signature-help-enable t)
+(setq lsp-elp-types-on-hover-enable t)
+(setq lsp-erlang-elp-types-on-hover t)
+
 (setq lsp-enable-snippet nil)
+
+;; WARNING, for testing only:
+;;(setq lsp-auto-configure t)
+
+(setq lsp-eldoc-enable-hover t)
+(setq lsp-eldoc-render-all t)
 
 ;; Displayed at the top of a frame (e.g. "src > utils > foo.erl"):
 (setq lsp-headerline-breadcrumb-enable t)
+
 
 
 ;; Not wanting to be prompted again and again about installing bash-ls and thus
@@ -293,9 +322,11 @@ this face."
 
 ;; There are lsp-ui-imenu options as well.
 
+;; Too invasive:
 ;;(setq lsp-modeline-diagnostics-enable t)
-;;(setq lsp-signature-auto-activate t)
-;;(setq lsp-signature-render-documentation t)
+
+(setq lsp-signature-auto-activate t)
+(setq lsp-signature-render-documentation t)
 
 
 ;; LSP Origami Mode (for folding ranges):
