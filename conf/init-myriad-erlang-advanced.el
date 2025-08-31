@@ -8,6 +8,7 @@
 ;; guidelines.
 
 
+
 ;; In a nutshell: possibly due to erlang_ls, quite a lot of these advanced
 ;; features did not seem ready for actual use, at least in our context; they
 ;; lag, use huge CPU resources, trigger numerous runtime errors ("LSP :: Method
@@ -47,16 +48,15 @@
 
 
 
-;; Require and enable the Yasnippet templating system:
+;; Require and enable the Yasnippet templating system.
 ;;
-;; (however its interest could not be established; probably per-language
-;; elements shall be added;
-;; https://github.com/AndreaCrotti/yasnippet-snippets/tree/master/snippets/erlang-mode
-;; does not seem that useful; this templating system is thus currently
-;; deactivated)
+;; See https://wikemacs.org/wiki/Yasnippet.
 ;;
-;;(use-package yasnippet :ensure (:wait t) :demand t)
-;;(yas-global-mode t)
+;; (used for example by company to define correctly auto-filled argument names
+;; when the beginning of a function call has been typed)
+;;
+(use-package yasnippet :ensure (:wait t) :demand t)
+(yas-global-mode t)
 
 
 
@@ -107,6 +107,19 @@
 )
 
 
+;; Supposed to prevent company from pre-filling arguments of a function
+;; (e.g. transforming automatically 'f(' into 'f(${1:Message}), ${2:Count})'),
+;; as, at least currently, the cursor is then wrongly placed at the end of the
+;; line, resulting in an even less convenient system as the one without company
+;; - however this setting has no effect, wherever it is put in this
+;; configuration file, so it is currently commented-out:
+;;
+;; Actually the YAS templating system must be active for this auto-fill to work
+;; correctly.
+;;
+;;(setq lsp-enable-snippet nil)
+
+
 ;; Refer to https://emacs-lsp.github.io/lsp-mode/page/lsp-erlang-elp/:
 
 ;; Still unable to display the doc of remote, exported types when hovering
@@ -125,17 +138,18 @@
 ;;(setq lsp-elp-lens-run-enable t)
 ;;(setq lsp-elp-lens-run-interactive-enable t)
 
+;;(setq lsp-elp-signature-help-enable nil)
 (setq lsp-elp-signature-help-enable t)
+
 (setq lsp-elp-types-on-hover-enable t)
 (setq lsp-erlang-elp-types-on-hover t)
 
-(setq lsp-enable-snippet nil)
 
 ;; WARNING, for testing only:
 ;;(setq lsp-auto-configure t)
 
-(setq lsp-eldoc-enable-hover t)
-(setq lsp-eldoc-render-all t)
+;;(setq lsp-eldoc-enable-hover t)
+;;(setq lsp-eldoc-render-all t)
 
 ;; Displayed at the top of a frame (e.g. "src > utils > foo.erl"):
 (setq lsp-headerline-breadcrumb-enable t)
@@ -323,9 +337,24 @@ this face."
 
 ;; Too invasive:
 ;;(setq lsp-modeline-diagnostics-enable t)
+(setq lsp-modeline-diagnostics-enable nil)
 
-(setq lsp-signature-auto-activate t)
-(setq lsp-signature-render-documentation t)
+
+;; Same (doc of functions displayed there):
+;;(setq lsp-modeline-code-actions-enable t)
+(setq lsp-modeline-code-actions-enable nil)
+
+
+
+;; lsp-signature-* disabled, as may interact wrongly with company auto-fill
+;; (unsure):
+
+;;(setq lsp-signature-auto-activate t)
+(setq lsp-signature-auto-activate nil)
+
+;;(setq lsp-signature-render-documentation t)
+(setq lsp-signature-render-documentation nil)
+
 
 
 ;; LSP Origami Mode (for folding ranges):
@@ -363,8 +392,9 @@ this face."
 
 
 
-
 ;; company-mode section, for auto-completion popups.
+;;
+;; See https://company-mode.github.io/ and https://wikemacs.org/wiki/Company-mode
 ;;
 ;; Can be deactivated with '(setq lsp-completion-provider :none)'.
 
