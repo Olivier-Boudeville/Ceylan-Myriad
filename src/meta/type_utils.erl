@@ -1552,7 +1552,7 @@ describe_type_of( Term ) when is_list( Term ) ->
 			text_utils:format( "a plain string (of ~B characters)", [ Len ] );
 
 		false ->
-            text_utils:format( "a list of ~B elements", [ length( Len ) ] )
+            text_utils:format( "a list of ~B elements", [ Len ] )
 
     end;
 

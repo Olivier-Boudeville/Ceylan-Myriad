@@ -60,7 +60,7 @@ list_table, to read user-specified settings.
 % Mostly the same API as the one of hashtable (but richer):
 -export([ new/0, singleton/2, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
-		  add_option_entry/3, add_option_entries/2,
+		  add_option_entry/3, add_option_entries/2, add_entry_if_new_key/3,
 		  update_entry/3, update_entries/2, update_existing_entries/2,
 		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
@@ -279,46 +279,9 @@ add_entries( Entries, MapHashtable ) ->
 
 
 -doc """
-Adds the specified key/value pair into the specified map hashtable, provided
-that the value is not undefined. Useful to add a maybe-entry to a map.
-
-If there is already a pair with this key, then its previous value will be
-replaced by the specified one (hence does not check whether or not the key
-already exist in this table).
-""".
--spec add_option_entry( key(), option( value() ), map_hashtable() ) ->
-											map_hashtable().
-add_option_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
-	MapHashtable;
-
-add_option_entry( Key, MaybeValue, MapHashtable ) ->
-	add_entry( Key, MaybeValue, MapHashtable ).
-
-
-
--doc """
-Adds the specified list of key/value pairs into the specified map table, each
-entry being added iff its value is not undefined. Useful to add maybe-entries to
-a map.
-
-If there is already a pair with this key, then its previous value will be
-replaced by the specified one (hence does not check whether or not keys already
-exist in this table).
-""".
--spec add_option_entries( option_entries(), map_hashtable() ) ->
-											map_hashtable().
-add_option_entries( MaybeEntries, MapHashtable ) ->
-	lists:foldl( fun( { K, MV }, Map ) ->
-					add_option_entry( K, MV, Map )
-				 end,
-				 _Acc0=MapHashtable,
-				 _List=MaybeEntries ).
-
-
-
--doc """
 Adds the specified key/value pair into the specified map hashtable, expecting
-this key not to be already defined in this table.
+this key not to be already defined in this table (otherwise throws an
+exception).
 """.
 -spec add_new_entry( key(), value(), map_hashtable() ) -> map_hashtable().
 add_new_entry( Key, Value, MapHashtable ) ->
@@ -340,8 +303,8 @@ add_new_entry( Key, Value, MapHashtable ) ->
 
 -doc """
 Adds the specified list of key/value pairs into the specified map table,
-expecting that none of these keys is already defined in this table (otherwise an
-exception is thrown).
+expecting that none of these keys is already defined in this table (otherwise
+throws an exception).
 """.
 -spec add_new_entries( entries(), map_hashtable() ) -> map_hashtable().
 add_new_entries( Entries, MapHashtable ) ->
@@ -350,6 +313,69 @@ add_new_entries( Entries, MapHashtable ) ->
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=Entries ).
+
+
+
+
+
+-doc """
+Adds the specified key/value pair into the specified map hashtable, provided
+that that value is not equal to `undefined`. Useful to add a maybe-entry to a
+map.
+
+If there is already a pair with this key, then its previous value will be
+replaced by the specified one (hence this function does not check whether or not
+the key already exists in this table).
+""".
+-spec add_option_entry( key(), option( value() ), map_hashtable() ) ->
+											map_hashtable().
+add_option_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
+	MapHashtable;
+
+add_option_entry( Key, MaybeValue, MapHashtable ) ->
+	add_entry( Key, MaybeValue, MapHashtable ).
+
+
+
+-doc """
+Adds the specified list of key/value pairs into the specified map table, each
+entry being added iff its value is not equal to `undefined`. Useful to add
+maybe-entries to a map.
+
+If there is already a pair with this key, then its previous value will be
+replaced by the specified one (hence this function does not check whether or not
+the key already exists in this table).
+""".
+-spec add_option_entries( option_entries(), map_hashtable() ) ->
+                                                map_hashtable().
+add_option_entries( MaybeEntries, MapHashtable ) ->
+	lists:foldl( fun( { K, MV }, Map ) ->
+					add_option_entry( K, MV, Map )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=MaybeEntries ).
+
+
+
+-doc """
+Adds the specified key/value pair into the specified map hashtable iff this
+table does not have already this key registered; otherwise leaves this table as
+it is.
+
+This function therefore tries to set a low-priority entry.
+""".
+-spec add_entry_if_new_key( key(), value(), map_hashtable() ) ->
+                                                map_hashtable().
+add_entry_if_new_key( Key, Value, MapHashtable ) ->
+    case lookup_entry( Key, MapHashtable ) of
+
+        key_not_found ->
+            add_entry( Key, Value, MapHashtable );
+
+        _ -> % { value, V }
+            MapHashtable
+
+    end.
 
 
 

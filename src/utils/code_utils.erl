@@ -1391,7 +1391,7 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
 
 	% As FullArgStr must be interpreted, not used verbatim:
     FormatStr = "~ts:~ts/~B"
-        ++ format_arg_interpretations( ArgCount, ArgStrs ),
+        ++ format_arg_interpretations( ArgCount, ArgStrs ) ++ "~ts~n",
 
     FormatValues = [ Module, Function, ArgCount,
                      get_location_from( StackInfo, FullPathsWanted ) ],
@@ -1488,7 +1488,7 @@ format_arg_interpretations( _ArgCount=1, _ArgStrs=[ ArgStr ] ) ->
 
 format_arg_interpretations( ArgCount, ArgStrs ) ->
     text_utils:format( " called with the following ~B arguments:~n ~ts",
-        [ ArgCount, arguments_to_string( ArgStrs ) ] ) ++ "~ts~n".
+        [ ArgCount, arguments_to_string( ArgStrs ) ] ).
 
 
 % Special-cased compared to text_utils:strings_to_enumerated_string/3; indented

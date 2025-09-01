@@ -36,7 +36,8 @@ See the `list_utils_test` module for the corresponding test.
 For the support of (possibly strict) tagged lists (i.e. lists of pairs, with
 atoms as keys), refer to the `tagged_list` module.
 
-See also the `set_utils` and `list_table` modules.
+See also the `set_utils` and `list_table` modules, and the built-in `lists`
+module, notably for its `key{find,take,...}` functions.
 """.
 
 
@@ -332,7 +333,7 @@ Extracts the element of the specified list at the specified index.
 
 Returns that element and the resulting, shrunk list.
 
-For example: `{b, [a, c]} = extract_element_at([ a, b, c], 2)`.
+For example: `{b, [a, c]} = extract_element_at([a, b, c], 2)`.
 """.
 -spec extract_element_at( list(), positive_index() ) -> { element(), list() }.
 extract_element_at( List, Index ) ->

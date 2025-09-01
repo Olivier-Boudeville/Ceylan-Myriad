@@ -30,31 +30,32 @@
 -moduledoc """
 Gathering of various very **low-level trace-related facilities** on the
 console. These are (runtime) logs; they are by default not linked to the Erlang
-logging subsystem; see the set_handler/0 function in the current module so that
-they are integrated to the logger facilities.
+logging subsystem; see the `set_handler/0` function in the current module so
+that they are integrated to the logger facilities.
 
 The API functions provided by the current module are mostly useful so that their
 call can be replaced by calls to the far more advanced facilities of the
-'Ceylan-Traces' layer with no change in their parameters.
+`Ceylan-Traces` layer with no change in their parameters.
 
 For example, `trace_utils:debug_fmt("I am the ~B.", [1])` may be replaced by
 `?debug_fmt("I am the ~B.", [1])` to switch, in a trace emitter instance, from
 basic traces output on the console to traces sent through the Traces subsystem.
 
-As a result, for a trace severity S in [debug, info, notice, warning, error,
-critical, alert, emergency, void], `trace_utils:S` may be replaced as a whole by
-`?S` to promote a very debug-oriented trace into a potentially more durable one.
+As a result, for a trace severity S in `[debug, info, notice, warning, error,
+critical, alert, emergency, void]`, `trace_utils:S` may be replaced as a whole
+by `?S` to promote a very debug-oriented trace into a potentially more durable
+one.
 
 Note that a given trace emission can be fully disabled (with no remaining
-resource consumption at all) thanks to the cond_utils:if_defined* primitives.
+resource consumption at all) thanks to the `cond_utils:if_defined*` primitives.
 
 This module is also a logger one, see
-<https://erlang.org/doc/apps/kernel/logger_chapter.html>.
+[https://erlang.org/doc/apps/kernel/logger_chapter.html].
 
-See trace_utils_test.erl for testing.
+See `trace_utils_test.erl` for testing.
 
-Not to be mixed up with the traces_utils.erl module of Ceylan-Traces (note that
-their names differ).
+Not to be mixed up with the `traces_utils.erl` module of Ceylan-Traces (note
+that their names differ).
 """.
 
 
@@ -75,11 +76,11 @@ their names differ).
 
 -doc """
 Defining, according to the Erlang newer logger API and thus in accordance with
-the Syslog protocol (RFC 5424), 8 levels of severity (plus a 'void' one), from
+the Syslog protocol (RFC 5424), 8 levels of severity (plus a `void` one), from
 least important to most: debug, info, notice, warning, error, critical, alert
 and emergency (void being always muted):
 
-See also standard_logger_level_to_severity/1 for a proper conversion.
+See also `standard_logger_level_to_severity/1` for a proper conversion.
 """.
 -type trace_severity() ::
 
@@ -126,7 +127,7 @@ See also standard_logger_level_to_severity/1 for a proper conversion.
 Categorization of a trace message.
 
 A message may or may not (which is the default and general case - resulting in
-the use of the 'uncategorized' atom) be categorized.
+the use of the `uncategorized` atom) be categorized.
 
 Atoms are supported as well, as a limited number of message categorization
 generally applies.
@@ -137,9 +138,9 @@ generally applies.
 
 -doc """
 A message may or may not (which is the default and general case - resulting in
-the use of the 'uncategorized' atom) be categorized.
+the use of the `uncategorized` atom) be categorized.
 
-Note that the 'bin_' prefix may be a bit misleading here, as an atom can still
+Note that the `bin_` prefix may be a bit misleading here, as an atom can still
 be used.
 
 Atoms are supported as well, as a limited number of message categorization
@@ -150,8 +151,8 @@ generally applies.
 
 
 -doc """
-An applicative timestamp for a trace; it can be anything (e.g. integer() |
-'none'), no constraint applies on purpose, so that any kind of
+An applicative timestamp for a trace; it can be anything (e.g.` integer() |
+'none'`), no constraint applies on purpose, so that any kind of
 application-specific timestamps can be elected.
 
 Textual timestamps shall better be binaries or atoms rather than plain strings.
@@ -160,7 +161,7 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 
 
 
--doc "Not including the 'void' severity here.".
+-doc "Not including the `void` severity here.".
 -type trace_priority() :: 0..7.
 
 
@@ -229,13 +230,6 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 
 
 
-% Type shorthands:
-
--type ustring() :: text_utils:ustring().
--type bin_string() :: text_utils:bin_string().
-
-
-
 % Implementation notes:
 %
 % Compared to mere io:format/{1,2} calls, these trace primitives add
@@ -245,6 +239,14 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 %
 % Traces of lesser importance are ellipsed, as the console output does not allow
 % to browse them conveniently.
+
+
+% Type shorthands:
+
+-type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+
+
 
 
 
@@ -263,7 +265,7 @@ debug_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified debug message, with specified message categorization.
+Outputs the specified debug message, with the specified message categorization.
 """.
 -spec debug_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
@@ -276,8 +278,8 @@ debug_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified debug message, with specified message categorization and
-time information.
+Outputs the specified debug message, with the specified message categorization
+and time information.
 """.
 -spec debug_categorized_timed( trace_message(), trace_message_categorization(),
 							   trace_timestamp() ) -> void().
@@ -306,7 +308,7 @@ info_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified info message, with specified message categorization.
+Outputs the specified info message, with the specified message categorization.
 """.
 -spec info_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
@@ -319,8 +321,8 @@ info_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified info message, with specified message categorization and
-time information.
+Outputs the specified info message, with the specified message categorization
+and time information.
 """.
 -spec info_categorized_timed( trace_message(), trace_message_categorization(),
 							  trace_timestamp() ) -> void().
@@ -349,7 +351,7 @@ notice_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified notice message, with specified message categorization.
+Outputs the specified notice message, with the specified message categorization.
 """.
 -spec notice_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
@@ -362,8 +364,8 @@ notice_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified notice message, with specified message categorization and
-time information.
+Outputs the specified notice message, with the specified message categorization
+and time information.
 """.
 -spec notice_categorized_timed( trace_message(), trace_message_categorization(),
 								trace_timestamp() ) -> void().
@@ -394,7 +396,8 @@ warning_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified warning message, with specified message categorization.
+Outputs the specified warning message, with the specified message
+categorization.
 """.
 -spec warning_categorized( trace_message(), trace_message_categorization() ) ->
 								void().
@@ -407,8 +410,8 @@ warning_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified warning message, with specified message categorization and
-time information.
+Outputs the specified warning message, with the specified message categorization
+and time information.
 """.
 -spec warning_categorized_timed( trace_message(),
 		trace_message_categorization(), trace_timestamp() ) -> void().
@@ -439,7 +442,7 @@ error_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified error message, with specified message categorization.
+Outputs the specified error message, with the specified message categorization.
 """.
 -spec error_categorized( trace_message(), trace_message_categorization() ) ->
 											void().
@@ -452,8 +455,8 @@ error_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified error message, with specified message categorization and
-time information.
+Outputs the specified error message, with the specified message categorization
+and time information.
 """.
 -spec error_categorized_timed( trace_message(), trace_message_categorization(),
 							   trace_timestamp() ) -> void().
@@ -484,7 +487,8 @@ critical_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified critical message, with specified message categorization.
+Outputs the specified critical message, with the specified message
+categorization.
 """.
 -spec critical_categorized( trace_message(), trace_message_categorization() ) ->
 											void().
@@ -497,8 +501,8 @@ critical_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified critical message, with specified message categorization
-and time information.
+Outputs the specified critical message, with the specified message
+categorization and time information.
 """.
 -spec critical_categorized_timed( trace_message(),
 		trace_message_categorization(), trace_timestamp() ) -> void().
@@ -529,7 +533,7 @@ alert_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified alert message, with specified message categorization.
+Outputs the specified alert message, with the specified message categorization.
 """.
 -spec alert_categorized( trace_message(), trace_message_categorization() ) ->
 											void().
@@ -542,8 +546,8 @@ alert_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified alert message, with specified message categorization and
-time information.
+Outputs the specified alert message, with the specified message categorization
+and time information.
 """.
 -spec alert_categorized_timed( trace_message(), trace_message_categorization(),
 							   trace_timestamp() ) -> void().
@@ -574,7 +578,8 @@ emergency_fmt( Format, Values ) ->
 
 
 -doc """
-Outputs the specified emergency message, with specified message categorization.
+Outputs the specified emergency message, with the specified message
+categorization.
 """.
 -spec emergency_categorized( trace_message(),
 							 trace_message_categorization() ) -> void().
@@ -588,8 +593,8 @@ emergency_categorized( Message, MessageCategorization ) ->
 
 
 -doc """
-Outputs the specified emergency message, with specified message categorization
-and time information.
+Outputs the specified emergency message, with the specified message
+categorization and time information.
 """.
 -spec emergency_categorized_timed( trace_message(),
 			trace_message_categorization(), trace_timestamp() ) -> void().
@@ -604,7 +609,7 @@ emergency_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc """
-"Outputs" specified void message.
+"Outputs" the specified void message.
 """.
 -spec void( trace_message() ) -> void().
 void( _Message ) ->
@@ -613,7 +618,7 @@ void( _Message ) ->
 
 
 -doc """
-"Outputs" specified formatted void message.
+"Outputs" the specified formatted void message.
 """.
 -spec void_fmt( trace_format(), trace_values() ) -> void().
 void_fmt( _Format, _Values ) ->
@@ -622,7 +627,7 @@ void_fmt( _Format, _Values ) ->
 
 
 -doc """
-"Outputs" specified void message, with specified message categorization.
+"Outputs" the specified void message, with the specified message categorization.
 """.
 -spec void_categorized( trace_message(), trace_message_categorization() ) ->
 											void().
@@ -632,8 +637,8 @@ void_categorized( _Message, _MessageCategorization ) ->
 
 
 -doc """
-"Outputs" specified void message, with specified message categorization and time
-information.
+"Outputs" the specified void message, with the specified message categorization
+and time information.
 """.
 -spec void_categorized_timed( trace_message(), trace_message_categorization(),
 							  trace_timestamp() ) -> void().
@@ -650,7 +655,7 @@ Echoes the specified trace in specified trace channel.
 
 Defined notably to perform integrated operations (a trace being sent through
 both a basic system and a more advanced one), in order that the trace macros of
-upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to bind
+upper layers (e.g. `send_alert_fmt/3`, in the Traces layer) do not need to bind
 variables in their body (which may trigger bad matches as soon as more than once
 trace is sent in the same scope).
 """.
@@ -690,7 +695,7 @@ specified message categorization.
 
 Defined notably to perform integrated operations (a trace being sent through
 both a basic system and a more advanced one), in order that the trace macros of
-upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to bind
+upper layers (e.g. `send_alert_fmt/3`, in the Traces layer) do not need to bind
 variables in their body (which may trigger bad matches as soon as more than once
 trace is sent in the same scope).
 """.
@@ -731,7 +736,7 @@ categorization and timestamp.
 
 Defined notably to perform integrated operations (a trace being sent through
 both a basic system and a more advanced one), in order that the trace macros of
-upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to bind
+upper layers (e.g. `send_alert_fmt/3`, in the Traces layer) do not need to bind
 variables in their body (which may trigger bad matches as soon as more than once
 trace is sent in the same scope).
 """.
@@ -776,7 +781,7 @@ echo( _TraceMessage, _TraceSeverity=void, _MessageCategorization,
 Returns the (numerical) priority associated to specified trace severity (that is
 emergency, alert, etc.).
 
-See also: its reciprocal get_severity_for/1.
+See also its reciprocal `get_severity_for/1`.
 """.
 -spec get_priority_for( trace_severity() ) -> trace_priority().
 % From most common to least:
@@ -816,7 +821,7 @@ Returns the trace severity (that is emergency, error, etc.) associated to
 specified (numerical) severity (which corresponds also to a log level, in terms
 of the newer standard logger).
 
-See also: its reciprocal get_priority_for/1.
+See also its reciprocal `get_priority_for/1`.
 """.
 -spec get_severity_for( trace_priority() ) -> trace_severity().
 % From most common to least:
@@ -870,9 +875,9 @@ is_error_like( Severity ) ->
 
 -doc """
 Replaces the current (probably default) logger handler with this Myriad one
-(registered as the 'default' handler).
+(registered as the `default` handler).
 
-Note that Myriad logging defaults will then apply (see get_handler_config/0),
+Note that Myriad logging defaults will then apply (see `get_handler_config/0`),
 which is bound to imply a finer level of reported logs. As a result, after this
 function is called (directly or not), new error-like log messages may seem to
 appear.
@@ -933,9 +938,9 @@ add_handler() ->
 Returns the (initial) configuration of the Myriad logger handler.
 
 Note that Myriad opted for the finest log level, yet due to the primary log
-level of logger (which is 'notice'), by default 'debug' and 'info' messages will
-still be filtered out. See logger:set_primary_config/2 or refer to
-trace_utils_test.erl for extra information.
+level of logger (which is `notice`), by default `debug` and `info` messages will
+still be filtered out. See `logger:set_primary_config/2` or refer to
+`trace_utils_test.erl` for extra information.
 """.
 -spec get_handler_config() -> logger:handler_config().
 get_handler_config() ->
@@ -960,7 +965,7 @@ get_handler_config() ->
 -doc """
 Mandatory callback for log handlers.
 
-See <https://erlang.org/doc/man/logger.html#HModule:log-2>.
+See [https://erlang.org/doc/man/logger.html#HModule:log-2].
 """.
 -spec log( logger:log_event(), logger:handler_config() ) -> void().
 log( _LogEvent=#{ level := Level,
