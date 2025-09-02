@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various **system-level** (operating system) convenient facilities.
 
-See system_utils_test.erl for the corresponding test.
+See `system_utils_test.erl` for the corresponding test.
 """.
 
 

@@ -65,8 +65,13 @@ See `system_utils.erl` for the actual execution of programs.
 	get_default_image_browser_name/0,
 	get_default_image_browser_path/0,
 
+
 	get_default_web_browser_name/0,
 	get_default_web_browser_path/0,
+
+    get_web_browser_path_for_family/1,
+    get_any_web_browser_info/0,
+    get_any_web_browser_info_for_local_access/0,
 
 	get_default_pdf_viewer_name/0,
 	get_default_pdf_viewer_path/0,
@@ -137,7 +142,22 @@ See `system_utils.erl` for the actual execution of programs.
 -type executable_info() :: { executable_name(), executable_path() }.
 
 
--export_type([ executable_name/0, executable_info/0 ]).
+
+-doc """
+Describes a family of web browsers, as often multiple actual browsers derive
+directly from a common base.
+""".
+-type web_browser_family() :: 'firefox_family'
+                            | 'chrome_family'. % Comprises chromium
+
+
+-doc "Information about a web browser.".
+-type web_browser_info() ::
+    { web_browser_family(), executable_path(), [ executable_argument() ] }.
+
+
+-export_type([ executable_name/0, executable_info/0, web_browser_family/0,
+               web_browser_info/0 ]).
 
 
 
@@ -164,6 +184,8 @@ See `system_utils.erl` for the actual execution of programs.
 -type directory_path() :: file_utils:directory_path().
 
 -type command_output() :: system_utils:command_output().
+-type executable_argument() :: system_utils:executable_argument().
+
 -type command_line_argument() :: cmd_line_utils:command_line_argument().
 
 -type image_format() :: gui_image:image_format().
@@ -587,6 +609,7 @@ get_default_image_browser_path() ->
 
 
 
+
 -doc "Returns the name of the default web browser.".
 -spec get_default_web_browser_name() -> executable_name().
 get_default_web_browser_name() ->
@@ -596,10 +619,107 @@ get_default_web_browser_name() ->
 
 
 
--doc "Returns an absolute path to the default web browser tool.".
+-doc """
+Returns an absolute path to the default web browser tool, or returns an
+exception.
+""".
 -spec get_default_web_browser_path() -> executable_path().
 get_default_web_browser_path() ->
 	find_executable( get_default_web_browser_name() ).
+
+
+
+-doc """
+Returns the path to any most suitable web browser of the specified family.
+""".
+-spec get_web_browser_path_for_family( web_browser_family() ) ->
+                                        coarse_fallible( executable_path() ).
+get_web_browser_path_for_family( _BrowserFamily=firefox_family ) ->
+    case lookup_executable( "firefox" ) of
+
+        false ->
+            error;
+
+        FirefoxExecPath ->
+            { ok, FirefoxExecPath }
+
+    end;
+
+get_web_browser_path_for_family( _BrowserFamily=chrome_family ) ->
+    case lookup_executable( "chromium" ) of
+
+        false ->
+            case lookup_executable( "chrome" ) of
+
+                false ->
+                    error;
+
+                ChromeExecPath ->
+                    { ok, ChromeExecPath }
+
+            end;
+
+        ChromiumExecPath ->
+            { ok, ChromiumExecPath }
+
+    end.
+
+
+
+-doc """
+Returns the family, executable path and options of any web browser of choice
+found.
+""".
+-spec get_any_web_browser_info() -> coarse_fallible( web_browser_info() ).
+get_any_web_browser_info() ->
+    case get_web_browser_path_for_family( _BrowserFamily=firefox_family ) of
+
+        error ->
+            case get_web_browser_path_for_family( chrome_family ) of
+
+                { ok, ChromeFamilyExecPath } ->
+                    { ok, { chrome_family, ChromeFamilyExecPath, _Opts=[] } };
+
+                error ->
+                    error
+
+            end;
+
+        { ok, FirefoxFamilyExecPath } ->
+            { ok, { firefox_family, FirefoxFamilyExecPath, _Opts=[] } }
+
+    end.
+
+
+
+-doc """
+Returns the family, executable path and options of any browser found that should
+be able, with such options, to load web content from the local filesystem.
+
+Another approach could be to run a minimalistic Erlang web browser (akin to
+`python3 -m http.server 8080`).
+""".
+-spec get_any_web_browser_info_for_local_access() ->
+                                    coarse_fallible( web_browser_info() ).
+get_any_web_browser_info_for_local_access() ->
+
+    % Firefox would require a specific profile whose preferences would include
+    % the security.fileuri.strict_origin_policy flag set to false. So:
+
+    case get_web_browser_path_for_family( _BrowserFamily=chrome_family ) of
+
+        error ->
+            error;
+
+        { ok, ChromeFamilyExecPath } ->
+            % Should be better than:
+            % '--disable-web-security --user-data-dir="/tmp/chrome"':
+            %
+            ChromeOpts = [ "--allow-file-access-from-files" ],
+            { ok, { chrome_family, ChromeFamilyExecPath, ChromeOpts } }
+
+
+    end.
 
 
 

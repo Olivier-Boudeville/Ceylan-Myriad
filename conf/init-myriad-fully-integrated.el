@@ -29,7 +29,7 @@
 
 
 ;;(message "The load path is: %s" load-path)
-(print load-path)
+;;(print load-path)
 
 
 ;; For all general-purpose basics:

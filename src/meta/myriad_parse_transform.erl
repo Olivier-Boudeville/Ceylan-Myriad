@@ -402,9 +402,9 @@ get_myriad_ast_transforms_for( #module_info{
 
 	% We also manage option/1 here: if used as 'option(T)', translated as
     % 'type_utils:option(T)'; the same applies to safe_option/1,
-    % fallible/{0..2}, string_fallible/0, successful/{0,1}, failing/{0,1},
-    % tagged_fallible/{0..2}, diagnosed_fallible/{0..2},
-    % and diagnosed_tagged_fallible/{1,2}`.
+    % coarse_fallible/1, fallible/{0..2}, string_fallible/0, successful/{0,1},
+    % failing/{0,1}, tagged_fallible/{0..2}, diagnosed_fallible/{0..2}, and
+    % diagnosed_tagged_fallible/{1,2}`.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -505,10 +505,10 @@ Returns the table specifying the transformation of the local types.
 
 Regarding local types, to define pseudo-builtin types, we want to prefix:
 
-- `fallible/{0..2}`, `string_fallible/0`, `successful/{0,1}`, `failing/{0,1}`,
-  `tagged_fallible/{0..2}`, `diagnosed_fallible/{1,2}`,
-  `diagnosed_tagged_fallible/{1,2}` with the `basic_utils` module
-  (e.g. resulting in types like `basic_utils:fallible()`,
+- `coarse_fallible/1`, `fallible/{0..2}`, `string_fallible/0`,
+  `successful/{0,1}`, `failing/{0,1}`, `tagged_fallible/{0..2}`,
+  `diagnosed_fallible/{1,2}`, `diagnosed_tagged_fallible/{1,2}` with the
+  `basic_utils` module (e.g. resulting in types like `basic_utils:fallible()`,
   `basic_utils:fallible(TSuccess)`, etc.)
 
 - `void/0`, `option/1`, `safe_option/1` with `type_utils`
@@ -524,7 +524,8 @@ get_local_type_transforms( DesiredTableType ) ->
 	% Replacements to be done only for the specified arities, here to be found
 	% in the basic_utils module:
 	%
-	BasicUtilsTypes = [ { fallible, 0 }, { fallible, 1 }, { fallible, 2 },
+	BasicUtilsTypes = [ { coarse_fallible, 1 },
+                        { fallible, 0 }, { fallible, 1 }, { fallible, 2 },
                         { string_fallible, 0 },
                         { successful, 0 }, { successful, 1 },
                         { failing, 0 },    { failing, 1 },

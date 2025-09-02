@@ -183,14 +183,30 @@ pair).
 
 
 
-% These *fallible*/* types may or may not be clearer forms that the complete
-% types that they capture. To be used wisely.
+% These *fallible*/* and all types may or may not be clearer forms that the
+% complete types that they capture. To be used wisely.
+
+
+
+-doc """
+Return type for operations that may fail (with a sufficient likelihood that no
+exception is to be raised then, thus the choice is left to the caller), and then
+do not report any particular cause of failure.
+
+The corresponding terms are thus of the form ``{ok, TSuccessValue}`` or
+just ``error``.
+""".
+-type coarse_fallible( TSuccess ) :: successful( TSuccess ) | 'error'.
+
 
 
 -doc """
 Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller), when
 wanting to specify the error type as well.
+
+The corresponding terms are thus of the form ``{ok, TSuccessValue}`` or
+``{error, TFailureValue}``.
 """.
 -type fallible( TSuccess, TFailure ) ::
     successful( TSuccess ) | failing( TFailure ).
@@ -199,6 +215,11 @@ wanting to specify the error type as well.
 -doc """
 Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller).
+
+The corresponding terms are thus of the form ``{ok, TSuccessValue}`` or
+``{error, AnyFailureValue}``.
+
+This is a rather convenient, commonly used type.
 """.
 -type fallible( TSuccess ) :: fallible( TSuccess, TFailure :: any() ).
 
@@ -206,6 +227,9 @@ exception is to be raised then, thus the choice is left to the caller).
 -doc """
 Return type for operations that may fail (with a sufficient likelihood that no
 exception is to be raised then, thus the choice is left to the caller).
+
+The corresponding terms are thus of the form ``{ok, AnySuccessValue}`` or
+``{error, AnyFailureValue}``.
 """.
 -type fallible() :: fallible( TSuccess :: any() ).
 
@@ -230,6 +254,8 @@ Return type for operations that may only succeed.
 -doc """
 Return type for operations that may only succeed.
 
+The corresponding terms are thus of the form ``{ok, AnySuccessValue}``.
+
 (typically useful for fallible-like signatures induced by a framework)
 """.
 -type successful() :: successful( TSuccess :: any() ).
@@ -246,6 +272,8 @@ Return type for operations that may only fail.
 
 -doc """
 Return type for operations that may only fail.
+
+The corresponding terms are thus of the form ``{error, AnyFailureValue}``.
 
 (typically useful for fallible-like signatures induced by a framework)
 """.
@@ -298,6 +326,7 @@ the caller if needed.
     fallible( TSuccess, tagged_error_info( TErrorInfoTuploid ) ).
 
 
+
 -doc """
 Return type for operations that may fail, allowing the caller to act based on
 the different causes of errors.
@@ -314,12 +343,13 @@ the caller if needed.
     tagged_fallible( TSuccess, tuploid() ).
 
 
+
 -doc """
 Return type for operations that may fail, allowing the caller to act based on
 the different causes of errors.
 
-Thus either `{ok,TSuccessValue}` or `{error, {ErrorTag, SomeErrorTuploid}}` like
-`{error, {type_scanning_failed, {ErrStr, ErrorLocation, TypeStr}}}`.
+Thus either `{ok, AnySuccessValue}` or `{error, {ErrorTag, SomeErrorTuploid}}`
+like `{error, {type_scanning_failed, {ErrStr, ErrorLocation, TypeStr}}}`.
 
 Having the error tag in a pair (rather than in a tuple of potentially variable
 size) facilitates the caller-side error management. The tuploid, which is the
@@ -329,8 +359,9 @@ the caller if needed.
 -type tagged_fallible() :: tagged_fallible( TSuccess :: any() ).
 
 
+
 -doc """
-Thus either `{ok,TSuccessValue}` or `{error, {TuploidTFailureValue,ErrorMsg}}`.
+Thus either `{ok, TSuccessValue}` or `{error, {TuploidTFailureValue,ErrorMsg}}`.
 """.
 -type diagnosed_fallible( TSuccess, TFailure ) ::
 	fallible( TSuccess, diagnosed_error_reason( TFailure ) ).
@@ -586,8 +617,9 @@ eliminate afterwards).
 			   error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
 			   base_status/0, base_outcome/0,
 
-			   fallible/0, fallible/1, fallible/2, string_fallible/0,
-               successful/0, successful/1, failing/0, failing/1,
+			   coarse_fallible/1, fallible/0, fallible/1, fallible/2,
+               string_fallible/0, successful/0, successful/1, failing/0,
+               failing/1,
 
                tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
                tagged_fallible/0, tagged_fallible/1, tagged_fallible/2,
