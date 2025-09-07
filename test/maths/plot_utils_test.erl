@@ -273,23 +273,24 @@ test_plot_with_user_interface() ->
         % fill_style.
         { labels, [ MyLabel ] },
         { curve_name, "My sinus curve name" },
-        { display, not executable_utils:is_batch() } ] ) ).
+        { display, not executable_utils:is_batch() } ] ) ),
 
-
-	% examine_outcome( plot_utils:plot( _FunsToPlot=[ fun cos/1, fun:exp/1 ], [
-    %     { name, "My test multi-plot" },
-    %     { title, "My title" },
-    %     { key_options, "box" },
-    %     { x_label, "My abscissa label" },
-    %     { y_label, "My ordinate label" },
-    %     { x_tick_options, "axis in"},
-    %     { x_range, { 0.0, 2*math:pi() } },
-    %     { y_range, { -1.5, undefined } },
-    %     % Not set: is_timestamped, x_ticks_timestamp_time_format, plot_style,
-    %     % symbol_scale, fill_style.
-    %     { labels, [ MyLabel ] },
-    %     { curve_names, [ "My cosinus curve name", "My exponential curve name" },
-    %     { display, not executable_utils:is_batch() } ] ) ).
+	examine_outcome( plot_utils:plot(
+        _FunsToPlot=[ fun math:cos/1, fun math:sqrt/1 ], [
+            { name, "My test multi-plot" },
+            { title, "My title" },
+            { key_options, "box" },
+            { x_label, "My abscissa label" },
+            { y_label, "My ordinate label" },
+            { x_tick_options, "axis in"},
+            { x_range, { 0.0, 2*math:pi() } },
+            { y_range, { -1.5, undefined } },
+            % Not set: is_timestamped, x_ticks_timestamp_time_format,
+            % plot_style, symbol_scale, fill_style.
+            { labels, [ MyLabel ] },
+            { curve_names,
+                [ "My cosinus curve name", "My square root curve name" ] },
+            { display, not executable_utils:is_batch() } ] ) ).
 
 
 

@@ -326,6 +326,8 @@ generate a plot.
 
 -define( default_plot_name, "myriad-plot" ).
 
+-define( default_sample_count, 400 ).
+
 
 -doc "A table holding any number of user-oriented, higher-level plot settings.".
 -type plot_settings_table() ::
@@ -840,7 +842,7 @@ String describing a timestamp (typically either a tick or a textual timestamp).
 
 
 % Backend-level API:
--export([ plot/3, plot/4,
+-export([ plot/3, plot_multi/3, plot/4, plot_multi/4,
 
           get_plot_settings/1,
           get_default_plot_settings/0, get_default_plot_settings/1,
@@ -1672,6 +1674,20 @@ plot( FunToPlot, Bounds, MaybePlotSettings ) ->
 
 
 -doc """
+Plots the specified functions within the specified bounds, based on the
+specified (lower-level) plot settings (if any, otherwise default ones will be
+used) and returns the path to the corresponding generated plot file.
+
+Any previous plot file will be overwritten.
+""".
+-spec plot_multi( [ plot_function() ], plot_bounds(),
+                  option( plot_settings() ) ) -> plot_generation_outcome().
+plot_multi( FunsToPlot, Bounds, MaybePlotSettings ) ->
+    plot_multi( FunsToPlot, Bounds, MaybePlotSettings, _DoDisplay=false ).
+
+
+
+-doc """
 Plots the specified function within the specified bounds, based on the specified
 (lower-level) plot settings (if any, otherwise default ones will be used),
 displays it if requested, and returns the path to the corresponding generated
@@ -1688,12 +1704,40 @@ plot( FunToPlot, Bounds, PlotSettings=#plot_settings{
         meta_data=MetadataTable }, DoDisplay ) ->
 
     SampleCount = list_table:get_value_with_default( _K=plot_point_count,
-        _DefaultSampleCount=200, MetadataTable ),
+        ?default_sample_count, MetadataTable ),
 
     % Bounds are canonicalised; returns a list of plot points:
     PlotData = math_utils:sample_as_pairs_for( FunToPlot, Bounds, SampleCount ),
 
     plot_samples( PlotData, PlotSettings, DoDisplay ).
+
+
+
+-doc """
+Plots the specified functions within the specified bounds, based on the
+specified (lower-level) plot settings (if any, otherwise default ones will be
+used), displays them if requested, and returns the path to the corresponding
+generated plot file.
+
+Any previous plot file will be overwritten.
+""".
+-spec plot_multi( [ plot_function() ], plot_bounds(), option( plot_settings() ),
+                  boolean() ) -> plot_generation_outcome().
+plot_multi( FunsToPlot, Bounds, _MaybePlotSettings=undefined, DoDisplay ) ->
+    plot_multi( FunsToPlot, Bounds, get_default_plot_settings(), DoDisplay );
+
+plot_multi( FunsToPlot, Bounds, PlotSettings=#plot_settings{
+        meta_data=MetadataTable }, DoDisplay ) ->
+
+    SampleCount = list_table:get_value_with_default( _K=plot_point_count,
+        ?default_sample_count, MetadataTable ),
+
+    % Bounds are canonicalised; returns a list of plot points:
+    PlotData = math_utils:sample_multi_as_pairs_for( FunsToPlot, Bounds,
+                                                     SampleCount ),
+
+    plot_samples( PlotData, PlotSettings, DoDisplay ).
+
 
 
 
@@ -1717,7 +1761,11 @@ plot( FunsToPlot, PlotSettingsTable ) when is_list( FunsToPlot ) ->
 
         undefined ->
             list_utils:duplicate( _Elem="Unknown curve",
-                                  _Count=length( FunsToPlot ) )
+                                  _Count=length( FunsToPlot ) );
+
+       CNs ->
+            basic_utils:assert_equal( length( FunsToPlot ), length( CNs ) ),
+            CNs
 
     end,
 
@@ -1729,7 +1777,7 @@ plot( FunsToPlot, PlotSettingsTable ) when is_list( FunsToPlot ) ->
 
     DeclaredPST = declare_curves( CurveNames, SetPST ),
 
-    plot( FunsToPlot, Bounds, DeclaredPST, DoDisplay );
+    plot_multi( FunsToPlot, Bounds, DeclaredPST, DoDisplay );
 
 
 plot( FunToPlot, PlotSettingsTable ) ->
@@ -1826,7 +1874,7 @@ get_plot_settings_from_table( PlotSettingsTable, MaybeDefaultPlotStyle ) ->
         list_table:extract_entry_with_default( x_ticks_timestamp_time_format,
                                                undefined, IsTimestampPST ),
 
-    DefaultPlotStyle = basic_utils:if_defined( MaybeDefaultPlotStyle,
+    DefaultPlotStyle = basic_utils:set_option( MaybeDefaultPlotStyle,
                                                _Otherwise=symbols_and_lines ),
 
     { PlotStyle, PlotStylePST } = list_table:extract_entry_with_default(
@@ -2854,7 +2902,7 @@ generate_data_file( PlotData, PlotSettings=#plot_settings{
             "first data point is:~n ~p.", [ BinPlotName, hd( PlotData ) ] ) ),
 
     DataFilename = basic_utils:set_option( MaybePlotBinFilename,
-                                          get_data_filename( BinPlotName ) ),
+                                           get_data_filename( BinPlotName ) ),
 
     BinPlotDir = get_plot_directory( PlotSettings ),
 
