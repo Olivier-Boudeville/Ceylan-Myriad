@@ -3297,7 +3297,7 @@ check_atoms( Atoms ) ->
 
 
 -doc "Checks that the specified term is a boolean indeed, and returns it.".
--spec check_boolean( term() ) -> atom().
+-spec check_boolean( term() ) -> boolean().
 check_boolean( true ) ->
 	true;
 
