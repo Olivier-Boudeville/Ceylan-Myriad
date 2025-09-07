@@ -704,7 +704,7 @@ eliminate afterwards).
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 
-		  identity/1, if_else/3, if_defined/2, repeat/2,
+		  identity/1, if_else/3, repeat/2,
 
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
@@ -911,24 +911,7 @@ if_else( _Condition, _IfTrue, IfNotTrue ) ->
 	IfNotTrue.
 
 
--doc """
-Returns, if the first argument is defined, in the sense of different from
-`undefined`, the first argument, otherwise returns the second argument.
-
-Useful to apply defaults, in a more compact form than with a `case`.
-
-Could be named `if_not_undefined/1`.
-
-For example, if `TestedValue =:= undefined`, then `foo = if_defined(TestedValue,
-_Otherwise=foo)`, whereas if `TestedValue =:= 4` then `4 =
-if_defined(TestedValue, foo)`.
-""".
--spec if_defined( term(), term() ) -> term().
-if_defined( _TestedValue=undefined, Otherwise ) ->
-  Otherwise;
-
-if_defined( TestedValue, _Otherwise ) ->
-  TestedValue.
+% No if_defined/2 to be defined - just refer to set_option/2.
 
 
 -doc """
@@ -1016,15 +999,21 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 
 
 -doc """
-Returns the first term if it is not `undefined`, otherwise returns the second,
-default, term.
+Returns, if the first argument is defined, in the sense of different from
+`undefined`, the first argument, otherwise returns the second argument.
 
-Allows to apply a default if a option-term is not defined.
+Allows to apply a default if a option-term is not defined, in a more compact
+form than with a `case`.
 
-For example: `ActualX = basic_utils:set_option(OptionX, DefaultX)`.
+For example, if `TestedValue =:= undefined`, then `foo =
+basic_utils:set_option(TestedValue, _Otherwise=foo)`, whereas if `TestedValue
+=:= 4` then `4 = basic_utils:set_option(TestedValue, foo)`.
 
 Ideally the default term would be lazily evaluated (e.g. if calling an
 initialisation function, notably for the second term).
+
+Not named `if_defined/2` to avoid being mixed up with build-time functions in
+`cond_utils`.
 """.
 -spec set_option( option( term() ), term() ) -> term().
 set_option( _OptionTerm=undefined, TDef ) ->
