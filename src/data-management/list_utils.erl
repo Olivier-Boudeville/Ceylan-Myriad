@@ -643,6 +643,8 @@ specified element in the specified list.
 Throws an exception if the element is not found.
 
 For example: `3 = get_index_of(bar, [foo, ugh, bar, baz])`.
+
+See also `get_maybe_index_of/2`.
 """.
 -spec get_index_of( element(), list() ) -> count().
 get_index_of( Element, List ) ->
@@ -668,6 +670,8 @@ For example:
 3 = get_maybe_index_of(bar, [foo, ugh, bar, baz])
 undefined = get_maybe_index_of(xxx, [foo, ugh, bar, baz])
 ```
+
+See also `get_index_of/2`.
 """.
 -spec get_maybe_index_of( element(), list() ) -> option( count() ).
 get_maybe_index_of( Element, List ) ->
