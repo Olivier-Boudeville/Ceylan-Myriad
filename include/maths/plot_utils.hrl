@@ -74,7 +74,7 @@
 -define( data_extension, "dat" ).
 
 
-% The settings governing a given plot.
+% The lower-level settings governing a given plot.
 %
 % The underlying conventions are the gnuplot ones.
 %
@@ -100,26 +100,24 @@
 	y_label :: option( plot_utils:label_text() ),
 
 
-	% Settings for tick layout along the abscissa axis:
+	% Settings for the tick layout along the abscissa axis:
 	x_tick :: option( plot_utils:tick_option() ),
 
-	% Settings for tick layout along the ordinate axis:
+	% Settings for the tick layout along the ordinate axis:
 	y_tick :: option( plot_utils:tick_option() ),
 
 
-	% Abscissa range (pair of {MaybeMinX,MaybeMaxX} integers, or 'undefined'),
-	% knowing that such a range can be open, if either of the bounds is not
-	% specified (e.g. resulting in a "[5:]" range):
+	% Abscissa range (pair of {MaybeMinX,MaybeMaxX}, or 'undefined'), knowing
+	% that such a range can be open, if either of the bounds is not specified
+	% (e.g. resulting in a "[5:]" range):
 	%
-	x_range :: option(
-		{ option( gui:coordinate() ), option( gui:coordinate() ) } ),
+	x_range :: option( { option( number() ), option( number() ) } ),
 
-	% Ordinate range (pair of {MaybeMinY,MaybeMaxY} integers, or 'undefined'),
-	% knowing that such a range can be open, if either of the bounds is not
-	% specified (e.g. resulting in a "[5:]" range):
+	% Ordinate range (pair of {MaybeMinY,MaybeMaxY}, or 'undefined'), knowing
+	% that such a range can be open, if either of the bounds is not specified
+	% (e.g. resulting in a "[5:]" range):
 	%
-	y_range :: option(
-		{ option( gui:coordinate() ), option( gui:coordinate() ) } ),
+	y_range :: option( { option( number() ), option( number() ) } ),
 
 
 	% Fine control of the major (labeled) ticks on the abscissa axis.
@@ -129,7 +127,7 @@
 	% Tells whether the abscissa axis gathers timestamps.
 	is_timestamped = false :: boolean(),
 
-	% The display time format to use if the x axis is a timestamped one:
+	% The display time format to use if the abscissa axis is a timestamped one:
 	x_ticks_timestamp_time_format ::
 		option( plot_utils:timestamp_time_format() ),
 
@@ -149,7 +147,7 @@
 	% Defines the size of each point; 'set pointsize 2' means the point size is
 	% twice the default size.
 	%
-	point_size = 1 :: non_neg_integer(),
+	point_size = 1 :: number(),
 
 
 	% Defines how areas like histograms should be filled:
@@ -175,11 +173,11 @@
 	image_format = 'png' :: gui_image:image_format(),
 
 
-	% Lists the arbitrary labels that may be defined over the plot rendering:
+	% Defines the arbitrary labels that may be defined over the plot rendering:
 	labels = [] :: [ plot_utils:plot_label() ],
 
-	% Lists extra defines that shall be added verbatim to the command file (near
-	% its top):
+	% Lists extra defines that shall be added verbatim, uncommented to the
+	% command file (near its top):
 	%
 	extra_defines = [] :: [ text_utils:bin_string() ],
 
@@ -196,7 +194,7 @@
 	%
 	plot_directory :: option( file_utils:bin_directory_name() ),
 
-	% The filename (if any; otherwise it will be generated) to the plot that is
+	% The filename (if any; otherwise it will be generated) of the plot that is
 	% to be generated.
 	%
 	plot_filename :: option( file_utils:bin_file_name() ),
@@ -249,5 +247,5 @@
 	%
 	orientation = 'upright' :: option( plot_utils:label_orientation() ),
 
-	% Tells whether a point shall be rendered at the label location:
-	point :: option( plot_utils:point_style_spec() ) } ).
+	% Tells whether any point shall be rendered at the label location:
+	point_type :: option( plot_utils:point_style() ) } ).

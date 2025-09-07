@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **plot-related basic toolbox** facilities.
 
-See the plot_utils tested module.
+See the `plot_utils` tested module.
 """.
 
 
@@ -40,11 +40,29 @@ See the plot_utils tested module.
 
 
 % Silencing:
--export([ test_basic_plot/0, test_function_plot/0 ]).
+-export([ test_plot_with_lower_level_interface/0,
+          test_plot_with_user_interface/0, test_function_plot/0 ]).
+
+
+% Type shorthand:
+-type plot_generation_outcome() :: plot_utils:plot_generation_outcome().
 
 
 
-test_basic_plot() ->
+-spec examine_outcome( plot_generation_outcome() ) -> void().
+examine_outcome( { success, BinPlotPath } ) ->
+    test_facilities:display( "Plot generated in '~ts'.", [ BinPlotPath ] );
+
+examine_outcome( { warning, BinPlotPath, WarningMsg } ) ->
+    test_facilities:display( "Plot generated in '~ts', yet led to the "
+        "following warning: ~ts.", [ BinPlotPath, WarningMsg ] );
+
+examine_outcome( { error, ErrorMsg } ) ->
+    trace_utils:error( ErrorMsg ).
+
+
+
+test_plot_with_lower_level_interface() ->
 
 	InitPlotSettings = plot_utils:get_plot_settings(
 		"Sun-like Time factors plot" ),
@@ -158,12 +176,8 @@ test_basic_plot() ->
 
 	DoDisplay = not executable_utils:is_batch(),
 
-	{ success, BinPlotPath } = plot_utils:plot_samples( AllPairs,
-		FinalPlotSettings, DoDisplay ),
-
-	test_facilities:display( "Plot file '~ts' generated.", [ BinPlotPath ] ),
-
-
+    examine_outcome( plot_utils:plot_samples( AllPairs,
+                                              FinalPlotSettings, DoDisplay ) ),
 
 	% Now a curve just for Sagittarius A*:
 
@@ -197,16 +211,11 @@ test_basic_plot() ->
 	SagPairs = math_utils:sample_as_pairs_for( SagTimeFactorFun,
 											   SagStart, SagStop, SampleCount ),
 
-	{ success, SagBinPlotPath } = plot_utils:plot_samples( SagPairs,
-		SagCurvePlotSettings, DoDisplay ),
-
-	test_facilities:display( "Plot file '~ts' generated.", [ SagBinPlotPath ] ).
-
+	examine_outcome( plot_utils:plot_samples( SagPairs, SagCurvePlotSettings,
+                                              DoDisplay ) ).
 
 
 test_function_plot() ->
-
-	%FunToPlot = fun math:sin/1,
 
 	P = 0.3456224429838643,
 
@@ -239,7 +248,50 @@ test_function_plot() ->
 
 	DoDisplay = not executable_utils:is_batch(),
 
-	plot_utils:plot( FunToPlot, Bounds, PlotSettings, DoDisplay ).
+	 examine_outcome(
+         plot_utils:plot( FunToPlot, Bounds, PlotSettings, DoDisplay ) ).
+
+
+
+test_plot_with_user_interface() ->
+
+    MyLabel = plot_utils:label( _Text="My label", _Pos={ 1.5, 0.5 },
+                                _SymbolSpec=up_triangle_empty ),
+
+    % Testing most known settings (abusing list_table with a direct list):
+	examine_outcome( plot_utils:plot( _FunToPlot=fun math:sin/1, [
+        { name, "My test single plot" },
+        { title, "My title" },
+        { key_options, "box" },
+        { x_label, "My abscissa label" },
+        { y_label, "My ordinate label" },
+        { x_tick_options, "axis in"},
+        { x_range, { 0.0, 2*math:pi() } },
+        { y_range, { -1.1, undefined } },
+        { is_timestamped, false }, % Useless
+        % Not set: x_ticks_timestamp_time_format, plot_style, symbol_scale,
+        % fill_style.
+        { labels, [ MyLabel ] },
+        { curve_name, "My sinus curve name" },
+        { display, not executable_utils:is_batch() } ] ) ).
+
+
+	% examine_outcome( plot_utils:plot( _FunsToPlot=[ fun cos/1, fun:exp/1 ], [
+    %     { name, "My test multi-plot" },
+    %     { title, "My title" },
+    %     { key_options, "box" },
+    %     { x_label, "My abscissa label" },
+    %     { y_label, "My ordinate label" },
+    %     { x_tick_options, "axis in"},
+    %     { x_range, { 0.0, 2*math:pi() } },
+    %     { y_range, { -1.5, undefined } },
+    %     % Not set: is_timestamped, x_ticks_timestamp_time_format, plot_style,
+    %     % symbol_scale, fill_style.
+    %     { labels, [ MyLabel ] },
+    %     { curve_names, [ "My cosinus curve name", "My exponential curve name" },
+    %     { display, not executable_utils:is_batch() } ] ) ).
+
+
 
 
 
@@ -259,8 +311,9 @@ run() ->
 			test_facilities:display( "Gnuplot available (as '~ts'), "
 				"proceeding with tests.", [ GnuplotPath ] ),
 
-			%test_basic_plot(),
-			test_function_plot()
+			%test_plot_with_lower_level_interface(),
+			%test_function_plot(),
+			test_plot_with_user_interface()
 
 	end,
 
