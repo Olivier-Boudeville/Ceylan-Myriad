@@ -83,10 +83,12 @@ See `random_utils` for random-related operations.
 
 
 % Operations related to functions:
--export([ evaluate/2,
-		  sample/4, sample_for/4,
-		  sample_as_pairs/3, sample_as_pairs/4,
-		  sample_as_pairs_for/3, sample_as_pairs_for/4,
+-export([ evaluate/2, evaluate_multi/2,
+		  sample/4, sample_multi/4, sample_for/4, sample_multi_for/4,
+		  sample_as_pairs/3, sample_multi_as_pairs/3,
+          sample_as_pairs/4, sample_multi_as_pairs/4,
+		  sample_as_pairs_for/3, sample_multi_as_pairs_for/3,
+          sample_as_pairs_for/4, sample_multi_as_pairs_for/4,
 		  normalise/2,
 
 		  compute_support/1, compute_support/3, compute_support/4,
@@ -417,6 +419,13 @@ common to these samples.
 	13339535.0, 2637558.0, 357423.0, 32670.0, 1925.0, 66.0, 1.0 ] ).
 
 
+% Implementation notes:
+
+% For the sampling of multiple functions (rather than a single one), we
+% preferred for clarity and a bit of efficience defining also _multi variations
+% rather than being able to specify maybe_list(function()) as argument.
+
+
 
 % Type shorthands:
 
@@ -424,6 +433,8 @@ common to these samples.
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type tuple( T ) :: type_utils:tuple( T ).
 
 -type dimensionless() :: unit_utils:dimensionless().
 -type degrees() :: unit_utils:degrees().
@@ -1131,6 +1142,19 @@ evaluate( Fun, Abs ) ->
 	end.
 
 
+-doc """
+Evaluates the specified functions at the specified abscissa, and returns a tuple
+of the corresponding values if it could be computed, otherwise includes
+`undefined` for each that could not (this happens when typically `badarith` is
+thrown due to an operation failing, like for `math:pow(1000,1000)` or
+`math:pow(0.0,-0.89)`).
+""".
+-spec evaluate_multi( [ float_to_float_fun() ], abscissa() ) ->
+											{ option( float_result_value() ) }.
+evaluate_multi( Funs, Abs ) ->
+    list_to_tuple( [ evaluate( F, Abs ) || F <- Funs ] ).
+
+
 
 -doc """
 Samples the specified function taking a single numerical argument, by evaluating
@@ -1140,6 +1164,19 @@ increment: returns the ordered list of the corresponding values that it took.
 -spec sample( fun( ( number() ) -> T ), number(), number(), number() ) -> [ T ].
 sample( Fun, StartPoint, StopPoint, Increment ) ->
 	sample( Fun, _Current=StartPoint, StopPoint, Increment, _Acc=[] ).
+
+
+
+-doc """
+Samples the specified functions taking a single numerical argument, by
+evaluating them on every point in turn from Start until up to Stop, with the
+specified increment: returns the ordered list of the corresponding values (as a
+tuple) that they took (a result tuple per point).
+""".
+-spec sample_multi( [ fun( ( number() ) -> T ) ], number(), number(),
+                    number() ) -> [ T ].
+sample_multi( Funs, StartPoint, StopPoint, Increment ) ->
+	sample_multi( Funs, _Current=StartPoint, StopPoint, Increment, _Acc=[] ).
 
 
 
@@ -1161,6 +1198,27 @@ sample_for( Fun, StartPoint, StopPoint, SampleCount )
 	Samples.
 
 
+-doc """
+Samples the specified functions taking a single numerical argument, by
+evaluating them on every point in turn from Start until up to Stop, for the
+specified number of (evenly-spaced) samples: returns the ordered list of the
+corresponding values (as tuples) that they took (a result tuple per point).
+""".
+-spec sample_multi_for( [ fun( ( number() ) -> T ) ], number(), number(),
+                        sample_count() ) -> [ tuple( T ) ].
+sample_multi_for( Funs, StartPoint, StopPoint, SampleCount )
+											when SampleCount > 0 ->
+	Inc = ( StopPoint - StartPoint ) / SampleCount,
+
+	Samples = sample_multi( Funs, _Current=StartPoint, StopPoint, Inc,
+                            _Acc=[] ),
+
+	cond_utils:assert( myriad_debug_math, SampleCount =:= length( Samples ) ),
+
+	Samples.
+
+
+
 % (helper)
 sample( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 											when CurrentPoint > StopPoint ->
@@ -1173,12 +1231,24 @@ sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
 			[ NewValue | Acc ] ).
 
 
+% (helper)
+sample_multi( _Funs, CurrentPoint, StopPoint, _Increment, Acc )
+											when CurrentPoint > StopPoint ->
+	lists:reverse( Acc );
+
+sample_multi( Funs, CurrentPoint, StopPoint, Increment, Acc ) ->
+	% Not trying to resist errors with evaluate/2:
+	TupleOfValues = evaluate_multi( Funs, CurrentPoint ),
+	sample_multi( Funs, CurrentPoint + Increment, StopPoint, Increment,
+                  [ TupleOfValues | Acc ] ).
+
+
 
 -doc """
 Samples uniformly the specified function taking a single numerical argument, by
-evaluating it on every point in turn from Start until up to Stop, with specified
-increment: returns the ordered list of the corresponding `{X,f(X)}` pairs that
-it took.
+evaluating it on every point in turn from Start until up to Stop, with the
+specified increment: returns the ordered list of the corresponding `{X,f(X)}`
+pairs that it took.
 """.
 -spec sample_as_pairs( fun( ( number() ) -> T ), bounds(), number() ) ->
 											[ { number(), T } ].
@@ -1187,18 +1257,44 @@ sample_as_pairs( Fun, Bounds, Increment ) ->
 	sample_as_pairs( Fun, StartPoint, StopPoint, Increment ).
 
 
+-doc """
+Samples uniformly the specified functions taking a single numerical argument, by
+evaluating them on every point in turn from Start until up to Stop, with the
+specified increment: returns the ordered list of the corresponding `{X,{f1(X),
+f2(X), ...}}` pairs that they took.
+""".
+-spec sample_multi_as_pairs( [ fun( ( number() ) -> T ) ], bounds(),
+                             number() ) -> [ { number(), tuple( T ) } ].
+sample_multi_as_pairs( Funs, Bounds, Increment ) ->
+	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
+	sample_multi_as_pairs( Funs, StartPoint, StopPoint, Increment ).
+
+
 
 -doc """
 Samples uniformly the specified function taking a single numerical argument, by
-evaluating it on every point in turn from Start until up to Stop, with specified
-increment: returns the ordered list of the corresponding `{X,f(X)}` pairs that
-it took.
+evaluating it on every point in turn from Start until up to Stop, with the
+specified increment: returns the ordered list of the corresponding `{X,f(X)}`
+pairs that it took.
 """.
 -spec sample_as_pairs( fun( ( number() ) -> T ), number(), number(),
 					   number() ) -> [ { number(), T } ].
 sample_as_pairs( Fun, StartPoint, StopPoint, Increment ) ->
 	sample_as_pairs( Fun, _CurrentPoint=StartPoint, StopPoint, Increment,
 					 _Acc=[] ).
+
+
+-doc """
+Samples uniformly the specified functions taking a single numerical argument, by
+evaluating them on every point in turn from Start until up to Stop, with the
+specified increment: returns the ordered list of the corresponding `{X,{f1(X),
+f2(X), ...}}` pairs that they took.
+""".
+-spec sample_multi_as_pairs( [ fun( ( number() ) -> T ) ], number(), number(),
+                             number() ) -> [ { number(), tuple( T ) } ].
+sample_multi_as_pairs( Funs, StartPoint, StopPoint, Increment ) ->
+	sample_multi_as_pairs( Funs, _CurrentPoint=StartPoint, StopPoint, Increment,
+                           _Acc=[] ).
 
 
 
@@ -1213,6 +1309,20 @@ corresponding `{X,f(X)}` pairs that it took.
 sample_as_pairs_for( Fun, Bounds, SampleCount ) ->
 	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
 	sample_as_pairs_for( Fun, StartPoint, StopPoint, SampleCount ).
+
+
+-doc """
+Samples uniformly the specified functions taking a single numerical argument, by
+evaluating them on every point in turn within the specified bounds, for the
+specified number of (evenly-spaced) samples: returns the ordered list of the
+corresponding `{X,{f1(X), f2(X), ...}}` pairs that they took.
+""".
+-spec sample_multi_as_pairs_for( [ fun( ( number() ) -> T ) ], bounds(),
+        sample_count() ) -> [ { number(), tuple( T ) } ].
+sample_multi_as_pairs_for( Funs, Bounds, SampleCount ) ->
+	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
+	sample_multi_as_pairs_for( Funs, StartPoint, StopPoint, SampleCount ).
+
 
 
 
@@ -1257,6 +1367,50 @@ sample_as_pairs( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
    NewValue = evaluate( Fun, CurrentPoint ),
    sample_as_pairs( Fun, CurrentPoint+Increment, StopPoint, Increment,
 					[ { CurrentPoint, NewValue } | Acc ] ).
+
+
+
+-doc """
+Samples uniformly the specified functions taking a single numerical argument, by
+evaluating them on every point in turn from Start until up to Stop, for the
+specified number of (evenly-spaced) samples: returns the ordered list of the
+corresponding `{X,{f1(X), f2(X), ...}}` pairs that they took.
+""".
+-spec sample_multi_as_pairs_for( [ fun( ( number() ) -> T ) ], number(),
+        number(), sample_count() ) -> [ { number(), tuple( T ) } ].
+sample_multi_as_pairs_for( Funs, StartPoint, StopPoint, SampleCount )
+											when SampleCount > 0 ->
+
+	%trace_utils:debug_fmt( "Sampling ~B points from ~w to ~w.",
+	%                       [ SampleCount, StartPoint, StopPoint ] ),
+
+	Inc = ( StopPoint - StartPoint ) / SampleCount,
+
+	% Due to rounding errors after adding the increment multiple times, we might
+	% have one data point too few or too many. We should use a specific function
+	% rather than:
+	%
+	Pairs = sample_multi_as_pairs( Funs, _CurrentPoint=StartPoint, StopPoint,
+                                   Inc, _Acc=[] ),
+
+	%trace_utils:debug_fmt( "~B pairs: ~p", [ length( Pairs ), Pairs ] ),
+
+	% May fail, commented until a specific sample helper function is defined:
+	%cond_utils:assert( myriad_debug_math, SampleCount =:= length( Pairs ) ),
+
+	Pairs.
+
+
+
+% (helper)
+sample_multi_as_pairs( _Funs, CurrentPoint, StopPoint, _Increment, Acc )
+								when CurrentPoint > StopPoint ->
+	lists:reverse( Acc );
+
+sample_multi_as_pairs( Funs, CurrentPoint, StopPoint, Increment, Acc ) ->
+   TupleOfValues = evaluate_multi( Funs, CurrentPoint ),
+   sample_multi_as_pairs( Funs, CurrentPoint+Increment, StopPoint, Increment,
+                          [ { CurrentPoint, TupleOfValues } | Acc ] ).
 
 
 
