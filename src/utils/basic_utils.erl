@@ -704,7 +704,7 @@ eliminate afterwards).
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 
-		  identity/1, if_else/3, repeat/2,
+		  identity/1, if_else/3, if_defined/2, repeat/2,
 
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
@@ -909,6 +909,26 @@ if_else( _Condition=true, IfTrue, _IfNotTrue ) ->
 
 if_else( _Condition, _IfTrue, IfNotTrue ) ->
 	IfNotTrue.
+
+
+-doc """
+Returns, if the first argument is defined, in the sense of different from
+`undefined`, the first argument, otherwise returns the second argument.
+
+Useful to apply defaults, in a more compact form than with a `case`.
+
+Could be named `if_not_undefined/1`.
+
+For example, if `TestedValue =:= undefined`, then `foo = if_defined(TestedValue,
+_Otherwise=foo)`, whereas if `TestedValue =:= 4` then `4 =
+if_defined(TestedValue, foo)`.
+""".
+-spec if_defined( term(), term() ) -> term().
+if_defined( _TestedValue=undefined, Otherwise ) ->
+  Otherwise;
+
+if_defined( TestedValue, _Otherwise ) ->
+  TestedValue.
 
 
 -doc """
