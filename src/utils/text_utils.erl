@@ -155,7 +155,7 @@ See `text_utils_test.erl` for the corresponding test.
 		  single_quote_string/1, double_quote_string/1,
 		  single_quote_strings/1, double_quote_strings/1,
 		  escape_single_quotes/1, escape_double_quotes/1,
-		  escape_all_quotes/1, escape_with/3,
+		  escape_all_quotes/1, escape_for_format_string/1, escape_with/3,
 		  remove_newlines/1,
 
 		  parse_quoted/1, parse_quoted/3,
@@ -596,7 +596,9 @@ term_to_string( Term ) ->
 	case io_lib:printable_list( Term ) of
 
 		true ->
-			io_lib:format( "~ts", [ Term ] );
+			%io_lib:format( "~ts", [ Term ] );
+            % Possibly a bad idea:
+			io_lib:format( "\"~ts\"", [ Term ] );
 
 		_    ->
 			io_lib:format( "~p", [ Term ] )
@@ -4879,6 +4881,24 @@ escape_all_quotes_helper( _Text=[ $" | T ], Acc ) ->
 
 escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 	escape_all_quotes_helper( T, [ C | Acc ] ).
+
+
+
+-doc """
+Escapes the specified string, so that it cannot make a `io:format/2`-like call
+fail due to any control sequence found in it.
+
+Useful if ever a third-party string that may contain for example "~w" was to be
+added to a format string - which would be in the general case a bad practice.
+""".
+-spec escape_for_format_string( ustring() ) -> ustring().
+escape_for_format_string( Text ) ->
+
+    % Another option:
+    %string:replace( _In=Text, _SearchPattern="~", _Replacement="\~",
+    %   _Where=all ).
+
+    escape_with( Text, _CharsToEscape=[ $~ ], _EscapingChar=$~ ).
 
 
 

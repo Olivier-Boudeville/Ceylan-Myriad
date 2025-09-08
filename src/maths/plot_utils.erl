@@ -1533,7 +1533,9 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 
     BinPlotPath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
 
-    trace_utils:debug_fmt( "Plot to be generated in '~ts'.", [ BinPlotPath ] ),
+    cond_utils:if_defined( myriad_debug_plot,
+        trace_utils:debug_fmt( "Sample plot to be generated in '~ts'.",
+                               [ BinPlotPath ] ) ),
 
     BinCmdFilename = generate_command_file( PlotSettings ),
 

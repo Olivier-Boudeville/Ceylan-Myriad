@@ -161,7 +161,7 @@ it is not `undefined`.
 
 % These ellipsing thresholds apply per stack item (not per stacktrace):
 
--define( standard_error_output_ellipse_len, 2000 ).
+-define( standard_error_output_ellipse_len, 2500 ).
 -define( file_error_output_ellipse_len, 50000 ).
 
 
@@ -1390,8 +1390,8 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
     ArgCount = length( Args ),
 
 	% As FullArgStr must be interpreted, not used verbatim:
-    FormatStr = "~ts:~ts/~B"
-        ++ format_arg_interpretations( ArgCount, ArgStrs ) ++ "~ts~n",
+    FormatStr = "~ts:~ts/~B" ++ text_utils:escape_for_format_string(
+        format_arg_interpretations( ArgCount, ArgStrs ) ) ++ "~ts~n",
 
     FormatValues = [ Module, Function, ArgCount,
                      get_location_from( StackInfo, FullPathsWanted ) ],
@@ -1439,15 +1439,19 @@ interpret_arguments( Args, EllipseAtLen ) ->
 -spec interpret_argument( argument(), option( length() ) ) -> ustring().
 interpret_argument( Arg, MaybeEllipseAtLen ) ->
 
+    %trace_utils:debug_fmt( "interpret_argument: '~ts'.", [ Arg ] ),
+
     ArgDescStr = text_utils:term_to_string( Arg ),
 
     NewlineStr = basic_utils:if_else( length( ArgDescStr ) > 50, _True="\n",
                                       "" ),
 
-    RawArgStr = text_utils:format( "~ts: ~ts~p",
-        [ describe_argument( Arg ), NewlineStr, Arg ] ),
+    ArgStr = text_utils:term_to_string( Arg ),
 
-    EllipsedArgStr = case MaybeEllipseAtLen of
+    RawArgStr = text_utils:format( "~ts: ~ts~ts",
+        [ describe_argument( Arg ), NewlineStr, ArgStr ] ),
+
+    case MaybeEllipseAtLen of
 
         undefined ->
             RawArgStr;
@@ -1455,12 +1459,7 @@ interpret_argument( Arg, MaybeEllipseAtLen ) ->
         EllipseAtLen ->
             text_utils:ellipse( RawArgStr, EllipseAtLen )
 
-    end,
-
-	% Any '~' in arguments must be escaped, otherwise next format will fail:
-	string:replace( _In=EllipsedArgStr, _SearchPattern="~", _Replacement="\~",
-                    _Where=all ).
-
+    end.
 
 
 -doc "Describes the specified argument in terms of type, if possible.".
@@ -1501,7 +1500,7 @@ arguments_to_string( ArgStrs ) ->
 		fun( String, _Acc={ Count, Strs } ) ->
 
 			NewStrs = [ text_utils:format( "~n      * argument #~B~ts~n",
-                                           [ Count, String ] ) | Strs ],
+                [ Count, String ] ) | Strs ],
 
 			{ Count+1, NewStrs }
 

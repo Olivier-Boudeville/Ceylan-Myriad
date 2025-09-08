@@ -1541,15 +1541,18 @@ describe_type_of( Term ) when is_reference( Term ) ->
 describe_type_of( _Term=[] ) ->
     "an empty list/string";
 
-describe_type_of( _Term=[ _ ] )  ->
+describe_type_of( _Term=[ I ] ) when is_integer( I ) ->
     "a single-element list/string";
+
+describe_type_of( _Term=[ _ ] )  ->
+    "a single-element list";
 
 describe_type_of( Term ) when is_list( Term ) ->
     Len = length( Term ),
 	case text_utils:is_string( Term ) of
 
 		true ->
-			text_utils:format( "a plain string (of ~B characters)", [ Len ] );
+			text_utils:format( "a plain string of ~B characters", [ Len ] );
 
 		false ->
             text_utils:format( "a list of ~B elements", [ Len ] )
