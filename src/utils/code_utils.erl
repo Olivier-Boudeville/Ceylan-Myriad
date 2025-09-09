@@ -1716,7 +1716,7 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 				[] ->
 					text_utils:format( "module '~ts' found in code path "
 						"(as '~ts'), yet it does not export a '~ts' function "
-						"(for any arity)",
+						"(for any arity).",
 						[ ModuleName, ModulePath, FunctionName ] );
 
 				Arities ->
@@ -1736,7 +1736,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 		true ->
 			% Should never happen?
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
-				"and it exports the ~ts/~B function indeed",
+				"and it exports the ~ts/~B function indeed.",
 				[ ModuleName, ModulePath, FunctionName, Arity ] );
 
 		false ->
@@ -1779,7 +1779,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
             % No trailing dot wanted (extra information may have to be added):
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
 				"yet it does not export a ~ts/~B function; as it exports "
-				"this function for ~ts",
+				"this function for ~ts.",
 				[ ModuleName, ModulePath, FunctionName, Arity, ArStr ] )
 
 	end.

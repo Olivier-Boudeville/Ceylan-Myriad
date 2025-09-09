@@ -2795,6 +2795,10 @@ processes exist.
 -spec set_error_report_output( error_report_output() ) ->
                                             persistent_term:info().
 set_error_report_output( ErrortReportOutput ) ->
+
+    %io:format( "Setting error output setting to ~ts (was: ~ts).~n",
+    %           [ ErrortReportOutput, get_error_report_output() ] ),
+
     persistent_term:put( _K=?error_report_output_key,
                          _V=check_error_report_output( ErrortReportOutput ) ).
 

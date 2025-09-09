@@ -1066,11 +1066,27 @@ Note: adds a carriage-return/line-feed at the end of the message.
 -spec actual_display( trace_message() ) -> void().
 actual_display( Message ) ->
 
+    %io:format( "Current error output setting: ~ts.~n",
+    %           [ basic_utils:get_error_report_output() ] ),
+
     % For a lower-level trace management like this one, based on console
-    % printouts, we ellipse longer messages as they are mostly unreadable
-    % anyway:
+    % printouts, we used to ellipse longer messages as they are mostly
+    % unreadable anyway:
     %
-    RetainedMsg = text_utils:ellipse( Message, _DefaultMaxLen=2500 ),
+    %RetainedMsg = text_utils:ellipse( Message, _DefaultMaxLen=2500 ),
+
+    % Now we apply the overall error report output settings, which is better
+    % (more flexible):
+    %
+    RetainedMsg = case code_utils:get_error_report_output_ellipsings() of
+
+         { _MaybeStdOutputEllipseLen=undefined, _ForFile } ->
+             Message;
+
+         { StdOutputEllipseLen, _ForFile } ->
+             text_utils:ellipse( Message, StdOutputEllipseLen )
+
+    end,
 
 	% This default timeout (30 seconds, in milliseconds) may not be sufficient
 	% in all cases:
