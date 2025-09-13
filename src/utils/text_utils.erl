@@ -3527,6 +3527,10 @@ Returns whether the second specified string is prefixed by the first: returns
 either `undefined` if not, otherwise returns the suffix (possibly an empty
 string, if the two strings are equal) that shall be appended to the first to
 obtain the second.
+
+For example:
+- `get_any_suffix("ab", "abcde") = "cde"`
+- `get_any_suffix("ab", "xyz") = undefined`
 """.
 -spec get_any_suffix( ustring(), ustring() ) -> option( ustring() ).
 % Illegal pattern: get_any_suffix( RefStr, _TestStr=RefStr++Suffix  ) ->
