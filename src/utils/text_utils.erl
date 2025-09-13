@@ -125,7 +125,10 @@ See `text_utils_test.erl` for the corresponding test.
 
 
 % Other string operations:
--export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
+-export([ get_lexicographic_distance/2,
+          get_any_suffix/2, get_common_prefix_with_suffixes/2,
+          get_longest_common_prefix/1,
+
 		  get_unique_string/2,
 		  safe_length/1, length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
@@ -498,29 +501,32 @@ string into the other.
 -type distance() :: non_neg_integer().
 
 
-
 -doc """
-See [https://erlang.org/doc/man/erlang.html#float_to_list-2] for more
-information.
+An option to represent as text a floating-point value.
+
+See `erlang:float_to_list/1` for more information.
 """.
--type float_option() ::
+-type float_format_option() ::
 
 	% At most Decimals number of digits past the decimal point:
-	{ 'decimals', 0..253 }
+	{ 'decimals', Decimals :: 0..253 }
 
 	% Scientific notation with Decimals digits of precision:
-  | { 'scientific', 0..249 }
+  | { 'scientific', Decimals :: 0..249 }
 
-	% Trailing zeros at the end of the list are truncated (if using 'decimals'):
+	% The trailing zeros at the end of the string are truncated (if using
+	% 'decimals'):
+    %
   | 'compact'.
 
 
 
-
+-doc "Error when parsing a format string.".
 -type format_parsing_error() ::
 	{ 'format_parsing_failed', ReasonStr :: ustring() }.
 
-% Expected types, based on a format string:
+
+-doc "Expected types, as determined based on a format string.".
 -type scan_format_outcome() :: [ value_description() ] | format_parsing_error().
 
 
@@ -535,7 +541,7 @@ information.
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
 			   translation_table/0, length/0, width/0, depth/0,
-			   indentation_level/0, distance/0, float_option/0,
+			   indentation_level/0, distance/0, float_format_option/0,
 
 			   format_parsing_error/0, scan_format_outcome/0 ]).
 
@@ -593,17 +599,19 @@ term_to_string( _Term=[] ) ->
 
 term_to_string( Term ) ->
 
-	case io_lib:printable_list( Term ) of
+	NestedChars = case io_lib:printable_list( Term ) of
 
 		true ->
 			%io_lib:format( "~ts", [ Term ] );
             % Possibly a bad idea:
 			io_lib:format( "\"~ts\"", [ Term ] );
 
-		_    ->
+		_ ->
 			io_lib:format( "~p", [ Term ] )
 
-	end.
+	end,
+
+    lists:flatten( NestedChars ).
 
 
 
@@ -1958,7 +1966,7 @@ float_to_string( Float ) ->
 Returns a textual description of the specified (dot-based, not comma-based)
 float.
 """.
--spec float_to_string( float(), [ float_option() ] ) -> ustring().
+-spec float_to_string( float(), [ float_format_option() ] ) -> ustring().
 float_to_string( Float, Options ) ->
 	erlang:float_to_list( Float, Options ).
 
@@ -3486,6 +3494,54 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 			{ Len, ?table:add_entry( Key, Len, Table3 ) }
 
 	end.
+
+
+
+-doc """
+Returns the (longest, possibly empty) common prefix to the two specified
+strings, and any remainder of the two strings once their common prefix has been
+removed (thus their respective suffixes) .
+""".
+-spec get_common_prefix_with_suffixes( ustring(), ustring() ) ->
+        { CommonPrefix :: ustring(), FirstSuffix :: ustring(),
+          SecondSuffix :: ustring() }.
+get_common_prefix_with_suffixes( FirstStr, SecondStr ) ->
+    get_common_prefix_with_suffixes( FirstStr, SecondStr, _Acc=[] ).
+
+
+% (helper)
+% Matching character:
+get_common_prefix_with_suffixes( _FirstStr=[ C | TFirstStr ],
+                               _SecondStr=[ C | TSecondStr ], Acc ) ->
+    get_common_prefix_with_suffixes( TFirstStr, TSecondStr, [ C | Acc ] );
+
+% Non-matching character or at least one empty:
+get_common_prefix_with_suffixes( FirstStr, SecondStr, Acc ) ->
+    { _CommonPrefix=lists:reverse( Acc ), _FirstSuffix=FirstStr,
+      _SecondSuffix=SecondStr }.
+
+
+
+-doc """
+Returns whether the second specified string is prefixed by the first: returns
+either `undefined` if not, otherwise returns the suffix (possibly an empty
+string, if the two strings are equal) that shall be appended to the first to
+obtain the second.
+""".
+-spec get_any_suffix( ustring(), ustring() ) -> option( ustring() ).
+% Illegal pattern: get_any_suffix( RefStr, _TestStr=RefStr++Suffix  ) ->
+get_any_suffix( _RefStr=[], TestStr ) ->
+    TestStr;
+
+% Matching character:
+get_any_suffix( _RefStr=[ C | TRefStr ], _TestStr=[ C | TTestStr ] ) ->
+    get_any_suffix( TRefStr, TTestStr );
+
+% Non-matching character:
+get_any_suffix( _RefStr, _TestStr ) ->
+    undefined.
+
+
 
 
 
