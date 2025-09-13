@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the `net_utils` toolbox.
 
-See the net_utils.erl tested module.
+See the `net_utils` tested module.
 """.
 
 
