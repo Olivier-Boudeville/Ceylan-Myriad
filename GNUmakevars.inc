@@ -171,6 +171,7 @@ endif
 #  - graph: for graph-related operations, typically involving Gephi
 #  - math: for math-related operations
 #  - plot: for the rendering of all kinds of plots and graphs
+#  - spell_tree: for the spelling trees
 #  - shell: for (Erlang) Myriad shells
 #  - text_edit: for text edition
 #
@@ -229,6 +230,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_spell_tree
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_text_edit
 

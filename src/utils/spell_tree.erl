@@ -74,13 +74,23 @@ Often abbreviated as `ST`.
 
 
 -export([ create/0, register_string/2, register_strings/2,
+          find_completions/2,
           to_string/1 ]).
 
 
 
 % Implementation notes:
+
+% Should child-level branching factors be significant:
 %
-% TODO: use lexicographic sort to stop lookups earlier.
+% A lexicographic sort could be used in order to stop child lookups earlier, or
+% some kind of set/tree quicker to navigate than through a basic, plain list.
+%
+
+% Should the registered strings be very numerous:
+%
+% Storing prefixes as binaries could reduce the memory footprint, yet probably
+% that searching for common prefixes would be significantly penalised then.
 
 
 
@@ -229,6 +239,146 @@ register_strings( Strs, ST ) ->
 
 
 
+
+-doc """
+Returns a sorted list of all the matches found in the specified spelling trees
+for the specified string.
+""".
+-spec find_completions( ustring(), spell_tree() ) -> [ ustring() ].
+find_completions( ToCompleteStr, ST ) ->
+
+    cond_utils:if_defined( myriad_debug_spell_tree,
+        trace_utils:debug_fmt( "Completions requested for '~ts' in:~n ~ts",
+                               [ ToCompleteStr, to_string( ST ) ] ) ),
+
+    lists:sort( find_comps( ToCompleteStr, ST ) ).
+
+
+
+% If starting from an empty string and a wildcard ST, get all candidates:
+find_comps( _ToCompleteStr="", 
+                  _ST={ _STPfx="", _IsTerminal, ChildSTs } ) ->
+    find_all_comps( ChildSTs, _NoPfx="" );
+
+% Catch-all spelling tree prefix:
+find_comps( ToCompleteStr, _ST={ _Pfx="", _IsTerminal, ChildSTs } ) ->
+
+    %trace_utils:debug_fmt( "Directly searching children for '~ts'.",
+    %                       [ ToCompleteStr ] ),
+
+    Cmpltns = find_child_comps( ToCompleteStr, ChildSTs, _Prefix="" ),
+
+    %trace_utils:debug_fmt( "Completions for '~ts': ~p.",
+    %                       [ ToCompleteStr, Cmpltns ] ),
+
+    Cmpltns;
+
+
+find_comps( ToCompleteStr, ST={ Pfx, IsTerminal, ChildSTs } ) ->
+    case text_utils:get_common_prefix_with_suffixes( ToCompleteStr, Pfx ) of
+
+        % Matching exactly the spelling tree prefix:
+        { _CommonPrefix, _ToCompleteSuffix="", _PfxSuffix="" } ->
+
+            %trace_utils:debug_fmt( "Exact prefix matching for '~ts'.",
+            %                       [ ToCompleteStr ] ),
+
+            % We want the next, deeper proposals as well:
+            Cmpltns = find_all_comps( ChildSTs, Pfx ),
+
+            case IsTerminal of
+
+                true ->
+                    [ ToCompleteStr | Cmpltns ];
+
+                false ->
+                    Cmpltns
+
+            end;
+
+
+        % Unrelated strings, no possible completion:
+        { _CommonPrefix="", _ToCompleteSuffix, _PfxSuffix } ->
+
+            %trace_utils:debug_fmt( "No completion for '~ts'.",
+            %                       [ ToCompleteStr ] ),
+            [];
+
+        % Child prefix is longer here, first step is to complete our suffix by
+        % this prefix:
+        %
+        { _CommonPrefix, _ToCompleteSuffix="", _PfxSuffix } ->
+            % Advancing automatically to this full (only possible) prefix:
+
+            %trace_utils:debug_fmt( "Advancing '~ts' to '~ts'.",
+            %                       [ ToCompleteStr, Pfx ] ),
+
+            find_comps( Pfx, ST );
+
+
+        % Our suffix is longer, exploring the child ST:
+        { CommonPrefix, ToCompleteSuffix, _PfxSuffix="" } ->
+
+            %trace_utils:debug_fmt(
+            %    "For '~ts', exploring the children of '~ts'.",
+            %    [ ToCompleteStr, Pfx ] ),
+
+            find_child_comps( ToCompleteSuffix, ChildSTs, CommonPrefix )
+
+    end.
+
+
+
+
+-doc """
+Returns the matches found in the specified spelling trees for the specified
+string, which is assumed non-empty (hence the first matching subtree found is
+the - only - right one).
+""".
+-spec find_child_comps( ustring(), [ spell_tree() ], ustring() ) ->
+                                                [ ustring() ].
+find_child_comps( _Str, _STs=[], _Pfx ) ->
+    [];
+
+find_child_comps( Str, _STs=[ ST | T ], Pfx ) ->
+    case find_comps( Str, ST ) of
+
+        [] ->
+            find_child_comps( Str, T, Pfx );
+
+        Completions ->
+            [ Pfx ++ C || C <- Completions ]
+
+    end.
+
+
+
+-doc """
+Returns all completion outcomes corresponding to the specified spelling trees,
+based on the specified prefix.
+""".
+-spec find_all_comps( [ spell_tree() ], ustring() ) -> [ ustring() ].
+find_all_comps( STs, Pfx ) ->
+    find_all_comps( STs, Pfx, _Acc=[] ).
+
+
+% (helper)
+find_all_comps( _STs=[], _Pfx, Acc ) ->
+   Acc;
+
+find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=true, ChildSTs } | T ],
+                      Pfx, Acc ) ->
+    AddAcc = [ Pfx ++ STPfx | find_all_comps( ChildSTs, Pfx++STPfx ) ],
+    find_all_comps( T, Pfx, AddAcc ++ Acc );
+
+find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ],
+                      Pfx, Acc ) ->
+    AddAcc = find_all_comps( ChildSTs, Pfx++STPfx ),
+    find_all_comps( T, Pfx, AddAcc ++ Acc ).
+
+
+
+
 -doc "Returns a textual description of the specified spelling tree.".
 -spec to_string( spell_tree() ) -> ustring().
 to_string( ST ) ->
@@ -243,7 +393,8 @@ to_string( _ST={ Prefix, IsTerminal, ChildSTs }, IndentLevel ) ->
     TermStr = case IsTerminal of
 
         true ->
-            "terminal ";
+            %" [terminal]";
+            " [T]";
 
         false ->
             ""
@@ -257,11 +408,12 @@ to_string( _ST={ Prefix, IsTerminal, ChildSTs }, IndentLevel ) ->
 
         _ ->
             NextIndentLevel = IndentLevel + 1,
-            ":\n" ++ text_utils:join( _Spec=$\n,
+            "\n" ++ text_utils:join( _Spec=$\n,
                 [ to_string( ST, NextIndentLevel )
                         || ST <- ChildSTs ] )
 
     end,
 
-    text_utils:format( "~tstree for ~tsprefix '~ts'~ts",
-        [ IndentStr, TermStr, Prefix, ChildStr ] ).
+    %text_utils:format( "~tstree for ~tsprefix '~ts'~ts",
+    text_utils:format( "~ts- '~ts'~ts~ts",
+        [ IndentStr, Prefix, TermStr, ChildStr ] ).

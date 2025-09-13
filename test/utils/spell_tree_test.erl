@@ -52,17 +52,39 @@ run() ->
     test_facilities:display( "Empty spell tree: ~ts.",
                              [ spell_tree:to_string( EmptyST ) ] ),
 
-    OneWST = spell_tree:register_string( "place", EmptyST ),
+    AllStrs = [ "test", "place", "platypus", "porridge", "plate", "placebo",
+                "eric", "eric", "erlang" ],
+
+    OneWST = spell_tree:register_string( hd( AllStrs ), EmptyST ),
 
     test_facilities:display( "One-word spell tree: ~ts.",
                              [ spell_tree:to_string( OneWST ) ] ),
 
 
-    MultiWST = spell_tree:register_strings(
-        [ "platypus", "plate", "placebo", "eric" ], OneWST ),
+    MultiWST = spell_tree:register_strings( AllStrs, OneWST ),
 
     test_facilities:display( "Multiple-word spell tree: ~ts.",
                              [ spell_tree:to_string( MultiWST ) ] ),
 
+
+    ToCompleteStr = "pl",
+
+    CompletionOutcome = spell_tree:find_completions( ToCompleteStr, MultiWST ),
+
+    test_facilities:display( "Completions determined for prefix '~ts' "
+        "in the following tree:~n ~ts are: ~p.~n",
+        [ ToCompleteStr, spell_tree:to_string( MultiWST ),
+          CompletionOutcome ] ),
+
+
+    test_facilities:display( "Testing a series of completions, all based "
+        "on the registering of:~n ~p.", [ lists:sort( AllStrs ) ] ),
+
+    TestStrs = AllStrs
+        ++ [ "", "other", "p", "pla", "te", "er", "erica", "xyz" ],
+
+    [ test_facilities:display( "Completions determined for prefix '~ts': ~p.",
+        [ Pfx, spell_tree:find_completions( Pfx, MultiWST ) ] )
+                || Pfx <- TestStrs ],
 
 	test_facilities:stop().
