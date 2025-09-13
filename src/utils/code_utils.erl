@@ -1482,12 +1482,16 @@ format_arg_interpretations( _ArgCount=0, _ArgStrs ) ->
     "";
 
 format_arg_interpretations( _ArgCount=1, _ArgStrs=[ ArgStr ] ) ->
-    text_utils:format( " called with a single argument: ~ts",
+    %text_utils:format( " called with a single argument: ~ts",
+    text_utils:format( " called with (single) argument ~ts",
                        [ ArgStr ] );
 
-format_arg_interpretations( ArgCount, ArgStrs ) ->
-    text_utils:format( " called with the following ~B arguments:~n ~ts",
-        [ ArgCount, arguments_to_string( ArgStrs ) ] ).
+format_arg_interpretations( _ArgCount, ArgStrs ) ->
+    % Needless repetition of arity:
+    %text_utils:format( " called with the following ~B arguments:~n ~ts",
+    %    [ ArgCount, arguments_to_string( ArgStrs ) ] ).
+    text_utils:format( " called with the following arguments:~n ~ts",
+                       [ arguments_to_string( ArgStrs ) ] ).
 
 
 % Special-cased compared to text_utils:strings_to_enumerated_string/3; indented
