@@ -57,13 +57,13 @@ run() ->
 
     OneWST = spell_tree:register_string( hd( AllStrs ), EmptyST ),
 
-    test_facilities:display( "One-word spell tree: ~ts.",
+    test_facilities:display( "One-word spell tree:~n ~ts.",
                              [ spell_tree:to_string( OneWST ) ] ),
 
 
     MultiWST = spell_tree:register_strings( AllStrs, OneWST ),
 
-    test_facilities:display( "Multiple-word spell tree: ~ts.",
+    test_facilities:display( "Multiple-word spell tree:~n ~ts.",
                              [ spell_tree:to_string( MultiWST ) ] ),
 
 
@@ -86,5 +86,23 @@ run() ->
     [ test_facilities:display( "Completions determined for prefix '~ts': ~p.",
         [ Pfx, spell_tree:find_completions( Pfx, MultiWST ) ] )
                 || Pfx <- TestStrs ],
+
+
+    Splitters = spell_tree:get_split_strings( MultiWST ),
+
+    test_facilities:display( "~B splitters found for:~n ~ts~nand they are: ~ts",
+        [ length( Splitters ), spell_tree:to_string( MultiWST ),
+          text_utils:strings_to_string(
+              [ spell_tree:splitter_to_string( S ) || S <- Splitters ] ) ] ),
+
+    ToResolveStrs = [ "", "foo", "t", "test", "plate", "placeb", "erk", "erl" ],
+
+    ResolvedStrs = [ spell_tree:resolve( S, MultiWST ) || S <- ToResolveStrs ],
+
+    test_facilities:display( "Resolving the following strings: ~ts",
+        [ text_utils:strings_to_string(
+              [ text_utils:format( "'~ts' in ~p", [ S, Rs ] )
+                    || { S, Rs } <- lists:zip( ToResolveStrs,
+                                               ResolvedStrs ) ] ) ] ),
 
 	test_facilities:stop().

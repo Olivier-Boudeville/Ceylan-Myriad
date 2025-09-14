@@ -67,15 +67,30 @@ Often abbreviated as `ST`.
         IsTerminal :: boolean(),
 
         % The direct, ordered children of this node, each adding its own prefix:
-        [ OrderedChildSTs :: spell_tree() ] }.
+        [ ChildSTs :: spell_tree() ] }.
 
 
--export_type([ spell_tree/0 ]).
+
+-doc """
+A string being split into to parts: a prefix that is the shortest, unique,
+unambiguous prefix, sufficient to designate that string, and the remainder of
+that string.
+
+For example the splitter for `platypus` in a given tree could be `{"plat",
+"ypus"}` (thus this tree must comprise at least another string starting with
+`pla`).
+
+Often noted `"plat|ypus"`.
+""".
+-type splitter() :: { UnambiguousPrefix :: ustring(), Rest :: ustring() }.
+
+
+-export_type([ spell_tree/0, splitter/0 ]).
 
 
 -export([ create/0, register_string/2, register_strings/2,
-          find_completions/2,
-          to_string/1 ]).
+          find_completions/2, get_split_strings/1, resolve/2,
+          to_string/1, splitter_to_string/1 ]).
 
 
 
@@ -256,7 +271,7 @@ find_completions( ToCompleteStr, ST ) ->
 
 
 % If starting from an empty string and a wildcard ST, get all candidates:
-find_comps( _ToCompleteStr="", 
+find_comps( _ToCompleteStr="",
                   _ST={ _STPfx="", _IsTerminal, ChildSTs } ) ->
     find_all_comps( ChildSTs, _NoPfx="" );
 
@@ -378,6 +393,76 @@ find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ],
 
 
 
+-doc """
+Returns a list of the splitters for all strings registered in the specified
+spelling tree, i.e. a list of the shortest, unambiguous prefixes/remainder pairs
+for all these strings.
+
+For example, if a spelling tree registered only "place" and "platypus", then
+their splitters would be, respectively, `{"plac", "e"}` and `{"plat", "ypus"}`.
+""".
+-spec get_split_strings( spell_tree() ) -> [ splitter() ].
+% Algorithm is:
+% - if a the string of a node is terminal yet this node has children, that
+% string cannot be abbreviated
+% - if a node does not have any child, then its unambiguous prefix stops just at
+% the first letter of the prefix of this node
+%
+get_split_strings( ST ) ->
+    get_split_strings( ST, _Pfx="", _AccSplits=[] ).
+
+
+
+% (helper)
+% Terminal and with no child: first letter sufficient to discriminate.
+get_split_strings( _ST={ _STPrefix=[ FirstChar | Rest ], _IsTerminal=true,
+                         _ChildSTs=[] }, Pfx, AccSplits ) ->
+    [ { Pfx ++ [ FirstChar ], Rest } | AccSplits ];
+
+% Terminal with at least one child: cannot be abbreviated, must be complete:
+get_split_strings( _ST={ STPrefix, _IsTerminal=true, ChildSTs }, Pfx,
+                   AccSplits ) ->
+    NewPfx = Pfx ++ STPrefix,
+    NewAccSplits = [ { NewPfx, "" } | AccSplits ],
+    lists:foldl( fun( ST, AccSp ) ->
+                    get_split_strings( ST, NewPfx, AccSp )
+                 end,
+                 _Acc0=NewAccSplits,
+                 _List=ChildSTs );
+
+% Non-terminal, necessarily has at least one child, just recurse:
+get_split_strings( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx,
+                   AccSplits ) ->
+    NewPfx = Pfx ++ STPrefix,
+    lists:foldl( fun( ST, AccSp ) ->
+                    get_split_strings( ST, NewPfx, AccSp )
+                 end,
+                 _Acc0=AccSplits,
+                 _List=ChildSTs ).
+
+
+-doc """
+Resolves, if possible, the specified string based on the specified spelling
+tree: if this string can be unambiguously completed in a registered string,
+returns that string, otherwise returns `undefined`.
+""".
+-spec resolve( ustring(), spell_tree() ) -> option( ustring() ).
+resolve( Str, ST ) ->
+    % Could be optimised by stopping as the second match:
+    case find_completions( _ToCompleteStr=Str, ST ) of
+
+        [ SingleCmpltnStr ] ->
+            SingleCmpltnStr;
+
+        % Empty or more than one:
+        _CmpltnStrs ->
+            undefined
+
+    end.
+
+
+
+
 
 -doc "Returns a textual description of the specified spelling tree.".
 -spec to_string( spell_tree() ) -> ustring().
@@ -417,3 +502,13 @@ to_string( _ST={ Prefix, IsTerminal, ChildSTs }, IndentLevel ) ->
     %text_utils:format( "~tstree for ~tsprefix '~ts'~ts",
     text_utils:format( "~ts- '~ts'~ts~ts",
         [ IndentStr, Prefix, TermStr, ChildStr ] ).
+
+
+
+-doc "Returns a textual description of the specified splitter.".
+-spec splitter_to_string( splitter() ) -> ustring().
+splitter_to_string( { UnambiguousPrefix, _Rest=[] } ) ->
+    UnambiguousPrefix;
+
+splitter_to_string( { UnambiguousPrefix, Rest } ) ->
+    text_utils:format( "~ts|~ts", [ UnambiguousPrefix, Rest ] ).
