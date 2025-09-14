@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **list management** utilities.
 
-See the list_utils.erl tested module.
+See the `list_utils` tested module.
 """.
 
 
