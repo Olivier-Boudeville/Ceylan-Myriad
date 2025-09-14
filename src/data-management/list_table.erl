@@ -73,6 +73,7 @@ possibly containing pairs and also single atoms (e.g. see
 		  get_value/2, get_value_with_default/3,
 		  get_values/2, get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
+          update_in_place/3,
 		  append_to_existing_entry/3, append_list_to_existing_entry/3,
 		  append_to_entry/3, append_list_to_entry/3,
 		  delete_from_entry/3, pop_from_entry/2,
@@ -824,6 +825,33 @@ toggle_entry( Key, Table ) ->
 	end.
 
 
+-doc """
+Updates in-place (at the same rank of the specified `list_table`) the (first)
+entry designated by the specified key, applying the specified function on its
+value to obtain its updated value.
+
+Returns `no_update` if no such entry could be found.
+
+So preserves order and makes a single, partial pass.
+""".
+-spec update_in_place( key(), fun( ( value() ) -> value() ), list_table() ) ->
+                                                'no_update' | list_table().
+update_in_place( Key, UpdateFun, Table ) ->
+    update_in_place( Key, UpdateFun, Table, _AccTable=[] ).
+
+
+% (helper)
+update_in_place( Key, UpdateFun, _Table=[ { Key, V } | T ], AccTable ) ->
+    NewV = UpdateFun( V ),
+    lists:reverse( AccTable ) ++ [ { Key, NewV } | T ];
+
+update_in_place( Key, UpdateFun, _Table=[ NonMatchingEntry | T ], AccTable ) ->
+    update_in_place( Key, UpdateFun, T, [ NonMatchingEntry | AccTable ] );
+
+update_in_place( _Key, _UpdateFun, _Table=[], _AccTable ) ->
+    no_update.
+
+
 
 -doc """
 Returns a table that started from TableBase and was enriched with the TableAdd
@@ -886,7 +914,7 @@ Performs a key merge, as merge_in_key/3, however not for a single reference key
 For example:
 ```
  MergedTable = merge_in_keys([{'-length', [ 'l', '-len' ]},
-								  {'-help', [ 'h' ]} ], MyTable).
+                              {'-help', [ 'h' ]} ], MyTable).
 ```
 """.
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
