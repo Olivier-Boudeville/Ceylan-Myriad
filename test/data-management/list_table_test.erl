@@ -186,6 +186,18 @@ run() ->
 
 	MyH10 = list_table:add_entry( ?MyThirdKey, 3, MyH6 ),
 
+
+    ToUpdateTable = [ { a, 1 }, { b, 0 }, { c, 3 } ],
+
+    no_update = list_table:update_in_place( d,
+        fun( _ ) -> throw( unexpected_call ) end, ToUpdateTable ),
+
+    UpdatedTable = list_table:update_in_place( b, fun( 0 ) -> 2 end,
+                                               ToUpdateTable ),
+
+    2 = list_table:get_value( b, UpdatedTable ),
+
+
 	% MyH8 should have {AnotherKey, [1,2,3]} and {?MyThirdKey, 3}:
 	MyH11 = list_table:merge( MyH4, MyH10 ),
 
