@@ -1391,7 +1391,7 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted,
 
 	% As FullArgStr must be interpreted, not used verbatim:
     FormatStr = "~ts:~ts/~B" ++ text_utils:escape_for_format_string(
-        format_arg_interpretations( ArgCount, ArgStrs ) ) ++ "~ts~n",
+        format_arg_interpretations( ArgCount, ArgStrs ) ) ++ "~ts",
 
     FormatValues = [ Module, Function, ArgCount,
                      get_location_from( StackInfo, FullPathsWanted ) ],
@@ -1482,8 +1482,7 @@ format_arg_interpretations( _ArgCount=0, _ArgStrs ) ->
     "";
 
 format_arg_interpretations( _ArgCount=1, _ArgStrs=[ ArgStr ] ) ->
-    %text_utils:format( " called with a single argument: ~ts",
-    text_utils:format( " called with (single) argument ~ts",
+    text_utils:format( " called with (single) argument~ts",
                        [ ArgStr ] );
 
 format_arg_interpretations( _ArgCount, ArgStrs ) ->
