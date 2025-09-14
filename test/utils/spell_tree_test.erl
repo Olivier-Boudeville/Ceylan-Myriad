@@ -88,7 +88,7 @@ run() ->
                 || Pfx <- TestStrs ],
 
 
-    Splitters = spell_tree:get_split_strings( MultiWST ),
+    Splitters = spell_tree:get_splitters( MultiWST ),
 
     test_facilities:display( "~B splitters found for:~n ~ts~nand they are: ~ts",
         [ length( Splitters ), spell_tree:to_string( MultiWST ),

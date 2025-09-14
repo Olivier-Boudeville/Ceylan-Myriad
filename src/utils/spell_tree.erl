@@ -56,18 +56,18 @@ Often abbreviated as `ST`.
 """.
 -type spell_tree() :: {
 
-        % The prefix specific to this node (it is to be suffixed to the one of
-        % its parent):
-        %
-        Prefix :: [ uchar() ],
+    % The prefix specific to this node (it is to be suffixed to the one of its
+    % parent):
+    %
+    Prefix :: [ uchar() ],
 
-        % Tells whether this prefix was found terminating an actual word of the
-        % vocabulary, or if it exists only to be suffixed by its children:
-        %
-        IsTerminal :: boolean(),
+    % Tells whether this prefix was found terminating an actual word of the
+    % vocabulary, or if it exists only to be suffixed by its children:
+    %
+    IsTerminal :: boolean(),
 
-        % The direct, ordered children of this node, each adding its own prefix:
-        [ ChildSTs :: spell_tree() ] }.
+    % The direct, ordered children of this node, each adding its own prefix:
+    [ ChildSTs :: spell_tree() ] }.
 
 
 
@@ -88,8 +88,9 @@ Often noted `"plat|ypus"`.
 -export_type([ spell_tree/0, splitter/0 ]).
 
 
--export([ create/0, register_string/2, register_strings/2,
-          find_completions/2, get_split_strings/1, resolve/2,
+-export([ create/0, create/1,
+          register_string/2, register_strings/2,
+          find_completions/2, get_splitters/1, resolve/2,
           to_string/1, splitter_to_string/1 ]).
 
 
@@ -122,6 +123,12 @@ no child.
 -spec create() -> spell_tree().
 create() ->
     { _Prefix="", _IsTerminal=false, _OrderedChildSTs=[] }.
+
+
+-doc "Creates a spelling tree registering the specified strings.".
+-spec create( [ ustring() ] ) -> spell_tree().
+create( ToRegisterStrs ) ->
+    register_strings( ToRegisterStrs, _InitST=create() ).
 
 
 
@@ -401,41 +408,41 @@ for all these strings.
 For example, if a spelling tree registered only "place" and "platypus", then
 their splitters would be, respectively, `{"plac", "e"}` and `{"plat", "ypus"}`.
 """.
--spec get_split_strings( spell_tree() ) -> [ splitter() ].
+-spec get_splitters( spell_tree() ) -> [ splitter() ].
 % Algorithm is:
 % - if a the string of a node is terminal yet this node has children, that
 % string cannot be abbreviated
 % - if a node does not have any child, then its unambiguous prefix stops just at
 % the first letter of the prefix of this node
 %
-get_split_strings( ST ) ->
-    get_split_strings( ST, _Pfx="", _AccSplits=[] ).
+get_splitters( ST ) ->
+    get_splitters( ST, _Pfx="", _AccSplits=[] ).
 
 
 
 % (helper)
 % Terminal and with no child: first letter sufficient to discriminate.
-get_split_strings( _ST={ _STPrefix=[ FirstChar | Rest ], _IsTerminal=true,
+get_splitters( _ST={ _STPrefix=[ FirstChar | Rest ], _IsTerminal=true,
                          _ChildSTs=[] }, Pfx, AccSplits ) ->
     [ { Pfx ++ [ FirstChar ], Rest } | AccSplits ];
 
 % Terminal with at least one child: cannot be abbreviated, must be complete:
-get_split_strings( _ST={ STPrefix, _IsTerminal=true, ChildSTs }, Pfx,
+get_splitters( _ST={ STPrefix, _IsTerminal=true, ChildSTs }, Pfx,
                    AccSplits ) ->
     NewPfx = Pfx ++ STPrefix,
     NewAccSplits = [ { NewPfx, "" } | AccSplits ],
     lists:foldl( fun( ST, AccSp ) ->
-                    get_split_strings( ST, NewPfx, AccSp )
+                    get_splitters( ST, NewPfx, AccSp )
                  end,
                  _Acc0=NewAccSplits,
                  _List=ChildSTs );
 
 % Non-terminal, necessarily has at least one child, just recurse:
-get_split_strings( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx,
+get_splitters( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx,
                    AccSplits ) ->
     NewPfx = Pfx ++ STPrefix,
     lists:foldl( fun( ST, AccSp ) ->
-                    get_split_strings( ST, NewPfx, AccSp )
+                    get_splitters( ST, NewPfx, AccSp )
                  end,
                  _Acc0=AccSplits,
                  _List=ChildSTs ).
