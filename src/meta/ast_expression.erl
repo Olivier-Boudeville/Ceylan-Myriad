@@ -61,26 +61,53 @@ sub-elements are of the same kind as they are, and at least some rules differ).
 			   ast_expressions/0 ]).
 
 
+-doc "Zip-comprehension generator.".
+-type zip_generator_qualifier() :: { 'zip', file_loc(), ast_expressions() }.
 
--doc "List-comprehension generator.".
--type lc_generator_qualifier() ::
+-doc "List-comprehension relaxed generator.".
+-type lc_relaxed_generator_qualifier() ::
 	{ 'generate', file_loc(), ast_pattern(), ast_expression() }.
 
+-doc "List-comprehension strict generator.".
+-type lc_strict_generator_qualifier() ::
+	{ 'generate_strict', file_loc(), ast_pattern(), ast_expression() }.
 
 
--doc "Bitstring generator.".
--type bitstring_generator_qualifier() ::
+-doc "Map-comprehension relaxed generator.".
+-type mc_relaxed_generator_qualifier() ::
+	{ 'm_generate', file_loc(), ast_pattern(), ast_expression() }.
+
+-doc "Map-comprehension strict generator.".
+-type mc_strict_generator_qualifier() ::
+	{ 'm_generate_strict', file_loc(), ast_pattern(), ast_expression() }.
+
+
+-doc "Bitstring relaxed generator.".
+-type bitstring_relaxed_generator_qualifier() ::
 	{ 'b_generate', file_loc(), ast_pattern(), ast_expression() }.
+
+-doc "Bitstring strict generator.".
+-type bitstring_strict_generator_qualifier() ::
+	{ 'b_generate_strict', file_loc(), ast_pattern(), ast_expression() }.
 
 
 
 -doc """
 A qualifier is one of the following: an expression-based filter, a
-list-comprehension generator or a bitstring generator.
+zip/list/map/bistring (comprehension) generator.
 """.
--type ast_qualifier() :: ast_expression()
-                       | lc_generator_qualifier()
-                       | bitstring_generator_qualifier().
+-type ast_qualifier() :: ast_expression() % for filters
+
+                       | zip_generator_qualifier()
+
+                       | lc_relaxed_generator_qualifier()
+                       | lc_strict_generator_qualifier()
+
+                       | mc_relaxed_generator_qualifier()
+                       | mc_strict_generator_qualifier()
+
+                       | bitstring_relaxed_generator_qualifier()
+                       | bitstring_strict_generator_qualifier().
 
 
 
@@ -141,22 +168,6 @@ list-comprehension generator or a bitstring generator.
 
 
 
-% Type shorthands:
-
--type file_loc() :: ast_base:file_loc().
-
--type ast_case_clause() :: ast_clause:ast_case_clause().
--type ast_if_clause() :: ast_clause:ast_if_clause().
-
--type ast_pattern() :: ast_pattern:ast_pattern().
-
--type ast_body() :: ast_clause:ast_body().
-
--type ast_transforms() :: ast_transform:ast_transforms().
-
--type form() :: ast_base:form().
-
-
 
 % Conditional logging.
 %
@@ -198,6 +209,24 @@ list-comprehension generator or a bitstring generator.
  -define( log_exit(S,V), no_log ).
 
 -endif. % log_traversal
+
+
+
+
+% Type shorthands:
+
+-type file_loc() :: ast_base:file_loc().
+
+-type ast_case_clause() :: ast_clause:ast_case_clause().
+-type ast_if_clause() :: ast_clause:ast_if_clause().
+
+-type ast_pattern() :: ast_pattern:ast_pattern().
+
+-type ast_body() :: ast_clause:ast_body().
+
+-type ast_transforms() :: ast_transform:ast_transforms().
+
+-type form() :: ast_base:form().
 
 
 
@@ -1334,7 +1363,10 @@ transform_expression( Expression, Transforms )
 	%
 	%ast_pattern:transform_pattern( Expression, Transforms ).
 
-	ast_utils:raise_error( [ unexpected_expression, Expression ] );
+    % Possibly a new language feature not yet supported by Myriad, see
+    % https://www.erlang.org/docs/XX/apps/erts/absform where XX=28 for example:
+    %
+	ast_utils:raise_error( [ unexpected_ast_expression, Expression ] );
 
 
 % Final catch-all:
@@ -1689,8 +1721,25 @@ transform_qualifiers( Qualifiers, Transforms ) ?rec_guard ->
 -spec transform_qualifier( ast_qualifier(), ast_transforms() ) ->
 									{ ast_qualifier(), ast_transforms() }.
 
-% "If Q is a (lc) generator P <- E, where P is a pattern and E is an expression,
-% then Rep(Q) = {generate, FILE_LOC, Rep(P), Rep(E)}."
+
+% "If Q is a zip generator Q_1 && ...&& Q_k], where each Q_i is a non-zip
+% generator, then Rep(E) = {zip,ANNO,[Rep(Q_1), ..., Rep(Q_k)]}.
+%
+transform_qualifier( _Qualifier={ 'zip', FileLoc, NonZipGenerators },
+					 Transforms ) ?rec_guard ->
+
+    % Not expected to include zip generators:
+	{ NewExpressions, NewTransforms } =
+        transform_qualifiers( NonZipGenerators, Transforms ),
+
+	NewExpr = { 'zip', FileLoc, NewExpressions },
+
+	{ NewExpr, NewTransforms };
+
+
+
+% "If Q is a list generator P <- E, where P is a pattern and E is an expression,
+% then Rep(Q) = {generate,ANNO,Rep(P),Rep(E)}.
 %
 transform_qualifier( _Qualifier={ 'generate', FileLoc, Pattern, Expression },
 					 Transforms ) ?rec_guard ->
@@ -1706,6 +1755,61 @@ transform_qualifier( _Qualifier={ 'generate', FileLoc, Pattern, Expression },
 	{ NewExpr, ExpTransforms };
 
 
+% "If Q is a list generator P <:- E, where P is a pattern and E is an
+% expression, then Rep(Q) = {generate_strict,ANNO,Rep(P),Rep(E)}."
+%
+transform_qualifier( _Qualifier={ 'generate_strict', FileLoc, Pattern,
+                                  Expression },
+					 Transforms ) ?rec_guard ->
+
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
+
+	NewExpr = { 'generate_strict', FileLoc, NewPattern, NewExpression },
+
+	{ NewExpr, ExpTransforms };
+
+
+
+% "If Q is a map generator P <- E, where P is an association pattern P_1 := P_2
+% and E is an expression, then Rep(Q) = {m_generate,ANNO,Rep(P),Rep(E)}.
+%
+transform_qualifier( _Qualifier={ 'm_generate', FileLoc, Pattern, Expression },
+					 Transforms ) ?rec_guard ->
+
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
+
+	NewExpr = { 'm_generate', FileLoc, NewPattern, NewExpression },
+
+	{ NewExpr, ExpTransforms };
+
+
+% "If Q is a map generator P <:- E, where P is an association pattern P_1 := P_2
+% and E is an expression, then Rep(Q) = {m_generate_strict,ANNO,Rep(P),Rep(E)}.
+%
+transform_qualifier( _Qualifier={ 'm_generate_strict', FileLoc, Pattern,
+                                  Expression },
+					 Transforms ) ?rec_guard ->
+
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
+
+	NewExpr = { 'm_generate_strict', FileLoc, NewPattern, NewExpression },
+
+	{ NewExpr, ExpTransforms };
+
+
+
 % "If Q is a bitstring generator P <= E, where P is a pattern and E is an
 % expression, then Rep(Q) = {b_generate, FILE_LOC, Rep(P), Rep(E)}."
 %
@@ -1719,6 +1823,24 @@ transform_qualifier( _Qualifier={ 'b_generate', FileLoc, Pattern, Expression },
 		transform_expression( Expression, PatTransforms ),
 
 	NewExpr = { 'b_generate', FileLoc, NewPattern, NewExpression },
+
+	{ NewExpr, ExpTransforms };
+
+
+% "If Q is a bitstring generator P <:= E, where P is a pattern and E is an
+% expression, then Rep(Q) = {b_generate_strict,ANNO,Rep(P),Rep(E)}."
+%
+transform_qualifier( _Qualifier={ 'b_generate_strict', FileLoc, Pattern,
+                                  Expression },
+					 Transforms ) ?rec_guard ->
+
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
+
+	NewExpr = { 'b_generate_strict', FileLoc, NewPattern, NewExpression },
 
 	{ NewExpr, ExpTransforms };
 
