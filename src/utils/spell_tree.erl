@@ -114,6 +114,8 @@ Often noted `"plat|ypus"`.
 
 -type uchar() :: text_utils:uchar().
 -type ustring() :: text_utils:ustring().
+-type any_string() :: text_utils:any_string().
+
 
 
 -doc """
@@ -448,12 +450,16 @@ get_splitters( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx,
                  _List=ChildSTs ).
 
 
+
 -doc """
 Resolves, if possible, the specified string based on the specified spelling
 tree: if this string can be unambiguously completed in a registered string,
 returns that string, otherwise returns `undefined`.
 """.
--spec resolve( ustring(), spell_tree() ) -> option( ustring() ).
+-spec resolve( any_string(), spell_tree() ) -> option( ustring() ).
+resolve( BinStr, ST ) when is_binary( BinStr )->
+    resolve( text_utils:binary_to_string( BinStr ), ST );
+
 resolve( Str, ST ) ->
     % Could be optimised by stopping as the second match:
     case find_completions( _ToCompleteStr=Str, ST ) of
@@ -466,8 +472,6 @@ resolve( Str, ST ) ->
             undefined
 
     end.
-
-
 
 
 
