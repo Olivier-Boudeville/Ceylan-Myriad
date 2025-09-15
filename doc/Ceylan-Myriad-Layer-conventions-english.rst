@@ -321,7 +321,9 @@ Other Conventions
 
 - for clarity, we tend to use longer variable names, in CamelCase
 - we tend to use mute variables to clarify meanings and intents, as in ``_Acc=[]`` (beware, despite being muted, any variable in scope that bears the same name will be matched), ``Acc`` designating accumulators
-- as there is much list-based recursion, a variable named ``H`` means ``Head`` and ``T`` means ``Tail`` (as in ``[Head|Tail]``)
-- the string format specifier ``~s`` shall never be used; its Unicode-aware counterpart ``~ts`` must be used instead; similarly, for string operations, ``list_to_binary/1`` and ``binary_to_list/1`` must no be used either; prefer anyway the primitives in ``text_utils``
+- as there is much list-based recursion involved, a variable named ``H`` means *head*, and ``T`` means *tail* (as in ``[Head|Tail]``)
+- ``Res`` means usually *result*
+- longer series of words may be abbreviated based on their first letters: a transitive adjustable frobnicator may be designated by ``TAF``
+- the string format specifier ``~s`` shall never be used; its Unicode-aware counterpart ``~ts`` must be used instead; similarly, for string operations, ``list_to_binary/1`` and ``binary_to_list/1`` must no be used either; anyway the primitives in ``text_utils`` shall be preferred
 
 .. See also the few hints regarding contribution_.
