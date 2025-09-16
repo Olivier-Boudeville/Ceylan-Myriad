@@ -591,7 +591,11 @@ See `erlang:float_to_list/1` for more information.
 
 
 
--doc "Returns a human-readable string describing the specified term.".
+-doc """
+Returns a human-readable string describing the specified term.
+
+As a result, not meant to be suitable for serialisation.
+""".
 -spec term_to_string( term() ) -> ustring().
 term_to_string( _Term=[] ) ->
 	% Otherwise would be an empty string:
@@ -6444,8 +6448,9 @@ See also: `file_utils:convert_to_filename/1`.
 """.
 -spec generate_text_name_from( term() ) -> ustring().
 generate_text_name_from( Term ) ->
-	String = term_to_string( Term ),
-	fix_characters( String ).
+    % Not calling term_to_string/1, as no quoting wanted:
+	Str = io_lib:format( "~ts", [ Term ] ),
+	fix_characters( Str ).
 
 
 
@@ -6455,21 +6460,21 @@ generate_text_name_from( Term ) ->
 % Ensures that no undesirable character (space or single quote) remains in the
 % returned string.
 %
-fix_characters( String ) ->
-	lists:reverse( fix_characters( lists:flatten( String ), _Acc=[] ) ).
+fix_characters( Str ) ->
+    fix_characters( lists:flatten( Str ), _Acc=[] ).
 
 
-fix_characters( _S=[], Acc ) ->
-	Acc;
+fix_characters( _Str=[], Acc ) ->
+	lists:reverse( Acc );
 
 % 32 corresponds to space ('$ '):
-fix_characters( _S=[ 32 | T ], Acc ) ->
+fix_characters( _Str=[ 32 | T ], Acc ) ->
 	fix_characters( T, [ "_" | Acc ] );
 
-fix_characters( _S=[ $' | T ], Acc ) ->
+fix_characters( _Str=[ $' | T ], Acc ) ->
 	fix_characters( T, [ "_" | Acc ] );
 
-fix_characters( _S=[ H | T ], Acc ) ->
+fix_characters( _Str=[ H | T ], Acc ) ->
 	fix_characters( T, [ H | Acc ] ).
 
 

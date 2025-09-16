@@ -1698,6 +1698,8 @@ error_reason_to_string( Reason ) ->
 										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
+    % Note that, in many cases, reporting also the stacktrace *is* of interest.
+
 	%trace_utils:debug_fmt( "Interpreting undef for ~p:~p/~p.",
 	%                       [ ModuleName, FunctionName, Arity ] ),
 
@@ -1717,9 +1719,10 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 											 FunctionName ) of
 
 				[] ->
+                    % No trailing dot wanted:
 					text_utils:format( "module '~ts' found in code path "
-						"(as '~ts'), yet it does not export a '~ts' function "
-						"(for any arity).",
+						"(as '~ts'), yet it does not export a '~ts' function, "
+						"for any arity",
 						[ ModuleName, ModulePath, FunctionName ] );
 
 				Arities ->
@@ -1782,7 +1785,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
             % No trailing dot wanted (extra information may have to be added):
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
 				"yet it does not export a ~ts/~B function; as it exports "
-				"this function for ~ts.",
+				"this function for ~ts",
 				[ ModuleName, ModulePath, FunctionName, Arity, ArStr ] )
 
 	end.
