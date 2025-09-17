@@ -71,7 +71,7 @@ would be entered, typically in a shell, as `"--color"`.
 Therefore here options are to be specified as atoms, and without their first,
 initial dash.
 
-For the init standard module, this is named a "flag".
+For the `init` standard module, this is named a "flag".
 """.
 -type actual_command_line_option() :: atom(). % Not a string!
 
@@ -133,8 +133,8 @@ corresponding argument entry is `{'-color', [["blue", "red"], ["yellow"]]}`
 *lists* of strings; in their order on the command-line).
 
 Note that keys are atoms (with one leading dash removed), and it is advisable to
-use only the executable_utils module support rather than mixing and matching it
-with the one of the `init` module (different keys).
+use only the `executable_utils` module support rather than mixing and matching
+it with the one of the `init` module (different keys).
 """.
 -type command_line_argument() ::
 	% Yes, a *list* of command-line valueS:
@@ -210,7 +210,7 @@ a given command-line option.
 	value_count()
 
 	% A (possibly unlimited) range of counts accepted (bounds included):
-	| { actual_value_count(), value_count() }.
+  | { actual_value_count(), value_count() }.
 
 
 
@@ -534,7 +534,7 @@ get_optionless_command_arguments() ->
 
 
 -doc """
-Extracts, for specified command-line option (if any was specified; otherwise
+Extracts, for the specified command-line option (if any was specified; otherwise
 returns `undefined`) its various in-order lists of associated values, from the
 arguments specified to this executable.
 
