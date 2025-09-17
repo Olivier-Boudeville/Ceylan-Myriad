@@ -40,9 +40,10 @@ See also the `preferences` module for application preferences.
 % in ebin/myriad.app).
 
 
--export([ start/1, stop/0,
+-export([ start/1, stop/0, stop/1,
 		  get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
-		  display/1, display/2, fail/1, fail/2, finished/0 ] ).
+		  display/1, display/2, fail/1, fail/2,
+          finished/0, finished/1 ] ).
 
 
 -include("app_facilities.hrl").
@@ -126,8 +127,21 @@ normal case.
 """.
 -spec stop() -> no_return().
 stop() ->
-	basic_utils:display( "\n--> Successful termination of application.\n" ),
-	finished().
+    stop( _IsVerbose=false ).
+
+
+
+-doc """
+Stops an application; expected to be the last application statement in the
+normal case.
+""".
+-spec stop( IsVerbose :: boolean() ) -> no_return().
+stop( IsVerbose ) ->
+
+	IsVerbose andalso
+        basic_utils:display( "\n--> Successful termination of application.\n" ),
+
+	finished(IsVerbose ).
 
 
 
@@ -275,13 +289,19 @@ display( FormatString, Values ) ->
 
 -doc "Called whenever the execution of the main program is finished.".
 -spec finished() -> no_return().
+finished() ->
+    finished( _IsVerbose=false).
 
+
+-doc "Called whenever the execution of the main program is finished.".
+-spec finished( IsVerbose :: boolean() ) -> no_return().
 
 -ifdef(exit_after_app).
 
-finished() ->
+finished( IsVerbose ) ->
 
-	basic_utils:display( "(execution finished, interpreter halted)" ),
+	IsVerbose andalso
+        basic_utils:display( "(execution finished, interpreter halted)" ),
 
 	% Probably not that useful:
 	system_utils:await_output_completion(),
@@ -305,10 +325,10 @@ finished() ->
 -else. % exit_after_app
 
 
-finished() ->
+finished( IsVerbose ) ->
 
-	basic_utils:display( "(execution finished, "
-						 "interpreter still running)~n" ),
+	IsVerbose andalso basic_utils:display(
+        "(execution finished, interpreter still running)~n" ),
 
 	%system_utils:await_output_completion(),
 
