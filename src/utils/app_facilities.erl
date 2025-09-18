@@ -43,7 +43,7 @@ See also the `preferences` module for application preferences.
 -export([ start/1, stop/0, stop/1,
 		  get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
 		  display/1, display/2, fail/1, fail/2,
-          finished/0, finished/1 ] ).
+          finished/0, finished/2 ] ).
 
 
 -include("app_facilities.hrl").
@@ -141,7 +141,7 @@ stop( IsVerbose ) ->
 	IsVerbose andalso
         basic_utils:display( "\n--> Successful termination of application.\n" ),
 
-	finished(IsVerbose ).
+	finished( IsVerbose, _BeQuick=false ).
 
 
 
@@ -287,18 +287,32 @@ display( FormatString, Values ) ->
 
 
 
--doc "Called whenever the execution of the main program is finished.".
+-doc """
+Called whenever the execution of the main program is to be finished on success.
+
+Will not be verbose, and will be quick.
+""".
 -spec finished() -> no_return().
 finished() ->
-    finished( _IsVerbose=false).
+    finished( _IsVerbose=false, _BeQuick=true ).
 
 
--doc "Called whenever the execution of the main program is finished.".
--spec finished( IsVerbose :: boolean() ) -> no_return().
+-doc """
+Called whenever the execution of the main program is to be finished on success,
+in a verbose and/or quick way.
+
+Will not be verbose, and will be quick.
+""".
+-spec finished( IsVerbose :: boolean(), BeQuick :: boolean() ) -> no_return().
 
 -ifdef(exit_after_app).
 
-finished( IsVerbose ) ->
+% Typically for a command-line tool:
+finished( _IsVerbose, _BeQuick=true ) ->
+    halt( 0 );
+
+% For a (longer) more synchronous termination:
+finished( IsVerbose, _BeQuick=false ) ->
 
 	IsVerbose andalso
         basic_utils:display( "(execution finished, interpreter halted)" ),
