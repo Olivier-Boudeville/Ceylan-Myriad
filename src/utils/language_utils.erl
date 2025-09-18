@@ -29,21 +29,36 @@
 
 -moduledoc """
 Gathering of various convenient facilities regarding the **support of various
-programming or communication languages**.
+communication (typically for user interfaces) or programming-related
+languages**.
 
-See language_utils_test.erl for the corresponding test.
+See the `language_utils_test` module for the corresponding test.
 """.
+
+
+
+% For human languages:
+
+
+-doc """
+Type to designate some human languages of interest.
+
+See also [the ISO 639-3 Codes for the representation of names of
+languages](https://en.wikipedia.org/wiki/ISO_639-3).
+
+Note that a locale is a broader notion.
+""".
+-type human_language() :: 'english' | 'french' | 'spanish' | 'german'
+						| 'italian' | 'russian' | 'chinese' | 'japanese'.
+
+
+
+
+% For programming languages:
 
 
 -doc "Type to designate all programming languages of interest.".
 -type language() :: 'erlang' | 'python' | 'c' | 'c++' | 'java' | 'rust'.
-
-
-
--doc "Type to designate some human languages of interest.".
--type human_language() :: 'english' | 'french' | 'spanish' | 'german'
-						| 'italian' | 'russian' | 'chinese' | 'japanese'.
-
 
 
 -doc """
@@ -54,10 +69,8 @@ a given node).
 -type runtime_container_pid() :: pid().
 
 
-
 -doc "The PID of a Python interpreter runtime container.".
 -type python_interpreter_container_pid() :: python_utils:interpreter_pid().
-
 
 
 -doc """
@@ -67,15 +80,21 @@ agent, otherwise directly a controller mbox).
 -type java_vm_container_pid() :: runtime_container_pid().
 
 
--export_type([ language/0, human_language/0,
+-export_type([ human_language/0, language/0,
 			   runtime_container_pid/0, python_interpreter_container_pid/0,
 			   java_vm_container_pid/0 ]).
 
 
+% For human languages:
+-export([ get_user_language/0, set_user_language/1,
+          get_file_path/1, get_file_path/2 ]).
 
+
+
+% For programming languages:
 -export([ get_supported_foreign_languages/0, get_supported_languages/0,
-		  language_to_string/1, language_to_string/2,
-		  get_additional_beam_directories_for/1 ]).
+          get_additional_beam_directories_for/1,
+          language_to_string/1, language_to_string/2 ]).
 
 
 
@@ -83,8 +102,120 @@ agent, otherwise directly a controller mbox).
 
 -type ustring() :: text_utils:ustring().
 
+-type any_file_path() :: file_utils:any_file_path().
+-type file_path() :: file_utils:file_path().
 -type possibly_resolvable_path() :: file_utils:possibly_resolvable_path().
 
+
+
+% Section for (human) communication languages.
+
+% To ease the management of an application, user-level language, one may rely on
+% a persistent_term (therefore application-global), rather than on a
+% (process-level) process dictionary or even on a function-scoped variable for
+% language settings, which may cumbersome to pass around.
+%
+% To define easily that the English version of a file shall be the default one
+% should no language-specific one be defined, just create a symbolic link; for
+% example from conf/my-file.txt to conf/my-file-english.txt.
+
+
+% Key to be used for a persistent term:
+-define( myriad_user_language_key, myriad_user_language ).
+
+
+
+-doc """
+Returns the current setting in terms of application, user-level language,
+typically so that any interface can adapt.
+""".
+-spec get_user_language() -> human_language().
+ get_user_language() ->
+    persistent_term:get( _K=?myriad_user_language_key, _Default=english ).
+
+
+-doc """
+Sets globally the current setting in terms of application, user-level language.
+
+Defines which human language shall be used by default for user interaction.
+
+Various interface-related functions (in Myriad or in the layers above) should
+read this setting and act accordingly.
+
+Changing such a setting in the course of execution may be expensive if many
+processes exist.
+""".
+-spec set_user_language( human_language() ) -> persistent_term:info().
+set_user_language( NewLanguage ) when is_atom( NewLanguage )->
+
+    %io:format( "Setting application language to ~ts (was: ~ts).~n",
+    %           [ NewLanguage, get_user_language() ] ),
+
+    persistent_term:put( _K=?myriad_user_language_key, _V=NewLanguage ).
+
+
+
+-doc """
+Returns the most suitable version, based on the current user language, of the
+specified file path.
+
+For example, if given `conf/my-file.txt`, may return `conf/my-file-french.txt`
+if `french` is the current human language and if this file exists, otherwise
+will return as a fallback `conf/my-file.txt` if it exists, otherwise will throw
+an exception.
+""".
+-spec get_file_path( any_file_path() ) -> file_path().
+get_file_path( AnyFilePath ) ->
+    get_file_path( AnyFilePath, get_user_language() ).
+
+
+
+-doc """
+Returns the most suitable version, based on the specified user language, of the
+specified file path.
+
+For example, if `FilePath=conf/my-file.txt` and `Language=french`, may return
+`conf/my-file-french.txt` if this file exists, otherwise will return as a
+fallback `conf/my-file.txt` if it exists, otherwise will throw an exception.
+""".
+-spec get_file_path( any_file_path(), human_language() ) -> file_path().
+get_file_path( BinFilePath, Language ) when is_binary( BinFilePath )->
+    get_file_path( text_utils:binary_to_string( BinFilePath ), Language );
+
+get_file_path( FilePath, Language ) ->
+
+    { PfxPath, Ext } = file_utils:split_extension( FilePath ),
+
+    LangFilePath = text_utils:format( "~ts-~ts.~ts",
+                                      [ PfxPath, Language, Ext ] ),
+
+    case file_utils:is_existing_file_or_link( LangFilePath ) of
+
+        true ->
+            LangFilePath;
+
+        false ->
+            case file_utils:is_existing_file_or_link( FilePath ) of
+
+                true ->
+                    trace_bridge:warning_fmt( "No '~ts' version found "
+                        "for '~ts', falling back to ~ts.",
+                        [ Language, LangFilePath, FilePath ] ),
+
+                    FilePath;
+
+                false ->
+                    throw( { no_version_for, FilePath, Language } )
+
+            end
+
+    end.
+
+
+
+
+
+% Section for programming languages.
 
 
 -doc """

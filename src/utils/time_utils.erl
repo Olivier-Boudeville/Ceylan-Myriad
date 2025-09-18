@@ -35,7 +35,7 @@ Three types of timestamps are supported:
 - for timestamps suitable for the tracking of durations with a 1-millisecond
   accuracy, use `ms_monotonic/0`
 - for the most accurate (microsecond-level) timestamps, use
-  `precise_timestamp()`
+  `precise_timestamp/0`
 
 See `time_utils_test.erl` for the corresponding test.
 """.
@@ -278,7 +278,7 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_bin_textual_timestamp/0,
 		  get_user_friendly_textual_timestamp/1,
-		  get_french_textual_timestamp/1,
+		  get_french_textual_timestamp/0, get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
@@ -1731,6 +1731,16 @@ get_user_friendly_textual_timestamp(
 	text_utils:format( "~ts, ~ts ~B, ~B, at ~ts",
 		[ week_day_to_string( Date ), month_to_string( Month ), Day,
 		  Year, time_of_day_to_string( Time ) ] ).
+
+
+
+-doc """
+Returns a string corresponding to the current timestamp expressed in French,
+like: `"le 1/9/2009, à 11h46m53"`.
+""".
+-spec get_french_textual_timestamp() -> ustring().
+get_french_textual_timestamp() ->
+    get_french_textual_timestamp( get_timestamp() ).
 
 
 

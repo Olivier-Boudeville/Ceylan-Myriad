@@ -61,7 +61,7 @@ See `file_utils_test.erl` for the corresponding test.
 		  escape_path/1,
 
 		  get_extensions/1, get_extension/1, get_dotted_extension_for/1,
-		  add_extension/2,
+		  split_extension/1, add_extension/2,
 		  remove_extension/1, remove_extension/2, replace_extension/3,
 
 		  exists/1, get_type_of/1, resolve_type_of/1,
@@ -1261,17 +1261,17 @@ Returns the (ordered) extension(s) of the specified file path.
 For example: `["baz", "json"] = get_extensions("/home/joe/foobar.baz.json").`.
 """.
 -spec get_extensions( file_path() ) -> [ extension() ] | 'no_extension'.
-get_extensions( Filename ) ->
+get_extensions( FilePath ) ->
 
-	case text_utils:split( Filename, _Delimiter=$. ) of
+	case text_utils:split( FilePath, _Delimiter=$. ) of
 
 		[] ->
 			no_extension;
 
-		[ _Basename ] ->
+		[ _BasePath ] ->
 			no_extension;
 
-		[ _Basename | Extensions ] ->
+		[ _BasePath | Extensions ] ->
 			Extensions
 
 	end.
@@ -1284,9 +1284,9 @@ Returns the (last) extension of the specified file path.
 For example: `"json" = get_extension("/home/joe/foobar.baz.json").`.
 """.
 -spec get_extension( file_path() ) -> extension() | 'no_extension'.
-get_extension( Filename ) ->
+get_extension( FilePath ) ->
 
-	case get_extensions( Filename ) of
+	case get_extensions( FilePath ) of
 
 		no_extension ->
 			no_extension;
@@ -1295,6 +1295,32 @@ get_extension( Filename ) ->
 			list_utils:get_last_element( Extensions )
 
 	end.
+
+
+
+-doc """
+Splits the specified file path into a base prefix and its extension.
+
+If no extension is found, the returned one is "".
+
+For example `{"conf/test", "txt"} = split_extension("conf/test.txt")` and
+`{"conf/test", ""} = split_extension("conf/test")`.
+""".
+-spec split_extension( file_path() ) -> { file_path(), extension() }.
+split_extension( FilePath ) ->
+    % string:take/4 would leave the dot in the prefix.
+
+    % As we want to catch the *last* extension:
+    case text_utils:split_at_first( _Marker=$.,
+                                    _Str=lists:reverse( FilePath ) ) of
+
+        none_found ->
+            { FilePath, _Ext="" };
+
+        { RevExt, RevPfx } ->
+            { lists:reverse( RevPfx ), lists:reverse( RevExt ) }
+
+    end.
 
 
 
