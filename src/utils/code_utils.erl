@@ -1698,7 +1698,10 @@ error_reason_to_string( Reason ) ->
 										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
-    % Note that, in many cases, reporting also the stacktrace *is* of interest.
+    % Note that:
+    %  - in many cases, reporting also the stacktrace *is* of interest
+    %  - the returned string must not end with a dot; the caller may add it if
+    %  wanted
 
 	%trace_utils:debug_fmt( "Interpreting undef for ~p:~p/~p.",
 	%                       [ ModuleName, FunctionName, Arity ] ),
@@ -1742,7 +1745,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 		true ->
 			% Should never happen?
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
-				"and it exports the ~ts/~B function indeed.",
+				"and it exports the ~ts/~B function indeed",
 				[ ModuleName, ModulePath, FunctionName, Arity ] );
 
 		false ->
