@@ -2788,7 +2788,7 @@ about the number of persistent terms and the total amount of memory (in bytes)
 that they use.
 
 Various means of error reporting (in Myriad or in the layers above) should read
-that setting and act accordingly.
+this setting and act accordingly.
 
 Changing such a setting in the course of execution may be expensive if many
 processes exist.
