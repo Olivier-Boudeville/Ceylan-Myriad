@@ -44,7 +44,7 @@ So, to compile it, just go to the root of this layer and execute for example
 To determine the other bootstrapped modules (i.e. the subset of our modules that
 this module can use), see the `BOOTSTRAP_MODULES` variable in `GNUmakevars.inc`.
 
-See also: the type_utils module, about the management of datatypes themselves,
+See also the `type_utils` module, about the management of datatypes themselves,
 and the `ast*` modules for lower-level operations.
 """.
 
@@ -155,11 +155,11 @@ and the `ast*` modules for lower-level operations.
 
 
 -doc """
-Options specified to a parse transform at runtime, like: report_warnings, beam,
+Options specified to a parse transform at runtime, like: `report_warnings, beam,
 report_errors, {cwd,"X"}, {outdir,"Y"}, {i,"Z"}, {parse_transform,P},
-debug_info, warnings_as_errors, etc.
+debug_info, warnings_as_errors`, etc.
 
-(hence not a list_table, anyway not available here)
+(hence not a `list_table`, anyway not available here)
 """.
 -type parse_transform_options() :: proplists:proplist().
 
@@ -197,7 +197,7 @@ signature within a module).
 
 -doc """
 The form corresponding to the definition of a clause of a function, typically
-`{clause, LINE, Rep(Ps), Rep(Gs), Rep(B)} for '( Ps ) when Gs -> B'`.
+`{clause, LINE, Rep(Ps), Rep(Gs), Rep(B)}` for `(Ps) when Gs -> B`.
 """.
 -type clause_def() :: form().
 
@@ -707,7 +707,7 @@ transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData ) ->
 
 
 
--doc "Transforms the elements of a list (helper).".
+-doc "Transforms the elements of a list.".
 transform_list( TargetList, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	{ NewList, NewUserData } = lists:foldl(
@@ -730,7 +730,7 @@ transform_list( TargetList, ConcTypeDesc, TermTransformer, UserData ) ->
 
 
 -doc """
-Transforms the entries of a map (helper).
+Transforms the entries of a map.
 
 The transformation is applied entry by entry and, for each of them, first on the
 key, then on the value.
@@ -761,7 +761,7 @@ transform_map( TargetMap, ConcTypeDesc, TermTransformer, UserData ) ->
 
 
 
--doc "Transforms the elements of a tuple (helper).".
+-doc "Transforms the elements of a tuple.".
 transform_tuple( TargetTuple, ConcTypeDesc, TermTransformer, UserData ) ->
 
 	% We do exactly as with lists:
@@ -775,10 +775,10 @@ transform_tuple( TargetTuple, ConcTypeDesc, TermTransformer, UserData ) ->
 
 
 -doc """
-Transforms any term by traversing it (helper).
+Transforms any term by traversing it.
 
 Helper to traverse a transformed term (e.g. if looking for a `{user_id, String}`
-pair, we must recurse in nested tuples like: `{3, {user_id, "Hello"}, 1}`.
+pair, we must recurse in nested tuples like: `{3, {user_id, "Hello"}, 1}`).
 """.
 transform_transformed_term( TargetTerm, ConcTypeDesc, TermTransformer,
 							UserData ) ->
@@ -817,8 +817,7 @@ get_compile_base_opts() ->
 	% (a priori not interesting: 'compressed')
 	%
 	[ verbose,report_errors,report_warnings, warnings_as_errors,
-	  export_all, no_line_info, debug_info ]
-		++ get_debug_info_settings().
+	  export_all, no_line_info, debug_info ] ++ get_debug_info_settings().
 
 
 
