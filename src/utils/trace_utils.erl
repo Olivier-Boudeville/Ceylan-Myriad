@@ -69,7 +69,7 @@ that their names differ).
 
 
 
--doc "An actual (binary)  trace message.".
+-doc "An actual (binary) trace message.".
 -type trace_bin_message() :: bin_string().
 
 
@@ -88,32 +88,32 @@ See also `standard_logger_level_to_severity/1` for a proper conversion.
 	'debug'
 
 	% For informational, lower-level messages:
-	| 'info'
+  | 'info'
 
 	% For normal yet significant conditions:
-	| 'notice'
+  | 'notice'
 
 	% For warning conditions:
-	| 'warning'
+  | 'warning'
 
 	% For error conditions:
-	| 'error'
+  | 'error'
 
 	% For critical conditions:
-	| 'critical'
+  | 'critical'
 
 	% For actions that must be taken immediately:
-	| 'alert'
+  | 'alert'
 
 	% Highest criticity, when system became unusable:
-	| 'emergency'
+  | 'emergency'
 
 	% For messages that shall be fully muted (disabled):
-	| 'void'.
+  | 'void'.
 
 
 
--doc "A format with quantifiers (such as ~p).".
+-doc "A format with quantifiers (such as `~p`).".
 -type trace_format() :: text_utils:format_string().
 
 
@@ -992,12 +992,24 @@ log( _LogEvent=#{ level := Level,
 
 	 end,
 
+    % As too often this information is lacking:
+    FullTraceMsg = case is_error_like( Level ) of
+
+        true ->
+            text_utils:format( "~ts, stacktrace being ~ts",
+                [ TraceMsg, code_utils:interpret_stacktrace() ] );
+
+        false ->
+            TraceMsg
+
+    end,
+
 	%io:format( "### Logging following event:~n ~p~n(with config: ~p)~n "
 	%   "resulting in: '~ts' (severity: ~p).",
-	%   [ LogEvent, Config, TraceMsg, Severity ] ),
+	%   [ LogEvent, Config, FullTraceMsg, Severity ] ),
 
 	% Now the standard level corresponds directly to our severity:
-	echo( TraceMsg, _Severity=Level, 'erlang_logger' );
+	echo( FullTraceMsg, _Severity=Level, 'erlang_logger' );
 
 log( LogEvent, _Config ) ->
 	throw( { unexpected_log_event, LogEvent } ).
