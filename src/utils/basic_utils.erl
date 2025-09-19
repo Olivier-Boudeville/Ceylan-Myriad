@@ -562,7 +562,11 @@ The name of a layer (e.g. `"Myriad"`).
 
 
 
--doc "Possible outcome of a partial-order comparison of two elements.".
+-doc """
+Possible outcome of a partial-order comparison of two elements.
+
+Tells how a first element is, compared to a second one.
+""".
 -type comparison_result() :: 'lower' | 'equal' | 'higher'.
 
 
