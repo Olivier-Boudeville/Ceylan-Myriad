@@ -1401,7 +1401,7 @@ deriving from it.
     [ ast_expression() ], ast_transforms() ) ->
                                 { [ ast_expression() ], ast_transforms() }.
 handle_formatting_call_2p( FileLoc, ModNameForm, FunNameForm, ParamExprs,
-                       Transforms ) ->
+                           Transforms ) ->
 
     NewFunctionRef = { remote, FileLoc, ModNameForm, FunNameForm },
 
