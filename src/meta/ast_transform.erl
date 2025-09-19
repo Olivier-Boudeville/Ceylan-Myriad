@@ -32,8 +32,8 @@ Module in charge of **transforming AST elements**, typically by operating on a
 `module_info` record obtained after the transformation of an AST.
 
 Note that the transform relies on a rather complex and complete traversal of the
-abstract syntax of the AST, inspired from the spec (in
-[http://erlang.org/doc/apps/erts/absform.html]) and also checked against the
+abstract syntax of the AST, inspired from its specification in
+[http://erlang.org/doc/apps/erts/absform.html], and also checked against the
 Erlang `id` parse transformation (see `lib/stdlib/examples/erl_id_trans.erl`).
 """.
 
@@ -344,8 +344,8 @@ Designates the transformation functions that are used to transform differently a
 kind of form (e.g. the one of a bistring, a record, etc.) depending on the
 context (e.g. in a guard, in an expression, etc.).
 """.
--type transform_fun( TargetType ) :: fun( ( TargetType, ast_transforms() ) ->
-											{ TargetType, ast_transforms() } ).
+-type transform_fun( TargetType ) ::
+    fun( ( TargetType, ast_transforms() ) -> { TargetType, ast_transforms() } ).
 
 
 -export_type([ transform_fun/0, transform_fun/1 ]).
