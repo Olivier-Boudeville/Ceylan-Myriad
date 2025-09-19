@@ -328,17 +328,17 @@ For example: `<<"2024/9/2 21:37:22">>`.
 -doc """
 An extended timestamp.
 
-`next_possible_day` is useful when wanting to specify either 'today' or
-'tomorrow' depending on whether the current time is before or after the
+`next_possible_day` is useful when wanting to specify either `today` or
+`tomorrow` depending on whether the current time is before or after the
 specified one.
 
-For example `{next_possible_day, {19, 54, 0}}` will be translated as `{today,
-{19, 54, 0}}` if current time is 18:00, but as `{tomorrow, {19, 54, 0}}` if
-current time is 20:00.
+For example `{next_possible_day, {19, 54, 0}}` will be translated, if the
+current time is 18:00, as `{today, {19, 54, 0}}`, whereas, if the current time
+is 20:00, as `{tomorrow, {19, 54, 0}}`.
 
 In this last case, if specifying instead just `{today, {19, 54, 0}}`, then this
-timestamp would be in the past, and scheduling it would trigger an immediate
-trigger thereof, whereas we might prefer to wait for tomorrow's 19:54.
+timestamp would be in the past, and scheduling it would trigger it immediately,
+whereas we would like here to wait for tomorrow`s 19:54.
 
 See also `offset_timestamp/2`.
 """.
@@ -435,6 +435,8 @@ is `1970-01-01 00:00 UTC`.
 
 
 % Type shorthands:
+
+-type comparison_result() :: basic_utils:comparison_result().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -588,7 +590,7 @@ resolve_timestamp( _ExtTimestamp={ next_possible_day, ExtTime } ) ->
         lower ->
             date();
 
-        % Prefering ostponing if in the same second:
+        % Prefering postponing if in the same second:
         _ ->
             resolve_date( tomorrow )
 
@@ -1112,7 +1114,7 @@ before, after or the same as the second one.
 Note: both dates are expected to be in canonical form (e.g. not more 12 months
 or 31 days in the specified date).
 """.
--spec compare_dates( date(), date() ) -> basic_utils:comparison_result().
+-spec compare_dates( date(), date() ) -> comparison_result().
 compare_dates( FirstDate, SecondDate ) ->
 
 	check_canonical_date( FirstDate ),
@@ -1135,11 +1137,11 @@ compare_helper( _FirstTriplet={ Yf, _Mf, _Df },
 
 % From here, Yf =:= Ys:
 compare_helper( _FirstTriplet={ _Yf, Mf, _Df },
-                _SecondTriplet={ _Ys, Ms, _Ds } )  when Ms < Mf ->
+                _SecondTriplet={ _Ys, Ms, _Ds } )  when Mf < Ms ->
   lower;
 
 compare_helper( _FirstTriplet={ _Yf, Mf, _Df },
-                _SecondTriplet={ _Ys, Ms, _Ds } ) when Ms > Mf ->
+                _SecondTriplet={ _Ys, Ms, _Ds } ) when Mf > Ms ->
   higher;
 
 % From here, Yf =:= Ys and Mf =:= Ms:
@@ -1162,7 +1164,7 @@ compare_helper( _FirstTriplet, _SecondTriplet ) ->
 -doc """
 Ensures that the starting canonical date is strictly before the stopping one.
 
-Note: both dates are expected to be in canonical form (e.g. not more than 12
+Note: both dates are expected to be in canonical form (e.g. with no more than 12
 months or 31 days in a specified date).
 """.
 -spec check_date_order( date(), date() ) -> void().
@@ -1184,14 +1186,14 @@ get_date_difference( FirstDate, SecondDate ) ->
 
 
 
--doc "Converts specified user date into a canonical one.".
+-doc "Converts the specified user date into a canonical one.".
 -spec user_to_canonical_date( user_date() ) -> date().
 user_to_canonical_date( { D, M, Y } ) ->
 	{ Y, M, D }.
 
 
 
--doc "Converts specified canonical date into a user one.".
+-doc "Converts the specified canonical date into a user one.".
 -spec canonical_to_user_date( date() ) -> user_date().
 canonical_to_user_date( { Y, M, D } ) ->
 	{ D, M, Y }.
@@ -1266,8 +1268,8 @@ is_dhms_duration( _Other ) ->
 
 
 -doc """
-Converts the specified string (e.g. "113j0h10m3s" for a French version,
-"1d12h0m0s" for an English one) to a DHMS duration.
+Converts the specified string (e.g. `"113j0h10m3s"` for a French version,
+`"1d12h0m0s"` for an English one) to a DHMS duration.
 """.
 -spec string_to_dhms( ustring() ) -> dhms_duration().
 string_to_dhms( DurationString ) ->
@@ -1416,7 +1418,7 @@ before, after or the same as the second one.
 Note: both times are expected to be in canonical form (e.g. not more 23 hours or
 59 minutes/seconds in the specified time).
 """.
--spec compare_times( time(), time() ) -> basic_utils:comparison_result().
+-spec compare_times( time(), time() ) -> comparison_result().
 compare_times( FirstTime, SecondTime ) ->
 
 	check_canonical_time( FirstTime ),
