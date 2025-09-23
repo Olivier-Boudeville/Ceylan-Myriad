@@ -104,6 +104,7 @@ agent, otherwise directly a controller mbox).
 
 -type any_file_path() :: file_utils:any_file_path().
 -type file_path() :: file_utils:file_path().
+-type abs_file_path() :: file_utils:abs_file_path().
 -type possibly_resolvable_path() :: file_utils:possibly_resolvable_path().
 
 
@@ -171,14 +172,15 @@ get_file_path( AnyFilePath ) ->
 
 
 -doc """
-Returns the most suitable version, based on the specified user language, of the
-specified file path.
+Returns the most suitable existing version, based on the specified user
+language, of the specified file path.
 
 For example, if `FilePath=conf/my-file.txt` and `Language=french`, may return
-`conf/my-file-french.txt` if this file exists, otherwise will return as a
-fallback `conf/my-file.txt` if it exists, otherwise will throw an exception.
+`/.../conf/my-file-french.txt` if this file exists, otherwise will return as a
+fallback `/.../conf/my-file.txt` if it exists, otherwise will throw an
+exception.
 """.
--spec get_file_path( any_file_path(), human_language() ) -> file_path().
+-spec get_file_path( any_file_path(), human_language() ) -> abs_file_path().
 get_file_path( BinFilePath, Language ) when is_binary( BinFilePath )->
     get_file_path( text_utils:binary_to_string( BinFilePath ), Language );
 
@@ -186,26 +188,29 @@ get_file_path( FilePath, Language ) ->
 
     { PfxPath, Ext } = file_utils:split_extension( FilePath ),
 
-    LangFilePath = text_utils:format( "~ts-~ts.~ts",
-                                      [ PfxPath, Language, Ext ] ),
+    AbsLangFilePath = file_utils:ensure_path_is_absolute(
+        text_utils:format( "~ts-~ts.~ts",
+                           [ PfxPath, Language, Ext ] ) ),
 
-    case file_utils:is_existing_file_or_link( LangFilePath ) of
+    case file_utils:is_existing_file_or_link( AbsLangFilePath ) of
 
         true ->
-            LangFilePath;
+            AbsLangFilePath;
 
         false ->
-            case file_utils:is_existing_file_or_link( FilePath ) of
+            AbsFilePath = file_utils:ensure_path_is_absolute( FilePath ),
+            case file_utils:is_existing_file_or_link( AbsFilePath ) of
 
                 true ->
                     trace_bridge:warning_fmt( "No '~ts' version found "
                         "for '~ts', falling back to ~ts.",
-                        [ Language, LangFilePath, FilePath ] ),
+                        [ Language, AbsLangFilePath, AbsFilePath ] ),
 
-                    FilePath;
+                    AbsFilePath;
 
                 false ->
-                    throw( { no_version_for, FilePath, Language } )
+                    throw( { no_version_for, FilePath, Language,
+                           { AbsLangFilePath, AbsFilePath } } )
 
             end
 

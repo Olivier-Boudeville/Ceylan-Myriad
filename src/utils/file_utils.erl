@@ -323,6 +323,13 @@ e.g. `"../my_dir/other/foobar.txt"`.
 -type any_file_path() :: file_path() | bin_file_path().
 
 
+-doc """
+Designates an absolute path to a file (including its filename),
+e.g. `"/home/bond/my_dir/other/foobar.txt"`.
+""".
+-type abs_file_path() :: file_path().
+
+
 
 -doc """
 Designates a path to a device (including its device name),
@@ -610,6 +617,7 @@ for further information)
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
+               abs_file_path/0,
 
 			   link_name/0, link_path/0, bin_link_path/0, any_link_path/0,
 
