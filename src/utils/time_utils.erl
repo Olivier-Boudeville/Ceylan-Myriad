@@ -252,8 +252,14 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 
 % Duration-related section.
 -export([ get_intertime_duration/2, frequency_to_period/1, wait_period_ending/2,
+
 		  duration_to_string/1, duration_to_string/2,
 		  duration_to_french_string/1,
+
+          duration_to_compact_string/1, duration_to_compact_string/2,
+
+          duration_to_synthetic_string/1, duration_to_synthetic_string/2,
+
 		  time_out_to_string/1, time_out_to_string/2 ]).
 
 
@@ -424,13 +430,17 @@ is `1970-01-01 00:00 UTC`.
 -type posix_seconds() :: integer().
 
 
+-doc "Designates an extended, higher-level, millisecond-based duration.".
+-type extended_duration() :: milliseconds() | float() | 'infinity'.
+
+
 -export_type([ timestamp/0, timestamp_binstring/0, precise_timestamp/0,
 			   time_frame/0, user_time_frame/0,
 
 			   finite_time_out/0, time_out/0,
 			   finite_second_time_out/0, second_time_out/0,
 
-			   posix_seconds/0 ]).
+			   posix_seconds/0, extended_duration/0 ]).
 
 
 
@@ -441,12 +451,13 @@ is `1970-01-01 00:00 UTC`.
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
+-type human_language() :: language_utils:human_language().
+
 -type microseconds() :: unit_utils:microseconds().
 -type milliseconds() :: unit_utils:milliseconds().
 -type seconds() :: unit_utils:seconds().
 -type float_seconds() :: unit_utils:float_seconds().
 -type megaseconds() :: unit_utils:megaseconds().
-
 
 -type minutes() :: unit_utils:minutes().
 -type hours() :: unit_utils:hours().
@@ -2235,20 +2246,20 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 
 -doc """
-Returns an approximate textual description, in the specified language, of the
-specified duration, expected to be expressed as a number of milliseconds
-(integer; otherwise, if being floating-point, it will be rounded), or as the
-`infinity` atom.
+Returns a textual description, in the specified language, of the specified
+duration, expected to be expressed as a number of milliseconds (integer;
+otherwise, if being floating-point, it will be rounded), or as the `infinity`
+atom.
 
 For example for a duration of 150 012 ms, returns for English: `"2 minutes, 30
 seconds and 12 milliseconds"`.
 
 Can be fed directly with a `time_out/0` value.
 
-See also: `get_textual_duration/2`.
+See also `duration_to_string/2`, `duration_to_{compact,synthetics}_string/1` and
+`get_textual_duration/2`.
 """.
--spec duration_to_string( milliseconds() | float() | 'infinity',
-						  language_utils:human_language() ) -> ustring().
+-spec duration_to_string( extended_duration(), human_language() ) -> ustring().
 duration_to_string( Duration, _Lang=french ) ->
 	duration_to_french_string( Duration );
 
@@ -2259,16 +2270,17 @@ duration_to_string( Duration, _Lang ) ->
 
 
 -doc """
-Returns an approximate textual (English) description of the specified duration,
-expected to be expressed as a signed number of milliseconds (integer; otherwise,
-if being floating-point, it will be rounded), or as the `infinity` atom.
+Returns a textual, English, description of the specified duration, expected to
+be expressed as a signed number of milliseconds (integer; otherwise, if being
+floating-point, it will be rounded), or as the `infinity` atom.
 
 For example for a duration of 150 012 ms, returns: `"2 minutes, 30 seconds and
 12 milliseconds"`.
 
-See also: `get_textual_duration/2`.
+See also `duration_to_string/1`, `duration_to_{compact,synthetics}_string/1` and
+`get_textual_duration/2`.
 """.
--spec duration_to_string( milliseconds() | float() | 'infinity' ) -> ustring().
+-spec duration_to_string( extended_duration() ) -> ustring().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_string( erlang:round( Milliseconds ) );
 
@@ -2376,17 +2388,16 @@ duration_to_string( Other ) ->
 
 
 -doc """
-Returns an approximate textual, French description of the specified duration,
-expected to be expressed as a number of milliseconds (integer; otherwise, if
-being floating-point, it will be rounded), or as the `infinity` atom.
+Returns a textual, French description of the specified duration, expected to be
+expressed as a number of milliseconds (integer; otherwise, if being
+floating-point, it will be rounded), or as the `infinity` atom.
 
 For example for a duration of 150 012 ms, returns: `"2 minutes, 30 secondes et
 12 millisecondes"`.
 
 See also: `get_textual_duration/2`.
 """.
--spec duration_to_french_string( milliseconds() | float() | 'infinity' ) ->
-										ustring().
+-spec duration_to_french_string( extended_duration() ) -> ustring().
 duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_french_string( erlang:round( Milliseconds ) );
 
@@ -2485,6 +2496,249 @@ duration_to_french_string( infinity ) ->
 	"infini".
 
 
+
+-doc """
+Returns a compact, textual, English description of the specified duration,
+expected to be expressed as a number of milliseconds (integer; otherwise, if
+being floating-point, it will be rounded), or as the `infinity` atom.
+
+For example may return `"1d 22h 2m 30s 12ms"`.
+
+Can be fed directly with a `time_out/0` value.
+
+See also `duration_to_string/1`.
+""".
+-spec duration_to_compact_string( extended_duration() ) -> ustring().
+duration_to_compact_string( ExtDuration ) ->
+    duration_to_compact_string( ExtDuration, _Lang=english ).
+
+
+
+-doc """
+Returns a compact, textual, description of the specified duration, expected to
+be expressed as a number of milliseconds (integer; otherwise, if being
+floating-point, it will be rounded), or as the `infinity` atom, and expressed in
+the specified language.
+
+For example may return, for the French language, `"361j 12h 15m 12s"`.
+
+Can be fed directly with a `time_out/0` value.
+
+See also `duration_to_string/2`.
+""".
+-spec duration_to_compact_string( extended_duration(), human_language() ) ->
+                                                    ustring().
+duration_to_compact_string( Milliseconds, Lang )
+            when is_float( Milliseconds ) ->
+	duration_to_compact_string( erlang:round( Milliseconds ), Lang );
+
+duration_to_compact_string( Milliseconds, Lang )
+            when is_integer( Milliseconds ) andalso Milliseconds < 0 ->
+	"-" ++ duration_to_compact_string( -Milliseconds, Lang );
+
+duration_to_compact_string( Milliseconds, Lang )
+            when is_integer( Milliseconds )->
+
+	FullSeconds = Milliseconds div 1000,
+
+	{ Days, { Hours, Minutes, Seconds } } =
+		calendar:seconds_to_daystime( FullSeconds ),
+
+	ListWithDays = case Days of
+
+		0 ->
+			[];
+
+		_ ->
+            DayLetter = case Lang of
+                french -> "j";
+                _ -> "d"
+            end,
+			[ text_utils:format( "~B~ts", [ Days, DayLetter ] ) ]
+
+	end,
+
+	ListWithHours = case Hours of
+
+		0 ->
+			ListWithDays;
+
+		_ ->
+			[ text_utils:format( "~Bh", [ Hours ] ) | ListWithDays ]
+
+	end,
+
+	ListWithMinutes = case Minutes of
+
+		0 ->
+			ListWithHours;
+
+		_ ->
+			[ text_utils:format( "~Bm", [ Minutes ] ) | ListWithHours ]
+
+	end,
+
+	ListWithSeconds = case Seconds of
+
+		0 ->
+			ListWithMinutes;
+
+		_ ->
+			[ text_utils:format( "~Bs", [ Seconds ] ) | ListWithMinutes ]
+
+	end,
+
+	ActualMilliseconds = Milliseconds rem 1000,
+
+	ListWithMilliseconds = case ActualMilliseconds of
+
+		0 ->
+			ListWithSeconds;
+
+		_ ->
+			[ text_utils:format( "~Bms", [ ActualMilliseconds ] )
+				| ListWithSeconds ]
+
+	end,
+
+	% Preparing for final display:
+	case ListWithMilliseconds of
+
+		[] ->
+			"0ms";
+
+		RevList ->
+			text_utils:join( " ", lists:reverse( RevList ) )
+
+	end;
+
+duration_to_compact_string( infinity, _Lang=french ) ->
+	"infinie";
+
+duration_to_compact_string( infinity, _Lang ) ->
+	"infinity";
+
+duration_to_compact_string( Other, _Lang ) ->
+	throw( { invalid_duration, Other } ).
+
+
+
+-doc """
+Returns a synthetic, approximate, textual, English description of the specified
+duration, expected to be expressed as a number of milliseconds (integer;
+otherwise, if being floating-point, it will be rounded), or as the `infinity`
+atom.
+
+For example may return `"1d"`.
+
+Can be fed directly with a `time_out/0` value.
+
+See also `duration_to_string/1`.
+""".
+-spec duration_to_synthetic_string( extended_duration() ) -> ustring().
+duration_to_synthetic_string( ExtDuration ) ->
+    duration_to_synthetic_string( ExtDuration, _Lang=english ).
+
+
+
+-doc """
+Returns a synthetic, approximate, textual, description of the specified
+duration, expected to be expressed as a number of milliseconds (integer;
+otherwise, if being floating-point, it will be rounded), or as the `infinity`
+atom, and expressed in the specified language.
+
+For example may return, for the French language, `"361j 12h 15m 12s"`.
+
+Can be fed directly with a `time_out/0` value.
+
+See also `duration_to_string/2`.
+""".
+-spec duration_to_synthetic_string( extended_duration(), human_language() ) ->
+                                                    ustring().
+duration_to_synthetic_string( Milliseconds, Lang )
+            when is_float( Milliseconds ) ->
+	duration_to_synthetic_string( erlang:round( Milliseconds ), Lang );
+
+duration_to_synthetic_string( Milliseconds, Lang )
+            when is_integer( Milliseconds ) andalso Milliseconds < 0 ->
+	"-" ++ duration_to_synthetic_string( -Milliseconds, Lang );
+
+duration_to_synthetic_string( Milliseconds, Lang )
+            when is_integer( Milliseconds ) ->
+
+	FullSeconds = Milliseconds div 1000,
+
+	{ Days, { Hours, Minutes, Seconds } } =
+		calendar:seconds_to_daystime( FullSeconds ),
+
+    % Years could be introduced at that point.
+
+    % Rounding for a slightly better precision:
+    FinalDays = Days + case Hours > 12 of
+        true -> 1;
+        false -> 0 end,
+
+	case FinalDays of
+
+		0 ->
+            FinalHours = Hours + case Minutes > 30 of
+                true -> 1;
+                false -> 0 end,
+
+			case FinalHours of
+                0 ->
+                    FinalMinutes = Minutes + case Seconds > 30 of
+                        true -> 1;
+                        false -> 0 end,
+
+                    case FinalMinutes of
+                        0 ->
+                            ActualMilliseconds = Milliseconds rem 1000,
+                            FinalSecs = Seconds
+                                    + case ActualMilliseconds > 500 of
+                                true -> 1;
+                                false -> 0 end,
+
+                            case FinalSecs of
+                                0 ->
+                                    text_utils:format( "~Bms",
+                                        [ ActualMilliseconds ] );
+
+                                _ ->
+                                   text_utils:format( "~Bs", [ FinalSecs ] )
+
+                            end;
+
+                        _ ->
+                            text_utils:format( "~Bs", [ FinalMinutes ] )
+
+                    end;
+
+                _ ->
+                    text_utils:format( "~Bh", [ FinalHours ] )
+
+            end;
+
+		_ ->
+            DayLetter = case Lang of
+                french -> "j";
+                _ -> "d"
+            end,
+			text_utils:format( "~B~ts", [ FinalDays, DayLetter ] )
+
+	end;
+
+duration_to_synthetic_string( infinity, _Lang=french ) ->
+	"infinie";
+
+duration_to_synthetic_string( infinity, _Lang ) ->
+	"infinity";
+
+duration_to_synthetic_string( Other, _Lang ) ->
+	throw( { invalid_duration, Other } ).
+
+
+
 -doc """
 Returns an approximate textual (English) description of the specified time-out,
 expected to be expressed as a signed number of milliseconds (integer; otherwise,
@@ -2513,8 +2767,7 @@ specified language, expected to be expressed as a number of milliseconds
 For example for a time-out of 150 012 ms, returns for English: `"time-out of 2
 minutes, 30 seconds and 12 milliseconds"`.
 """.
--spec time_out_to_string( time_out(),
-						  language_utils:human_language() ) -> ustring().
+-spec time_out_to_string( time_out(), human_language() ) -> ustring().
 time_out_to_string( _Duration=infinity, _Lang=french ) ->
 	"délai d'attente maximal illimité";
 
