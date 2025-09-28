@@ -133,7 +133,7 @@ See `text_utils_test.erl` for the corresponding test.
 		  safe_length/1, length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1, io_to_binary/1,
-		  join/2, bin_join/2,
+		  join/2, bin_join/2, join_maybe/2,
 
 		  split/2,
 		  split_lines/1, unsplit_lines/1, bin_unsplit_lines/1,
@@ -844,7 +844,7 @@ form, with a `"0x"` prefix if requested.
 
 For example: `integer_to_hexabinstring(3432, _AddPrefix=true) = <<"0xd68">>`.
 
-Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+Refer to the `Hexadecimal notes` section above, regarding zero-padding and
 `"0x"` prefixing.
 """.
 -spec integer_to_hexabinstring( integer(), boolean() ) -> hexastring().
@@ -1033,9 +1033,7 @@ pid_to_string( Pid ) ->
 
 
 
--doc """
-Returns nested characters corresponding to the specified port.
-""".
+-doc "Returns nested characters corresponding to the specified port.".
 -spec port_to_string( port() ) -> chars().
 port_to_string( Port ) ->
 	io_lib:format( "~w", [ Port ] ).
@@ -1250,7 +1248,7 @@ strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
 
 % We allow also for bin_string():
 strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
-                when is_list( H ); is_binary( H ) ->
+                                when is_list( H ); is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
@@ -1314,7 +1312,7 @@ strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 
 
 -doc """
-Returns a (Erlang) comment string (a series of lines starting with '%')
+Returns a (Erlang) comment string (a series of lines starting with `%`)
 that pretty-prints the specified list of strings, with enumerated (that is 1,
 2, 3) bullets, not specifically indented.
 """.
@@ -1325,7 +1323,7 @@ strings_to_enumerated_comment( Strings ) ->
 
 
 -doc """
-Returns a (Erlang) comment string (a series of lines starting with '%') that
+Returns a (Erlang) comment string (a series of lines starting with `%`) that
 pretty-prints the specified list of strings, with enumerated (that is 1, 2, 3)
 bullets, with the specified indentation at each beginning of comment line.
 """.
@@ -1480,9 +1478,9 @@ strings_to_spaced_string( ErrorTerm ) ->
 
 -doc """
 Returns a string that pretty-prints the specified list of strings (actually, any
-element that can be processed with ~ts will do; e.g. atoms), with user-specified
-bullets or indentation level, and a blank line before each top-level entry in
-order to better space them, for an increased readability.
+element that can be processed with `~ts` will do; e.g. atoms), with
+user-specified bullets or indentation level, and a blank line before each
+top-level entry in order to better space them, for an increased readability.
 
 This can be a solution to nest bullet lists, by specifying a bullet with an
 offset, such as `" * "`.
@@ -1937,7 +1935,7 @@ atom_to_binary( Atom ) ->
 
 -doc """
 Returns a textual description of the specified percentage, expected to be a
-float in [0,1], with the default number of digits after the decimal point.
+float in `[0,1]`, with the default number of digits after the decimal point.
 """.
 -spec percent_to_string( math_utils:percent() ) -> ustring().
 percent_to_string( Value ) ->
@@ -2349,7 +2347,7 @@ format( FormatString, Values ) ->
 -endif. % exec_target_is_production
 
 
--doc "Module-local version of `(io_lib/text_utils):format/2`.".
+-doc "Module-local version of `{io_lib,text_utils}:format/2`.".
 -spec local_format( format_string(), format_values() ) -> ustring().
 local_format( FormatString, Values ) ->
 	lists:flatten( io_lib:format( FormatString, Values ) ).
@@ -2485,7 +2483,7 @@ scan_format_string( FormatString ) ->
 -spec scan_format_string( format_string(), [ value_description() ] ) ->
 												scan_format_outcome().
 %scan_format_string( _FormatString=[], ValueDescs ) ->
-%	lists:reverse( ValueDescs );
+%   lists:reverse( ValueDescs );
 
 scan_format_string( FormatStr, ValueDescs ) ->
 
@@ -2691,7 +2689,7 @@ and `$~` already managed).
 """.
 -spec integrate_control_sequence( char() ) -> scan_format_outcome().
 integrate_control_sequence( _CtrlSeqChar=$c ) ->
-	% A	number that is interpreted as an ASCII code:
+	% A number that is interpreted as an ASCII code:
 	[ char ];
 
 integrate_control_sequence( _CtrlSeqChar=$f ) ->
@@ -4170,7 +4168,7 @@ flatten( IOList ) ->
 
 -doc """
 Returns a binary string corresponding to the specified io_data (i.e. already a
-binary, or an `iolist()`).
+binary, or an `iolist/0`).
 """.
 -spec io_to_binary( io_data() ) -> bin_string().
 io_to_binary( IOData ) ->
@@ -4239,6 +4237,33 @@ bin_join( Separator, ListToJoin ) ->
 	erlang:iolist_to_binary( IntercalList ).
 
 
+-doc """
+Joins, with the specified separator, any specified (plain) strings while
+skipping `undefined` terms, and returns another plain string.
+
+So `join_maybe(Separator, MaybeStringsToJoin)` is to be used like in:
+`join_maybe($-, ["Barbara", undefined, "Ann"]) = "Barbara-Ann"`.
+
+Separator can be a character, like `$a`, or a string, like `", "`.
+
+See `join/2` for more details.
+""".
+-spec join_maybe( ustring() | uchar(), [ option( ustring() ) ] ) -> ustring().
+join_maybe( _Separator, _ListToJoin=[] ) ->
+	"";
+
+join_maybe( Separator, ListToJoin ) ->
+
+	%io:format( "ListToJoin = ~p~n", [ ListToJoin ] ),
+
+    FilteredList = list_utils:filter_out_undefined( ListToJoin ),
+
+	IntercalList =
+		list_utils:intercalate( _Elem=Separator, _TargetList=FilteredList ),
+
+	lists:flatten( IntercalList ).
+
+
 
 -doc """
 Splits the specified string into a list of strings (of the same type as the
@@ -4253,7 +4278,7 @@ strings).
 
 Defined here not to chase anymore after `string:tokens/2` and friends.
 
-See also: `split_at_whitespaces/0`.
+See also `split_at_whitespaces/0`.
 """.
 -spec split( ustring(), [ uchar() ] | uchar() ) -> [ ustring() ];
 		   ( bin_string(), [ uchar() ] | uchar() ) -> [ bin_string() ].
@@ -4339,7 +4364,7 @@ Note that a series of contiguous separators (e.g. two spaces in a row) will be
 handled as if there was only one of them (i.e. if the returned list should not
 include empty strings).
 
-See also: `split/2`.
+See also `split/2`.
 """.
 -spec split_per_element( ustring(), [ uchar() ] ) -> [ ustring() ].
 split_per_element( String, Separators ) ->
@@ -4394,8 +4419,6 @@ Collects chars in elements (`AccElem`), then elements in the overall accumulator
 
 We used to avoid adding any empty element, yet this may happen (typically in CSV
 files), hence re-enabled (previous version left commented).
-
-(helper)
 """.
 %split_parsed( _ParseString=[], _Separators, _AccElem=[], AccStrs ) ->
 %   lists:reverse( AccStrs );
@@ -5429,7 +5452,7 @@ additional final `" [...]"` part if it was shortened).
 
 Returns a string of the same type.
 
-See also: `tail/1`.
+See also `tail/1`.
 """.
 -spec ellipse( any_string() ) -> any_string().
 ellipse( String ) ->
@@ -5444,7 +5467,7 @@ an additional final `" [...]"` if it was shortened).
 
 Returns a string of the same type.
 
-See also: `tail/2`.
+See also `tail/2`.
 """.
 -spec ellipse( any_string(), length() | 'unlimited' ) -> any_string().
 ellipse( String, _MaxLen=unlimited ) ->
@@ -5508,7 +5531,7 @@ Tails (shortens by removing the beginning of) the specified string, so that its
 total length remains up to the default (maximum length) threshold (including an
 additional initial `" [...]"` if it was shortened).
 
-See also: `ellipse/1`.
+See also `ellipse/1`.
 """.
 -spec tail( ustring() ) -> ustring().
 tail( String ) ->
@@ -5522,7 +5545,7 @@ total length remains up to the specified threshold.
 
 Note: the specified threshold is expected to be equal at least to 6.
 
-See also: `ellipse/2`.
+See also `ellipse/2`.
 """.
 -spec tail( ustring(), length() | 'unlimited' ) -> ustring().
 tail( String, _MaxLen=unlimited ) ->
