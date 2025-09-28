@@ -265,7 +265,7 @@ register_strings( Strs, ST ) ->
 
 
 -doc """
-Returns a sorted list of all the matches found in the specified spelling trees
+Returns a sorted list of all the matches found in the specified spelling tree
 for the specified string.
 """.
 -spec find_completions( ustring(), spell_tree() ) -> [ ustring() ].
@@ -280,8 +280,7 @@ find_completions( ToCompleteStr, ST ) ->
 
 
 % If starting from an empty string and a wildcard ST, get all candidates:
-find_comps( _ToCompleteStr="",
-                  _ST={ _STPfx="", _IsTerminal, ChildSTs } ) ->
+find_comps( _ToCompleteStr="", _ST={ _STPfx="", _IsTerminal, ChildSTs } ) ->
     find_all_comps( ChildSTs, _NoPfx="" );
 
 % Catch-all spelling tree prefix:
@@ -320,14 +319,6 @@ find_comps( ToCompleteStr, ST={ Pfx, IsTerminal, ChildSTs } ) ->
 
             end;
 
-
-        % Unrelated strings, no possible completion:
-        { _CommonPrefix="", _ToCompleteSuffix, _PfxSuffix } ->
-
-            %trace_utils:debug_fmt( "No completion for '~ts'.",
-            %                       [ ToCompleteStr ] ),
-            [];
-
         % Child prefix is longer here, first step is to complete our suffix by
         % this prefix:
         %
@@ -347,7 +338,14 @@ find_comps( ToCompleteStr, ST={ Pfx, IsTerminal, ChildSTs } ) ->
             %    "For '~ts', exploring the children of '~ts'.",
             %    [ ToCompleteStr, Pfx ] ),
 
-            find_child_comps( ToCompleteSuffix, ChildSTs, CommonPrefix )
+            find_child_comps( ToCompleteSuffix, ChildSTs, CommonPrefix );
+
+        % Unrelated strings, no possible completion:
+        { _CommonPrefix, _ToCompleteSuffix, _PfxSuffix } ->
+
+            %trace_utils:debug_fmt( "No completion for '~ts'.",
+            %                       [ ToCompleteStr ] ),
+            []
 
     end.
 
