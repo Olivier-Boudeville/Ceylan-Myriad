@@ -233,6 +233,9 @@ code`).
 -spec parse_transform( ast(), parse_transform_options() ) -> ast().
 parse_transform( InputAST, Options ) ->
 
+    % Uncomment if not wanting longer AST traces to be ellipsed:
+    %basic_utils:set_error_report_output( standard_full ),
+
 	%ast_utils:display_debug( "Options: ~p~n", [ Options ] ),
 
 	% In the context of this direct parse transform, the module_info is of no
