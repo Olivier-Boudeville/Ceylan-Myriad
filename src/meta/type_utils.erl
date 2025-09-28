@@ -1209,7 +1209,9 @@ Transient terms are the opposite of permanent ones.
 		  ensure_floored_integer/1, ensure_ceiled_integer/1,
 
 		  ensure_float/1, ensure_positive_float/1,
-		  ensure_string/1, ensure_binary/1 ]).
+		  ensure_string/1, ensure_binary/1,
+
+          integer_to_boolean/1 ]).
 
 
 % Sharing:
@@ -3024,6 +3026,16 @@ ensure_string( S ) ->
 -spec ensure_binary( term() ) -> ustring().
 ensure_binary( S ) ->
 	text_utils:ensure_binary( S ).
+
+
+
+-doc "Converts 1 to `true` and 0 to `false`.".
+-spec integer_to_boolean( integer() ) -> boolean().
+integer_to_boolean( _I=0 ) ->
+    false;
+
+integer_to_boolean( _I=1 ) ->
+    true.
 
 
 
