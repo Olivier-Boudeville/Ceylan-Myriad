@@ -32,13 +32,13 @@ Gathering of **unit management** facilities, to denote quantities first in a
 simple, ad hoc, limited form, then on a more formal, heavyweight one.
 
 All kinds of units are listed here, alongside the reference ones (e.g. the meter
-is the unit of length in the International System of Units).
+is the unit of length in the *International System of Units*).
 
 One objective is to be able to specify, instead of mere values (e.g. `1.14`),
 values with units (e.g. `1.14 km/h`), and possibly to convert them into a
 canonical form transparently, for automated checking and exact conversion.
 
-See unit_utils_test.erl for the corresponding test.
+See `unit_utils_test.erl` for the corresponding test.
 
 Read the `Management of Units` section of the technical manual of the Myriad
 Layer for more information.
@@ -260,14 +260,13 @@ Layer for more information.
 
 
 -doc """
-A parsec (symbol: pc) is a larger unit of length, for astronomical objects
+A parsec (symbol: `pc`) is a larger unit of length, for astronomical objects
 outside the Solar System, approximately equal to 3.26 light-years or 206,265
 astronomical units (AU), i.e. 30.9 trillion kilometres.
 
 Most commonly used in professional astronomy.
 
 See [https://en.wikipedia.org/wiki/Parsec].
-
 """.
 -type parsec() :: float().
 
@@ -538,12 +537,19 @@ Of no real interest, as would designate speeds larger than `c`.
 
 % Temperature units.
 
-
 -doc "In degree Celsius (°C).".
 -type celsius() :: float().
 
-
 -export_type([ celsius/0 ]).
+
+
+
+% Humidity units.
+
+-doc "Relative humidity, therefore as a percentage of the maximum one.".
+-type relative_humidity() :: percent().
+
+-export_type([ relative_humidity/0 ]).
 
 
 
@@ -1043,6 +1049,7 @@ order of magnitude and a multiplying factor).
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
+-type percent() :: math_utils:percent().
 
 
 % Converting lengths.
@@ -1112,8 +1119,8 @@ meters_per_second_to_km_per_hour( M ) ->
 
 -doc """
 Converts specified duration, expressed in a user-friendly time (for humans,
-typically obtained from time_utils:duration_to_string/1) into an integer number
-of milliseconds.
+typically obtained from `time_utils:duration_to_string/1`) into an integer
+number of milliseconds.
 
 For example "1 day, 12 hours, 31 minutes, 9 seconds and 235 milliseconds"
 translates to {1, 12, 31, 9, 235} which, applied to this function, returns
@@ -1135,7 +1142,7 @@ Returns a textual, possibly rounded, description of the specified temperature.
 """.
 -spec temperature_to_string( celsius() ) -> ustring().
 temperature_to_string( Temp ) ->
-	text_utils:float_to_string( Temp, [ { decimals, 1 }, compact ] ) ++ " °C".
+	text_utils:float_to_string( Temp, [ { decimals, 1 }, compact ] ) ++ "°C".
 
 
 
@@ -1189,8 +1196,8 @@ is:
 in light-seconds
 - above 0.001 ly (31558 ls / 9.46e15 km!): in light-years
 
-See also text_utils:distance_to_string/1 for (usually smaller; typically up to a
-number of kilometers) distances.
+See also `text_utils:distance_to_string/1` for (usually smaller; typically up to
+a number of kilometers) distances.
 """.
 -spec meters_to_string( meters() ) -> ustring().
 meters_to_string( Meters ) when is_integer( Meters ) ->
@@ -1498,10 +1505,10 @@ get_order_for_prefix( PrefixSymbol ) ->
 
 
 -doc """
-Parses the specified string (expected to be a unit_string()) containing a value
-and its unit (e.g. `"-8.15 kW.m/h^2"`), and returns them in a program-tractable
-form, that is a pair made of the value (as a float) and the corresponding unit,
-in canonical form.
+Parses the specified string (expected to be a `unit_string/0`) containing a
+value and its unit (e.g. `"-8.15 kW.m/h^2"`), and returns them in a
+program-tractable form, that is a pair made of the value (as a float) and the
+corresponding unit, in canonical form.
 
 The input format is the following (in order):
 
@@ -1628,9 +1635,9 @@ parse_unit( UnitString ) ->
 
 
 -doc """
-Splits specified string, expected to contain a unit (e.g. `"kW.m/h^2"`), into a
-list of strings corresponding to multiplying unit components (e.g.  `["kw",
-"m"]`) and dividing ones (e.g. `["h^2"]`), and returns both lists.
+Splits the specified string, expected to contain a unit (e.g. `"kW.m/h^2"`),
+into a list of strings corresponding to multiplying unit components (e.g.
+`["kw", "m"]`) and dividing ones (e.g. `["h^2"]`), and returns both lists.
 """.
 -spec split_unit_components( ustring() ) ->
 					{ [ unit_component() ], [ unit_component() ] }.
@@ -1674,11 +1681,7 @@ parse_components( _UnitString=[ H | T ], MultList, DivList,
 
 
 
--doc """
-Stores the parsed component into the relevant list.
-
-(helper)
-""".
+-doc "Stores the parsed component into the relevant list.".
 -spec store_component_acc( unit_component(), operator_kind(),
 						   [ unit_component() ], [ unit_component() ] ) ->
 								{ [ unit_component() ], [ unit_component() ] }.
@@ -2314,7 +2317,7 @@ is_canonical_unit( _Term ) ->
 
 -doc """
 Converts a unit symbol, as a string (e.g. `"Cd"`) into a unit name (e.g.
-'candela').
+`candela`).
 """.
 -spec unit_symbol_to_name( unit_string_symbol() ) -> unit_name().
 unit_symbol_to_name( UnitSymbol ) ->
