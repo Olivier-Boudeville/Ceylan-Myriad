@@ -50,8 +50,8 @@ See also `list_utils.erl` and `set_utils_test.erl`.
 
 
 % Set-related operations are:
--export([ new/0, singleton/1, new/1, are_equal/2,
-		  add/2, add_as_new/2, add_element_list/2,
+-export([ new/0, singleton/1, singleton_maybe/1, new/1, are_equal/2,
+		  add/2, add_maybe/2, add_as_new/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
 		  difference/2, differences/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
@@ -135,10 +135,22 @@ singleton( Element ) ->
 	?set_impl:add_element( Element, ?set_impl:new() ).
 
 
+-doc """
+Returns a set comprising only the specified element, if it is not `undefined`,
+otherwise returns an empty set.
+""".
+-spec singleton_maybe( option( element() ) ) -> set().
+singleton_maybe( _MaybeElement=undefined ) ->
+    ?set_impl:new();
+
+singleton_maybe( Element ) ->
+	?set_impl:add_element( Element, ?set_impl:new() ).
+
+
 
 -doc """
-Returns a set containing the elements of the specified list (possibly unordered
-and containing duplicates).
+Returns a set containing the elements of the specified list (possibly containing
+duplicates).
 
 See `singleton/1` if wanting to create a set with one element.
 """.
@@ -171,6 +183,22 @@ the same.
 """.
 -spec add( element(), set() ) -> set().
 add( Element, Set ) ->
+	?set_impl:add_element( Element, Set ).
+
+
+
+-doc """
+Returns a set formed from the specified one with the specified element inserted,
+if it is not `undefined`; of course `undefined` is not expected to be a legit
+value to store in that set.
+
+If this element is already in the specified set, the returned set is the same.
+""".
+-spec add_maybe( option( element() ), set() ) -> set().
+add_maybe( _MaybeElement=undefined, Set ) ->
+    Set;
+
+add_maybe( Element, Set ) ->
 	?set_impl:add_element( Element, Set ).
 
 
