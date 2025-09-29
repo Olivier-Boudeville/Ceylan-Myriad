@@ -2671,9 +2671,12 @@ duration_to_synthetic_string( Milliseconds, Lang )
 	{ Days, { Hours, Minutes, Seconds } } =
 		calendar:seconds_to_daystime( FullSeconds ),
 
-    % Years could be introduced at that point.
+    %trace_utils:debug_fmt( "Duration: ~B days, ~Bh~Bm~Bs.",
+    %                       [ Days, Hours, Minutes, Seconds ] ),
 
-    % Rounding for a slightly better precision:
+    % Years could also be introduced at that point.
+
+    % Rounding up for a slightly better precision:
     FinalDays = Days + case Hours > 12 of
         true -> 1;
         false -> 0 end,
@@ -2681,40 +2684,38 @@ duration_to_synthetic_string( Milliseconds, Lang )
 	case FinalDays of
 
 		0 ->
-            FinalHours = Hours + case Minutes > 30 of
-                true -> 1;
-                false -> 0 end,
-
-			case FinalHours of
+			case Hours of
                 0 ->
-                    FinalMinutes = Minutes + case Seconds > 30 of
-                        true -> 1;
-                        false -> 0 end,
-
-                    case FinalMinutes of
+                    case Minutes of
                         0 ->
-                            ActualMilliseconds = Milliseconds rem 1000,
-                            FinalSecs = Seconds
-                                    + case ActualMilliseconds > 500 of
-                                true -> 1;
-                                false -> 0 end,
+                            RemainingMs = Milliseconds rem 1000,
+                            case Seconds of
 
-                            case FinalSecs of
                                 0 ->
                                     text_utils:format( "~Bms",
-                                        [ ActualMilliseconds ] );
+                                                       [ RemainingMs ] );
 
                                 _ ->
-                                   text_utils:format( "~Bs", [ FinalSecs ] )
+                                    FinalSecs = Seconds +
+                                            case RemainingMs > 500 of
+                                        true -> 1;
+                                        false -> 0 end,
+                                    text_utils:format( "~Bs", [ FinalSecs ] )
 
                             end;
 
                         _ ->
-                            text_utils:format( "~Bs", [ FinalMinutes ] )
+                            FinalMinutes = Minutes + case Seconds > 30 of
+                                true -> 1;
+                                false -> 0 end,
+                            text_utils:format( "~Bm", [ FinalMinutes ] )
 
                     end;
 
                 _ ->
+                    FinalHours = Hours + case Minutes > 30 of
+                        true -> 1;
+                        false -> 0 end,
                     text_utils:format( "~Bh", [ FinalHours ] )
 
             end;
