@@ -31,9 +31,9 @@
 Gathering of services for **web-related** uses, notably for **HTML generation**
 or **HTTP/HTTPS management**.
 
-See web_utils_test.erl for the corresponding test.
+See `web_utils_test.erl` for the corresponding test.
 
-See also: rest_utils.erl.
+See also `rest_utils.erl`.
 """.
 
 
@@ -50,7 +50,10 @@ See also: rest_utils.erl.
 
 
 
--doc "Tells whether the SSL support is needed (typically for https).".
+-doc """
+Tells whether the TSL (formerly SSL) support is needed (typically for the https
+protocol).
+""".
 -type ssl_opt() :: 'no_ssl' | 'ssl'.
 
 
@@ -70,14 +73,14 @@ See also: rest_utils.erl.
 
 
 -doc """
-The possible protocols (schemes) for an URL (use uri_string:parse/1 to extract
+The possible protocols (schemes) for an URL (use `uri_string:parse/1` to extract
 it).
 """.
 -type protocol_type() :: 'http' | 'https' | 'ftp'.
 
 
 
--doc "Path of an URL (e.g. 'access/login').".
+-doc "Path of an URL (e.g. `access/login`).".
 -type path() :: ustring().
 
 
@@ -85,14 +88,16 @@ it).
 -include("web_utils.hrl").
 
 
--doc "Full information about an URL (prefer uri_string:uri_map() now).".
+-doc "Full information about an URL (prefer `uri_string:uri_map/0` now).".
 -type url_info() :: #url_info{}.
 
 
 
 -doc """
-The body of a HTTP message. The binary form is strongly recommended (more
-compact, and, more importantly, a lot less problematic regarding encodings).
+The body of a HTTP message.
+
+The binary form is strongly recommended (more compact, and, more importantly, a
+lot less problematic regarding encodings).
 """.
 -type body() :: string_body() | bin_body().
 
@@ -121,6 +126,8 @@ compact, and, more importantly, a lot less problematic regarding encodings).
 
 
 -doc """
+Headers, expressed as a list.
+
 Example: `{"User-Agent", "Godzilla The Mighty"}`.
 """.
 -type headers_as_list() :: old_style_options().
@@ -163,17 +170,19 @@ Example: `{"User-Agent", "Godzilla The Mighty"}`.
 
 -doc """
 A media type (formerly known as "MIME type").
-%
-For example "audio/ogg".
 
-Refer to <https://en.wikipedia.org/wiki/Media_type>.
+For example `"audio/ogg"`.
+
+Refer to [https://en.wikipedia.org/wiki/Media_type].
 """.
 -type media_type() :: unicode:chardata().
 
 
 
 -doc """
-For example "<p>Hello!</p>".
+An HTML element, typically with markups.
+
+For example `"<p>Hello!</p>"`.
 """.
 -type html_element() :: any_string().
 
@@ -203,6 +212,7 @@ For example "<p>Hello!</p>".
 
 
 
+-doc "A status code returned by an HTTP operation.".
 -type http_status_code() :: non_neg_integer().
 
 
@@ -210,6 +220,7 @@ For example "<p>Hello!</p>".
 % Cloud-related section.
 
 
+-doc "A provider of cloud services.".
 -type cloud_provider() :: 'azure' | 'aws' | 'google_cloud'.
 
 
@@ -225,7 +236,7 @@ For example
 
 -doc """
 The API endpoint (with no deployment-related prefix such as
-"https://francecentral.") of a given service.
+`https://francecentral.`) of a given service.
 
 For example `<<"api.cognitive.microsoft.com/sts/v1.0/issuetoken">>`.
 """.
@@ -330,6 +341,7 @@ For example `<<"francecentral">>`.
 -define( default_content_type, "text/html; charset=UTF-8" ).
 
 
+
 % Type shorthands:
 
 -type activation_switch() :: basic_utils:activation_switch().
@@ -381,9 +393,9 @@ httpc:request(post, {"http://localhost:3000/foo", [],
 ```
 
 Directly inspired from
-<http://stackoverflow.com/questions/114196/url-encode-in-erlang>.
+[http://stackoverflow.com/questions/114196/url-encode-in-erlang>]
 
-See also escape_as_url/1 for some more specific uses.
+See also `escape_as_url/1` for some more specific uses.
 """.
 -spec encode_as_url( option_list() ) -> ustring().
 encode_as_url( OptionList ) ->
@@ -413,10 +425,11 @@ encode_element_as_url( E ) ->
 
 
 -doc """
-Escapes specified list of {Key,Value} pairs so that it can used into some URL.
+Escapes the specified list of `{Key,Value}` pairs so that it can used into some
+URL.
 
-Note: apparently useful only for quite specific websites; encode_as_url/1 should
-be preferred in most cases.
+Note: apparently useful only for quite specific websites; `encode_as_url/1`
+should be preferred in most cases.
 """.
 -spec escape_as_url( option_list() ) -> ustring().
 escape_as_url( OptionList ) ->
@@ -436,7 +449,7 @@ escape_as_url( [ { Key, Value } | T ], Acc ) ->
 
 
 
--doc "Escapes specified element so that it can be used in some URL.".
+-doc "Escapes the specified element so that it can be used in some URL.".
 -spec escape_key( option_list:key() ) -> ustring().
 escape_key( Key ) when is_atom( Key ) ->
 	text_utils:atom_to_string( Key ).
@@ -451,9 +464,9 @@ escape_value( String ) ->
 
 
 -doc """
-Escapes specified character.
+Escapes the specified character.
 
-Alphanumerical characters left as are:
+Alphanumerical characters are left as are.
 """.
 escape_char( C ) when C >= 48 andalso C =< 57 ->
 	% 0..9 kept as is:
@@ -482,7 +495,6 @@ For example:
    "http://www.foobar.org/baz/hello.txt")
 ```
 """.
-
 -spec get_last_path_element( url() ) -> file_name().
 get_last_path_element( Url ) ->
 	% Hackish yet working perfectly:
@@ -500,13 +512,13 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 
 
 -doc """
-Decodes specified string into an url_info record, by extracting protocol
+Decodes the specified string into an `url_info` record, by extracting protocol
 (scheme), host, port and path information.
 
 Note that other information (fragment, query, userinfo) will be ignored and
 lost.
 
-Note: using string_to_uri_map/1 might be a more complete option; the current
+Note: using `string_to_uri_map/1` might be a more complete option; the current
 function remains mostly for backward compatibility.
 """.
 -spec string_to_url_info( ustring() ) -> url_info().
@@ -544,7 +556,7 @@ string_to_url_info( String ) ->
 
 
 -doc """
-Decodes specified string into an URI map, by extracting all relevant
+Decodes the specified string into an URI map, by extracting all relevant
 information: protocol (scheme), user information, host, port, path and fragment.
 
 Throws an exception on failure.
@@ -597,7 +609,8 @@ get_unordered_list( Elements ) ->
 
 
 -doc """
-Escapes specified text, so that it can be included safely as an HTML content.
+Escapes the specified text, so that it can be included safely as an HTML
+content.
 
 Returns an HTML element, as a plain string.
 """.
@@ -653,8 +666,8 @@ escape_as_html_content( _String=[ Other | T ], Acc ) ->
 
 
 -doc """
-Escapes specified term (most probably non-string), so that it can be included
-safely as an HTML content.
+Escapes the specified term (most probably non-string), so that it can be
+included safely as an HTML content.
 """.
 -spec escape_term_as_html_content( term() ) -> html_element().
 escape_term_as_html_content( Term ) ->
@@ -696,7 +709,7 @@ get_http_status_class( StatusCode ) ->
 
 
 
--doc "Returns a textual description of specified HTTP status class.".
+-doc "Returns a textual description of the specified HTTP status class.".
 -spec http_status_class_to_string( option( http_status_class() ) ) -> ustring().
 http_status_class_to_string( informational_response ) ->
 	"informational response";
@@ -724,7 +737,7 @@ http_status_class_to_string( Other ) ->
 -doc """
 Returns a textual description of the specified HTTP code.
 
-Source: <https://en.wikipedia.org/wiki/List_of_HTTP_status_codes>.
+Source is [https://en.wikipedia.org/wiki/List_of_HTTP_status_codes].
 """.
 -spec interpret_http_status_code( http_status_code() ) -> ustring().
 interpret_http_status_code( StatusCode ) ->
@@ -1048,8 +1061,8 @@ Sends a (synchronous) HTTP/1.1 client GET request.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a {ssl,
-web_utils:get_ssl_verify_options()} pair.
+For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
@@ -1112,8 +1125,8 @@ Sends a (synchronous, body-less) HTTP/1.1 client POST request.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a {ssl,
-web_utils:get_ssl_verify_options()} pair.
+For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
@@ -1133,8 +1146,8 @@ rather than string ones.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a {ssl,
-web_utils:get_ssl_verify_options()} pair.
+For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
@@ -1149,14 +1162,14 @@ post( Uri, Headers, HttpOptions, MaybeBody ) ->
 -doc """
 Sends a (synchronous) HTTP/1.1 client POST request.
 
-If a body is specified yet no content-type is set, ?default_content_type will be
-used. To avoid encoding issues, we strongly recommend to pass binary bodies
+If a body is specified yet no content-type is set, `?default_content_type` will
+be used. To avoid encoding issues, we strongly recommend to pass binary bodies
 rather than string ones.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a {ssl,
-web_utils:get_ssl_verify_options()} pair.
+For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
@@ -1235,7 +1248,7 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
 
 
--doc "Converts headers into suitable ones for httpc.".
+-doc "Converts the specified headers into suitable ones for httpc.".
 -spec to_httpc_headers( headers() ) -> headers_httpc_style().
 to_httpc_headers( Headers ) when is_list( Headers ) ->
 	Headers;
@@ -1246,7 +1259,7 @@ to_httpc_headers( Headers ) when is_map( Headers ) ->
 
 
 
--doc "Converts httpc headers into map-based ones.".
+-doc "Converts the specified httpc headers into map-based ones.".
 -spec from_httpc_headers( headers_httpc_style() ) -> headers_as_maps().
 from_httpc_headers( Headers ) ->
 	maps:from_list( [ { text_utils:string_to_binary( K ),
@@ -1300,8 +1313,8 @@ Downloads the file designated by specified URL, in the specified directory
 (under its name in URL), with specified HTTP options, and returns the
 corresponding full path of that file.
 
-Popular settings are HttpOptions = [{ssl,get_ssl_verify_options()}] to avoid any
-Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
+Popular settings are `HttpOptions = [{ssl,get_ssl_verify_options()}]` to avoid
+any Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
 protection against "casual" eavesdroppers).
 
 For example:
@@ -1402,7 +1415,7 @@ stop() ->
 Returns default SSL options regarding the verification of remote peers for HTTPS
 connections.
 
-See get_ssl_verify_options/1 for more information.
+See `get_ssl_verify_options/1` for more information.
 """.
 -spec get_ssl_verify_options() -> ssl_options().
 get_ssl_verify_options() ->
@@ -1414,11 +1427,11 @@ get_ssl_verify_options() ->
 Returns SSL options regarding the verification of remote peers for HTTPS
 connections:
 
-- if the switch is specified to 'disable', this peer will not be verified
+- if the switch is specified to `disable`, this peer will not be verified
 (exposing the program to a man-in-the-middle attack)
 
-- if the switch is specified to 'enable', the system DER-encoded certificates
-are used (see <https://erlang.org/doc/man/ssl.html#type-cert>) and trusted in
+- if the switch is specified to `enable`, the system DER-encoded certificates
+are used (see [https://erlang.org/doc/man/ssl.html#type-cert]) and trusted in
 order to check peers, so that not only the TLS protection against "casual"
 eavesdroppers applies, but also, here, the one against any Man-in-the-Middle (so
 we check that we indeed interact safely with the *expected* server)
@@ -1470,4 +1483,4 @@ cloud_instance_info_to_string( #azure_instance_info{
 									instance_location=InstLoc } ) ->
 	% No disclosing of the key here:
 	text_utils:format( "Microsoft Azure instance located in '~ts'",
-					   [ InstLoc ] ).
+                       [ InstLoc ] ).

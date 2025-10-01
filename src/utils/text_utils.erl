@@ -4437,7 +4437,7 @@ split_parsed( _ParseString=[ C | T ], Separators, AccElem, AccStrs )
 			%case AccElem of
 			%
 			%   [] ->
-			%		split_parsed( T, Separators, _AccElem=[], AccStrs );
+			%       split_parsed( T, Separators, _AccElem=[], AccStrs );
 			%
 			%   _ ->
 			%       split_parsed( T, Separators, _AccElem=[],
