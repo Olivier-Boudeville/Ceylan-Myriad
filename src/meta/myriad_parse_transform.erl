@@ -141,6 +141,12 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 %     "builtin" type)
 
 
+% Possible improvements:
+%
+% - define, for clarity, a (pseudo-builtin) guard is_string/1, translated to
+% is_list/1, just for clarity/self-documentation.
+
+
 % Errors raised by a failing compilation are apparently reported (1) one by one
 % (i.e. only one at each compilation) and (2) from the last one in the sources
 % to the first one; this does not seem related to Myriad but to the (current)
