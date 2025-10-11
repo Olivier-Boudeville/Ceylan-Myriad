@@ -1860,6 +1860,12 @@ list for counterparts.
 """.
 -spec random_permute( list() ) -> list().
 random_permute( List ) ->
+
+    % Alternative version:
+    %Pairs = lists:keysort( _Idx=1, [ { rand:uniform(), E } || E <- List ] ),
+    %{ _Rands, Elems } = lists:unzip( Pairs ),
+    %Elems.
+
 	random_permute( List, length( List ) ).
 
 
