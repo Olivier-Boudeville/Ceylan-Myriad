@@ -1832,7 +1832,7 @@ Could be named normal_2p_pdf() as well.
 % - not all Erlang VMs can be built with the proper SSH support
 %
 % - it is unclear whether the crypto module can be seeded like the random module
-% can be (probably it cannot be)
+% can be; at least now it is the case
 %
 % - there is no crypto function returning a random float uniformly distributed
 % between 0.0 and 1.0, and it may not be easy to implement it from what is
@@ -2054,6 +2054,7 @@ get_uniform_values_helper( Nmin, Nmax, Count, Acc ) ->
 
 -doc "Starts the random source with the specified seeding.".
 start_random_source( _A, _B, _C ) ->
+    % Now probably untrue:
 	throw( crypto_module_cannot_be_seeded ).
 
 
@@ -2066,7 +2067,11 @@ start_random_source( _Seeding=default_seed ) ->
 							  [ self() ] ) ),
 
 	% Better than crypto:start/0, as FIPS-mode compliant:
-	ok = application:start( crypto );
+	ok = application:start( crypto ),
+
+    % Allows for faster sample generation by caching, on 64-bit machines:
+    _ = crypto:rand_seed_alg( crypto_cache );
+
 
 start_random_source( _AnyOtherSeeding ) ->
 	throw( crypto_module_cannot_be_seeded ).
