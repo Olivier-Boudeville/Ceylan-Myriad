@@ -74,7 +74,10 @@ possibly containing pairs and also single atoms (e.g. see
 		  get_values/2, get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
           update_in_place/3,
+
 		  append_to_existing_entry/3, append_list_to_existing_entry/3,
+          append_list_to_existing_entry_end/3,
+
 		  append_to_entry/3, append_list_to_entry/3,
 		  delete_from_entry/3, pop_from_entry/2,
 		  enumerate/1, select_entries/2, keys/1, values/1,
@@ -1058,14 +1061,14 @@ associated to the specified key.
 
 An exception is thrown if the key does not exist.
 """.
--spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
+-spec append_list_to_existing_entry_end( key(), [ term() ], list_table() ) ->
 											list_table().
-append_list_to_existing_entry( Key, Elements, Table ) ->
+append_list_to_existing_entry_end( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
 		{ value, { _Key, ListValue }, ShrunkTable } ->
-			[ { Key, Elements ++ ListValue } | ShrunkTable ];
+			[ { Key, ListValue ++ Elements } | ShrunkTable ];
 
 		false ->
 			throw( { key_not_found, Key } )
