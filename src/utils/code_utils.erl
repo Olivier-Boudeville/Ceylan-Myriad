@@ -161,7 +161,7 @@ it is not `undefined`.
 
 % These ellipsing thresholds apply per stack item (not per stacktrace):
 
--define( standard_error_output_ellipse_len, 2500 ).
+-define( standard_error_output_ellipse_len, 5000 ).
 -define( file_error_output_ellipse_len, 50000 ).
 
 
