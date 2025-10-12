@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2025 Olivier Boudeville
+% Copyright (C) 2025-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,43 +23,41 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Tuesday, December 2, 2014.
+% Creation date: Saturday, October 11, 2025.
 
--module(map_hashtable).
+-module(table).
 
 -moduledoc """
-Implementation of an **associative table based on the `map` module**.
 
-Supposedly the most efficient native available implementation of an associative
-table.
+This is a "source-only", pseudo-module meant just to expose the exact same API
+as the actual table type (see the actual_table_type define) used at runtime
+(e.g. `map_hashtable`), so that tools like source-based (as opposed to
+BEAM-based) static code checkers or IDEs have the illusion of seing the `table`
+module that is referenced in other modules (knowing that such a module is not
+even meant to exist, being translated at compilation-time to the actual
+table-like module of choice, like `list_table` or `map_hashtable`).
 
-See `map_table_test.erl' for the corresponding test.
-See `hashtable.erl` for the parent, base implementation.
- provide different multiple types of hashtables, including:
-- `hashtable`, the most basic, safest, reference implementation - and quite
-efficient as well
-- `tracked_hashtable`, an attempt of optimisation of it (not necessarily the
-best)
-- `lazy_hashtable`, deciding to optimise in a less costly way than
-`tracked_hashtable`
-- `map_hashtable` (this module), which is the newest, probably most efficient in
-most cases implementation (speed/size compromise)
-- `list_table`, a list-based implementation, efficient for smaller tables (and
-only them)
+This allows for example writing code with the autocompleter being able to:
+- suggest the functions of the `table` pseudo-module
+- to display their documentation, etc.
 
-All these types of tables are to provide the same API (signatures and
-contracts), yet one should note that this module (`map_hashtable`) is the one
-that tends to supersede all others, and that over time features have been added
-that may not have been back-ported to the other table types.
-
-The second most useful is `list_table`, to read user-specified settings, to rely
-on an ordering of entries, etc.
-
-See also the `table` pseudo-module, just useful for the source-based tools (like
-the autocompleters), knowing that any change in the current module should be
-applied to that pseudo-module as well.
+So any change made in the module designated by the actual_table_type define
+shall be applied here as well.
 """.
 
+
+% Just for documentation:
+-define( actual_table_type, map_hashtable ).
+
+
+
+
+
+% From this point the counterpart code of the actual table type can be pasted
+% quite verbatim; however note that, unlike actual_table_type, this 'table'
+% module is not a pioneer one, hence is parse-transformed by Myriad; thus the
+% void/0 and option/1 types that had to be explicitly defined in
+% actual_table_type must be commented-out here.
 
 
 % Mostly the same API as the one of hashtable (but richer):
@@ -131,8 +129,8 @@ applied to that pseudo-module as well.
 % rather than from the current directory of this module; not a hard problem
 % though)
 %
--doc "A Maybe-type.".
--type option( T ) :: T | 'undefined'.
+%-doc "A Maybe-type.".
+%-type option( T ) :: T | 'undefined'.
 
 
 % Implementation notes:
@@ -157,7 +155,7 @@ applied to that pseudo-module as well.
 
 -type accumulator() :: basic_utils:accumulator().
 
--type void() :: type_utils:void().
+%-type void() :: type_utils:void().
 
 -type ustring() :: text_utils:ustring().
 
