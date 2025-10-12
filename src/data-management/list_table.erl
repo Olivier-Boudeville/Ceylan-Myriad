@@ -62,7 +62,7 @@ possibly containing pairs and also single atoms (e.g. see
 
 
 % The standard table API:
--export([ new/0, new/1, check_proper/1, check_keys_unique/1,
+-export([ new/0, singleton/2, new/1, check_proper/1, check_keys_unique/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
@@ -81,7 +81,8 @@ possibly containing pairs and also single atoms (e.g. see
 		  is_empty/1, size/1,
 		  map_on_entries/2, map_on_values/2,
 		  fold_on_entries/3,
-		  merge/2, merge_in_key/3, merge_in_keys/2,
+		  merge/1, merge/2, merge_unique/1, merge_unique/2,
+          merge_in_key/3, merge_in_keys/2,
 		  optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
 
 
@@ -143,11 +144,10 @@ Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 
 % Implementation notes:
 %
-% We always rely on the first element whose key matches a specified key; so here
-% a given key should never be present more than once in a given list.
-%
-% We recommend against having duplicated keys (even if relying only on the first
-% found).
+% Like the lists:key* functions, we always rely on the first element whose key
+% matches a specified key; even more here, a given key should never be present
+% more than once in a given list; as we recommend against having duplicated keys
+% (even if relying only on the first found).
 %
 % The proplists module could be used as well.
 
@@ -159,13 +159,16 @@ Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 
 
 
--doc """
-Returns an empty table dimensioned for the default number of entries.
-""".
+-doc "Returns an empty table.".
 -spec new() -> list_table().
 new() ->
 	[].
 
+
+-doc "Returns atable comprising only the specified entry.".
+-spec singleton( key(), value() ) -> list_table().
+singleton( Key, Value ) ->
+	[ { Key, Value } ].
 
 
 -doc """
@@ -858,7 +861,9 @@ Returns a table that started from TableBase and was enriched with the TableAdd
 entries whose keys were not already in TableBase (if a key is in both tables,
 the one from TableBase will be kept).
 
-Note: not the standard merge that one would expect, should values be lists.
+Note:
+- does not preserve any element order
+- not the standard merge that one would expect, should values be lists
 """.
 -spec merge( list_table(), list_table() ) -> list_table().
 merge( TableBase, TableAdd ) ->
@@ -874,18 +879,93 @@ merge( TableBase, TableAdd ) ->
 
 
 -doc """
+Returns a new table, which merged the specified tables in their listed order
+(enriching the current entries with the ones of the next table, provided that
+they are not already present)
+
+Note:
+- does not preserve any element order
+- not the standard merge that one would expect, should values be lists
+""".
+-spec merge( [ list_table() ] ) -> list_table().
+merge( Tables ) ->
+	lists:foldl( fun( Table, AccTable ) ->
+					% Order matters:
+					merge( Table, AccTable )
+				 end,
+				 _Acc0=[],
+				 _List=Tables ).
+
+
+-doc """
+Merges the two specified tables into one, expecting that their keys are unique
+(that is that they do not intersect), otherwise throws an exception.
+
+The keys of the final table will be first the ones of the first specified table,
+then the ones of the second.
+
+Note: for an improved efficiency, ideally the smaller table shall be the first
+one
+""".
+-spec merge_unique( list_table(), list_table() ) -> list_table().
+merge_unique( FirstTable, SecondTable ) ->
+
+    % A bit more efficient than using add_new_entries/2 (studying only the
+    % second table, not the full accumulator one, the input tables being
+    % supposed to be legit):
+    %
+    merge_unique( lists:reverse( FirstTable ), SecondTable,
+                  _AccTable=SecondTable ).
+
+
+% (helper)
+merge_unique( _Table=[], _SecondTable, AccTable ) ->
+    AccTable;
+
+merge_unique( _Table=[ P={ Key, _Value } | T ], SecondTable, AccTable ) ->
+    case has_entry( Key, SecondTable ) of
+
+		false ->
+			% Or: add_entry( Key, Value, AccTable )
+			merge_unique( T, SecondTable, _NewAccTable=[ P | AccTable ] );
+
+		true ->
+			throw( { key_already_existing, Key } )
+
+	end.
+
+
+
+-doc """
+Returns a new table, which merged the specified tables in their listed order
+(enriching the current entries with the ones of the next table, provided that
+they are not already present).
+
+Note: not the standard merge that one would expect, should values be lists.
+""".
+-spec merge_unique( [ list_table() ] ) -> list_table().
+merge_unique( Tables ) ->
+	lists:foldl( fun( Table, AccTable ) ->
+					% Order matters:
+                    merge_unique( Table, AccTable )
+				 end,
+				 _Acc0=[],
+				 _List=Tables ).
+
+
+-doc """
 Gathers, from a table whose values are expected to be lists, all the values
 associated to the keys listed in AlternateKeys and associates them to
 ReferenceKey instead (in addition to any value that would already be associated
 to it).
 
 Useful for example to gather in a single entry the values associated to aliases
-in terms of command-line options, like the values associated to a '--length'
-command-line option (hence associated to the '-length' key) and also to the '-l'
-and '--len' alias command-line options (hence associated to the 'l' and '-len'
+in terms of command-line options, like the values associated to a `--length`
+command-line option (hence associated to the `-length` key) and also to the `-l`
+and `--len` alias command-line options (hence associated to the `l` and `-len`
 keys).
 
-For example MergedTable = merge_in_key('-length', ['l', '-len'], MyTable).
+For example: `MergedTable = merge_in_key('-length', ['l', '-len'], MyTable).`.
 """.
 -spec merge_in_key( key(), [ key() ], list_table() ) -> list_table().
 merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
@@ -928,8 +1008,8 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 
 
 -doc """
-Appends the specified element to the value, supposed to be a list, associated to
-the specified key.
+Appends (on the left) the specified element to the value, supposed to be a list,
+associated to the specified key.
 
 An exception is thrown if the key does not exist.
 
@@ -952,8 +1032,29 @@ append_to_existing_entry( Key, Element, Table ) ->
 
 
 -doc """
-Appends the specified elements to the value, supposed to be a list, associated
-to the specified key.
+Appends (on the left) the specified elements to the value, supposed to be a
+list, associated to the specified key.
+
+An exception is thrown if the key does not exist.
+""".
+-spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
+											list_table().
+append_list_to_existing_entry( Key, Elements, Table ) ->
+
+	case lists:keytake( Key, _N=1, Table ) of
+
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, Elements ++ ListValue } | ShrunkTable ];
+
+		false ->
+			throw( { key_not_found, Key } )
+
+	end.
+
+
+-doc """
+Appends on the right the specified elements to the value, supposed to be a list,
+associated to the specified key.
 
 An exception is thrown if the key does not exist.
 """.
@@ -974,8 +1075,8 @@ append_list_to_existing_entry( Key, Elements, Table ) ->
 
 
 -doc """
-Appends the specified element to the value, supposed to be a list, associated to
-the specified key.
+Appends (on the left) the specified element to the value, supposed to be a list,
+associated to the specified key.
 
 If that key does not already exist, it will be created and associated to a list
 containing only the specified element.
@@ -999,8 +1100,8 @@ append_to_entry( Key, Element, Table ) ->
 
 
 -doc """
-Appends the specified elements to the value, supposed to be a list, associated
-to the specified key.
+Appends (on the left) the specified elements to the value, supposed to be a
+list, associated to the specified key.
 
 If that key does not already exist, it will be created and associated to a list
 containing only the specified elements.
