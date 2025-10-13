@@ -148,7 +148,7 @@ So for example the messages received by the user programs do not mention ``wx``,
 
 .. [#] Inspired from MyriadGUI, one could consider creating WOOPERGUI, which would provide basically the same services, yet relying on inheritance on the Erlang side as well.
 
-	   That way for example a frame would be a special case (hence a child class) of window, and frames would automatically inherit all window operations; so the user would have just to handle a frame by itself, without having to take into account the fact that some operations of interest are actually defined at the window level instead.
+       That way for example a frame would be a special case (hence a child class) of window, and frames would automatically inherit all window operations; so the user would have just to handle a frame by itself, without having to take into account the fact that some operations of interest are actually defined at the window level instead.
 
 
 The usual mode of operation is the following:
@@ -265,11 +265,11 @@ Various tests offer usage examples of the MyriadGUI API for 3D rendering:
 
 .. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
 
-		 So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (e.g. for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (e.g. regarding event management).
+         So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (e.g. for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (e.g. regarding event management).
 
-		 Modern OpenGL is supported (e.g. version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.
+         Modern OpenGL is supported (e.g. version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.
 
-		 See the `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_ for more explanations.
+         See the `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_ for more explanations.
 
 
 
@@ -387,4 +387,3 @@ So an Erlang program needing audio output (e.g. sound special effects, musics) a
 Currently only very basic support for audio output is available, as ``audio_utils:playback_file/{2,3}``.
 
 See also our support for `speech synthesis`_.
-

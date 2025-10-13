@@ -35,19 +35,19 @@
 % Rectangle-based bounding surface.
 -record( rectangle, {
 
-	% The top-left corner of the rectangle:
-	top_left :: point2:any_point2(),
+    % The top-left corner of the rectangle:
+    top_left :: point2:any_point2(),
 
-	% The bottom-right corner of the rectangle:
-	bottom_right :: point2:any_point2() } ).
+    % The bottom-right corner of the rectangle:
+    bottom_right :: point2:any_point2() } ).
 
 
 
 % Circle-based bounding surface.
 -record( circle, {
 
-	% The center of the circle:
-	center :: point2:point2(),
+    % The center of the circle:
+    center :: point2:point2(),
 
-	% The square of the radius (R^2) of this circle:
-	square_radius :: linear:square_distance() } ).
+    % The square of the radius (R^2) of this circle:
+    square_radius :: linear:square_distance() } ).

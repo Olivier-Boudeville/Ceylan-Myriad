@@ -42,26 +42,26 @@ See the `type_utils` tested module.
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
 
-	test_facilities:display( "Testing type interpretion." ),
+    test_facilities:display( "Testing type interpretion." ),
 
-	FirstTerm = "Hello",
+    FirstTerm = "Hello",
 
-	test_facilities:display( "Interpreting '~ts': ~ts",
-		[ FirstTerm, type_utils:interpret_type_of( FirstTerm ) ] ),
+    test_facilities:display( "Interpreting '~ts': ~ts",
+        [ FirstTerm, type_utils:interpret_type_of( FirstTerm ) ] ),
 
-	SecondTerm = [ my_atom, 4,
-		{ a_tag, 2.0, maps:from_list( [ { self(), [ FirstTerm ] } ] ) } ],
+    SecondTerm = [ my_atom, 4,
+        { a_tag, 2.0, maps:from_list( [ { self(), [ FirstTerm ] } ] ) } ],
 
-	%MaxLevel = 0,
-	%MaxLevel = 1,
-	%MaxLevel = 2,
-	MaxLevel = infinite,
+    %MaxLevel = 0,
+    %MaxLevel = 1,
+    %MaxLevel = 2,
+    MaxLevel = infinite,
 
-	test_facilities:display( "Interpreting '~p': ~ts",
-		[ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
+    test_facilities:display( "Interpreting '~p': ~ts",
+        [ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
 
 
     % To test various (valid) type strings:
@@ -146,4 +146,4 @@ run() ->
     false = type_utils:is_of_type( { buzz, MyFifthTable },
                                    NonParamFooExplType ),
 
-	test_facilities:stop().
+    test_facilities:stop().

@@ -31,13 +31,13 @@
 %
 -record( azure_instance_info, {
 
-	% The key of a Microsoft Azure instance:
-	instance_key :: web_utils:azure_instance_key(),
+    % The key of a Microsoft Azure instance:
+    instance_key :: web_utils:azure_instance_key(),
 
-	% The location (sometimes designated as "endpoint") of a Microsoft Azure
-	% instance:
-	%
-	instance_location :: web_utils:azure_instance_location() } ).
+    % The location (sometimes designated as "endpoint") of a Microsoft Azure
+    % instance:
+    %
+    instance_location :: web_utils:azure_instance_location() } ).
 
 
 
@@ -52,14 +52,14 @@
 %
 -record( url_info, {
 
-	% Protocol (scheme) of the URL (e.g. 'https'):
-	protocol = 'http' :: web_utils:protocol_type(),
+    % Protocol (scheme) of the URL (e.g. 'https'):
+    protocol = 'http' :: web_utils:protocol_type(),
 
-	% Host of the server (e.g. 'www.foo.org'):
-	host_identifier :: net_utils:host_identifier(),
+    % Host of the server (e.g. 'www.foo.org'):
+    host_identifier :: net_utils:host_identifier(),
 
-	% For example 8081; possibly undefined.
-	port = 80 :: option( net_utils:net_port() ),
+    % For example 8081; possibly undefined.
+    port = 80 :: option( net_utils:net_port() ),
 
-	% For example 'access/login'.
-	path :: web_utils:path() } ).
+    % For example 'access/login'.
+    path :: web_utils:path() } ).

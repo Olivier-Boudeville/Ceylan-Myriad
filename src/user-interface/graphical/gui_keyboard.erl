@@ -232,33 +232,33 @@ will be reported at the end, when the key is released).
 
 -doc "Corresponds to the (potentially durable) status of a key.".
 -type key_status() :: 'pressed'
-					| 'released'.
+                    | 'released'.
 
 
 
 -doc "Events that can be triggered by a keyboard.".
 -type keyboard_event_type() ::
 
-	% Event taking into account any modifier (e.g. Control, Shift, Caps Lock)
-	% for the returned logical character (e.g. returning 'A' instead of 'a' iff
-	% a corresponding modifier applies):
-	%
-	'onCharEntered'
+    % Event taking into account any modifier (e.g. Control, Shift, Caps Lock)
+    % for the returned logical character (e.g. returning 'A' instead of 'a' iff
+    % a corresponding modifier applies):
+    %
+    'onCharEntered'
 
-	% So that parent windows can intercept keys received by focused (child)
-	% windows:
-	%
-	| 'onCharEnteredHook'
+    % So that parent windows can intercept keys received by focused (child)
+    % windows:
+    %
+    | 'onCharEnteredHook'
 
-	% Event just about the physical key of interest (regardless of any
-	% modifier):
-	%
-	| 'onKeyPressed' % Does not take into account modifiers (use onCharEntered
-					 % to do so); for some reason, associated Unicode characters
-					 % are uppercased; so hitting the 'a' key returns the 'A'
-					 % uchar (not the 'a' one).
+    % Event just about the physical key of interest (regardless of any
+    % modifier):
+    %
+    | 'onKeyPressed' % Does not take into account modifiers (use onCharEntered
+                     % to do so); for some reason, associated Unicode characters
+                     % are uppercased; so hitting the 'a' key returns the 'A'
+                     % uchar (not the 'a' one).
 
-	| 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
+    | 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
 
 
 
@@ -278,24 +278,24 @@ Often used to detect keys being pressed (transitions from up to down).
 
 
 -export_type([ scancode/0, keycode/0, code_pair/0, modifier/0,
-			   key_transition/0, key_status/0,
-			   keyboard_event_type/0, backend_keyboard_event/0 ]).
+               key_transition/0, key_status/0,
+               keyboard_event_type/0, backend_keyboard_event/0 ]).
 
 
 -export([ is_key_pressed/1, to_lower/2,
-		  get_backend_event/1,
+          get_backend_event/1,
 
-		  get_maybe_uchar/1,
+          get_maybe_uchar/1,
 
-		  get_scancode/1, get_keycode/1, get_code_pair/1,
+          get_scancode/1, get_keycode/1, get_code_pair/1,
 
-		  is_modifier_pressed/1,
-		  is_control_pressed/1, is_shift_pressed/1, is_super_pressed/1,
+          is_modifier_pressed/1,
+          is_control_pressed/1, is_shift_pressed/1, is_super_pressed/1,
 
-		  event_context_to_maybe_uchar/1, event_context_to_keycode/1,
-		  event_context_to_scancode/1, event_context_to_code_pair/1,
+          event_context_to_maybe_uchar/1, event_context_to_keycode/1,
+          event_context_to_scancode/1, event_context_to_code_pair/1,
 
-		  key_event_to_string/1 ]).
+          key_event_to_string/1 ]).
 
 
 
@@ -320,10 +320,10 @@ Often used to detect keys being pressed (transitions from up to down).
 -doc "Tells whether the specified key, designated as a keycode, is pressed.".
 -spec is_key_pressed( keycode() ) -> boolean().
 is_key_pressed( Keycode ) ->
-	% A small doubt remains about whether getKeyState/1 expected key or scan
-	% codes:
-	%
-	wx_misc:getKeyState( myr_keycode_to_wx( Keycode ) ).
+    % A small doubt remains about whether getKeyState/1 expected key or scan
+    % codes:
+    %
+    wx_misc:getKeyState( myr_keycode_to_wx( Keycode ) ).
 
 
 
@@ -333,10 +333,10 @@ into account.
 """.
 -spec to_lower( modifier(), keycode() ) -> keycode().
 to_lower( ?MYR_K_ANY_SHIFT, Char ) ->
-	Char;
+    Char;
 
 to_lower( _Mod, Char ) ->
-	string:to_lower( Char ).
+    string:to_lower( Char ).
 
 
 
@@ -422,9 +422,9 @@ wx_keycode_to_myr( ?WXK_WINDOWS_LEFT )  -> ?MYR_K_LSUPER;
 wx_keycode_to_myr( ?WXK_WINDOWS_RIGHT ) -> ?MYR_K_RSUPER;
 
 wx_keycode_to_myr( WxKeycode ) ->
-	trace_utils:warning_fmt( "Unknown wx keycode: '~ts' (i.e. ~B).",
-							 [ [ WxKeycode ], WxKeycode ] ),
-	undefined.
+    trace_utils:warning_fmt( "Unknown wx keycode: '~ts' (i.e. ~B).",
+                             [ [ WxKeycode ], WxKeycode ] ),
+    undefined.
 
 
 
@@ -488,9 +488,9 @@ myr_keycode_to_wx( ?MYR_K_LSUPER ) -> ?WXK_WINDOWS_LEFT;
 myr_keycode_to_wx( ?MYR_K_RSUPER ) -> ?WXK_WINDOWS_RIGHT;
 
 myr_keycode_to_wx( MyrKeycode ) ->
-	trace_utils:warning_fmt( "MyriadGUI keycode '~ts' (i.e. ~B) passed "
-		"verbatim to wx.", [ [ MyrKeycode ], MyrKeycode ] ),
-	MyrKeycode.
+    trace_utils:warning_fmt( "MyriadGUI keycode '~ts' (i.e. ~B) passed "
+        "verbatim to wx.", [ [ MyrKeycode ], MyrKeycode ] ),
+    MyrKeycode.
 
 
 
@@ -503,9 +503,9 @@ functions.
 """.
 -spec get_backend_event( event_context() ) -> backend_keyboard_event().
 get_backend_event( #event_context{
-		backend_event={ 'wx', _WxSrcId, _WxConnectedObj, _UserData,
-						WxKeyEvent } } ) ->
-	WxKeyEvent.
+        backend_event={ 'wx', _WxSrcId, _WxConnectedObj, _UserData,
+                        WxKeyEvent } } ) ->
+    WxKeyEvent.
 
 
 
@@ -521,10 +521,10 @@ Returns 'undefined' when the key corresponds to a non-printable character
 """.
 -spec get_maybe_uchar( backend_keyboard_event() ) -> option( uchar() ).
 get_maybe_uchar( _WxKey=#wxKey{ uniChar=0 } ) ->
-	undefined;
+    undefined;
 
 get_maybe_uchar( _WxKey=#wxKey{ uniChar=Unichar } ) ->
-	Unichar.
+    Unichar.
 
 
 
@@ -540,7 +540,7 @@ See also the corresponding MYR_SCANCODE_* scancode defines.
 """.
 -spec get_scancode( backend_keyboard_event() ) -> scancode().
 get_scancode( _WxKey=#wxKey{ rawFlags=Scancode } ) ->
-	Scancode.
+    Scancode.
 
 
 
@@ -562,7 +562,7 @@ See also the corresponding MYR_K_* keycode defines.
 """.
 -spec get_keycode( backend_keyboard_event() ) -> keycode().
 get_keycode( _WxKey=#wxKey{ keyCode=Keycode } ) ->
-	Keycode.
+    Keycode.
 
 
 
@@ -572,8 +572,8 @@ specified backend keyboard event.
 """.
 -spec get_code_pair( backend_keyboard_event() ) -> code_pair().
 get_code_pair( _WxKey=#wxKey{ rawFlags=Scancode,
-							  keyCode=Keycode } ) ->
-	{ Scancode, Keycode }.
+                              keyCode=Keycode } ) ->
+    { Scancode, Keycode }.
 
 
 
@@ -586,18 +586,18 @@ is pressed.
 """.
 -spec is_modifier_pressed( scancode() ) -> boolean().
 is_modifier_pressed( Scancode )
-				when ( Scancode band ?MYR_SCANCODE_LCTRL ) > 0 ->
-	wx_misc:getKeyState( ?WXK_CONTROL );
+                when ( Scancode band ?MYR_SCANCODE_LCTRL ) > 0 ->
+    wx_misc:getKeyState( ?WXK_CONTROL );
 
 is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LALT )  > 0 ->
-	wx_misc:getKeyState( ?WXK_ALT );
+    wx_misc:getKeyState( ?WXK_ALT );
 
 is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LSHIFT ) > 0 ->
-	wx_misc:getKeyState( ?WXK_SHIFT );
+    wx_misc:getKeyState( ?WXK_SHIFT );
 
 is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LSUPER ) > 0 ->
-	wx_misc:getKeyState( ?WXK_WINDOWS_LEFT )
-		orelse wx_misc:getKeyState( ?WXK_WINDOWS_RIGHT ).
+    wx_misc:getKeyState( ?WXK_WINDOWS_LEFT )
+        orelse wx_misc:getKeyState( ?WXK_WINDOWS_RIGHT ).
 
 
 
@@ -606,7 +606,7 @@ Returns whether the Control key is pressed for the specified keyboard event.
 """.
 -spec is_control_pressed( backend_keyboard_event() ) -> boolean().
 is_control_pressed( #wxKey{ controlDown=IsCtrlDown } ) ->
-	IsCtrlDown.
+    IsCtrlDown.
 
 
 -doc """
@@ -614,7 +614,7 @@ Returns whether the Shift key is pressed for the specified keyboard event.
 """.
 -spec is_shift_pressed( backend_keyboard_event() ) -> boolean().
 is_shift_pressed( #wxKey{ shiftDown=IsShiftDown } ) ->
-	IsShiftDown.
+    IsShiftDown.
 
 
 -doc """
@@ -623,7 +623,7 @@ specified keyboard event.
 """.
 -spec is_super_pressed( backend_keyboard_event() ) -> boolean().
 is_super_pressed( #wxKey{ metaDown=IsMetaDown } ) ->
-	IsMetaDown.
+    IsMetaDown.
 
 
 
@@ -638,8 +638,8 @@ Refer to get_maybe_uchar/1 for further details.
 """.
 -spec event_context_to_maybe_uchar( event_context() ) -> option( uchar() ).
 event_context_to_maybe_uchar( EventContext ) ->
-	BackendKeyboardEvent = get_backend_event( EventContext ),
-	get_maybe_uchar( BackendKeyboardEvent ).
+    BackendKeyboardEvent = get_backend_event( EventContext ),
+    get_maybe_uchar( BackendKeyboardEvent ).
 
 
 
@@ -653,8 +653,8 @@ Refer to get_keycode/1 for further details.
 """.
 -spec event_context_to_keycode( event_context() ) -> keycode().
 event_context_to_keycode( EventContext ) ->
-	BackendKeyboardEvent = get_backend_event( EventContext ),
-	get_keycode( BackendKeyboardEvent ).
+    BackendKeyboardEvent = get_backend_event( EventContext ),
+    get_keycode( BackendKeyboardEvent ).
 
 
 
@@ -669,8 +669,8 @@ Refer to get_scancode/1 for further details.
 """.
 -spec event_context_to_scancode( event_context() ) -> scancode().
 event_context_to_scancode( EventContext ) ->
-	BackendKeyboardEvent = get_backend_event( EventContext ),
-	get_scancode( BackendKeyboardEvent ).
+    BackendKeyboardEvent = get_backend_event( EventContext ),
+    get_scancode( BackendKeyboardEvent ).
 
 
 
@@ -682,8 +682,8 @@ backend keyboard event.
 """.
 -spec event_context_to_code_pair( event_context() ) -> code_pair().
 event_context_to_code_pair( EventContext ) ->
-	BackendKeyboardEvent = get_backend_event( EventContext ),
-	get_code_pair( BackendKeyboardEvent ).
+    BackendKeyboardEvent = get_backend_event( EventContext ),
+    get_code_pair( BackendKeyboardEvent ).
 
 
 
@@ -693,62 +693,62 @@ backend_keyboard_event()
 """.
 -spec key_event_to_string( backend_keyboard_event() ) -> ustring().
 key_event_to_string( _WxKey=#wxKey{ type=WxKeyEventType,
-		x=X, y=Y, keyCode=KeyCode,
-		controlDown=CtrlDown, shiftDown=ShiftDown, altDown=AltDown,
-		metaDown=MetaDown,
-		uniChar=Uchar, rawCode=RawCode, rawFlags=RawFlags } ) ->
+        x=X, y=Y, keyCode=KeyCode,
+        controlDown=CtrlDown, shiftDown=ShiftDown, altDown=AltDown,
+        metaDown=MetaDown,
+        uniChar=Uchar, rawCode=RawCode, rawFlags=RawFlags } ) ->
 
-	% To check that all fields are interpreted:
-	%trace_utils:debug_fmt( "wxKey: ~p", [ WxKey ] ),
+    % To check that all fields are interpreted:
+    %trace_utils:debug_fmt( "wxKey: ~p", [ WxKey ] ),
 
-	KeyEventType = gui_event:from_wx_event_type( WxKeyEventType ),
+    KeyEventType = gui_event:from_wx_event_type( WxKeyEventType ),
 
-	Mods = case CtrlDown of
-				true -> [ "control" ];
-				false -> []
-		   end
-		++ case ShiftDown of
-				true -> [ "shift" ];
-				false -> []
-		   end
-		++ case AltDown of
-				true -> [ "alt" ];
-				false -> []
-		   end
-		++ case MetaDown of
-				true -> [ "meta" ];
-				false -> []
-		   end,
+    Mods = case CtrlDown of
+                true -> [ "control" ];
+                false -> []
+           end
+        ++ case ShiftDown of
+                true -> [ "shift" ];
+                false -> []
+           end
+        ++ case AltDown of
+                true -> [ "alt" ];
+                false -> []
+           end
+        ++ case MetaDown of
+                true -> [ "meta" ];
+                false -> []
+           end,
 
-	ModStr = case Mods of
+    ModStr = case Mods of
 
-		[] ->
-			"no modifier";
+        [] ->
+            "no modifier";
 
-		[ Mod ] ->
-			text_utils:format( "the ~ts modifier", [ Mod ] );
+        [ Mod ] ->
+            text_utils:format( "the ~ts modifier", [ Mod ] );
 
-		_ ->
-			text_utils:format( "the ~ts modifiers",
-				[ text_utils:strings_to_listed_string( Mods ) ] )
+        _ ->
+            text_utils:format( "the ~ts modifiers",
+                [ text_utils:strings_to_listed_string( Mods ) ] )
 
-	end,
+    end,
 
-	UcharStr = case Uchar of
+    UcharStr = case Uchar of
 
-		0 ->
-			"undefined";
+        0 ->
+            "undefined";
 
-		_ ->
-			text_utils:format( "'~ts' (value: ~B)", [ [ Uchar ], Uchar ] )
+        _ ->
+            text_utils:format( "'~ts' (value: ~B)", [ [ Uchar ], Uchar ] )
 
-	end,
+    end,
 
-	text_utils:format( "~ts event at client-coordinate position {~B,~B}, "
-		"whose keycode is ~w with ~ts, Unicode character is ~ts, "
-		"raw code being ~w and scancode being ~w",
-		[ KeyEventType, X, Y, KeyCode, ModStr, UcharStr, RawCode, RawFlags ] );
+    text_utils:format( "~ts event at client-coordinate position {~B,~B}, "
+        "whose keycode is ~w with ~ts, Unicode character is ~ts, "
+        "raw code being ~w and scancode being ~w",
+        [ KeyEventType, X, Y, KeyCode, ModStr, UcharStr, RawCode, RawFlags ] );
 
 
 key_event_to_string( Other ) ->
-	throw( { invalid_key_event, Other } ).
+    throw( { invalid_key_event, Other } ).

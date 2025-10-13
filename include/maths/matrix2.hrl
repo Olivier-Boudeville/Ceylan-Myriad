@@ -38,11 +38,11 @@
 %
 -record( matrix2, {
 
-	m11 :: linear:coordinate(),
-	m12 :: linear:coordinate(),
+    m11 :: linear:coordinate(),
+    m12 :: linear:coordinate(),
 
-	m21 :: linear:coordinate(),
-	m22 :: linear:coordinate() } ).
+    m21 :: linear:coordinate(),
+    m22 :: linear:coordinate() } ).
 
 
 % No relevant compact_matrix2 to be defined.

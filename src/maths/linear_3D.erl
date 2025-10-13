@@ -144,8 +144,8 @@ See <http://mathworld.wolfram.com/HessianNormalForm.html>.
 -doc "Returns the origin of this coordinate system.".
 -spec get_origin() -> point3().
 get_origin() ->
-	Zero = 0.0,
-	{ Zero, Zero, Zero }.
+    Zero = 0.0,
+    { Zero, Zero, Zero }.
 
 
 
@@ -155,6 +155,6 @@ Computes the smallest cuboid that encloses the specified list of points.
 Returns {TopLeft, BottomRight}.
 """.
 -spec compute_smallest_enclosing_cuboid( [ any_point3() ] ) ->
-					{ any_point3(), any_point3(), any_point3() }.
+                    { any_point3(), any_point3(), any_point3() }.
 compute_smallest_enclosing_cuboid( _Points ) ->
-	throw( to_implement ).
+    throw( to_implement ).

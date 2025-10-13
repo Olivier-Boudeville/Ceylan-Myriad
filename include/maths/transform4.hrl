@@ -42,12 +42,12 @@
 %
 -record( transform4, {
 
-	% The reference homogeneous, 4x4 matrix of that transformation:
-	% (corresponds to P1->2 in our conventions)
-	%
-	reference = 'identity_4' :: matrix4:homogeneous_matrix4(),
+    % The reference homogeneous, 4x4 matrix of that transformation:
+    % (corresponds to P1->2 in our conventions)
+    %
+    reference = 'identity_4' :: matrix4:homogeneous_matrix4(),
 
-	% The inverse of the reference matrix for that transformation:
-	% (corresponds to P2->1 in our conventions)
-	%
-	inverse = 'identity_4' :: matrix4:homogeneous_matrix4() } ).
+    % The inverse of the reference matrix for that transformation:
+    % (corresponds to P2->1 in our conventions)
+    %
+    inverse = 'identity_4' :: matrix4:homogeneous_matrix4() } ).

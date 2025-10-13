@@ -103,7 +103,7 @@ The name identifiers of the standard bitmaps.
 See also `gui_constants:get_standard_bitmap_name_id_topic_spec/0`.
 """.
 -type standard_bitmap_name_id() ::
-	'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
+    'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
  | 'information_bitmap' | 'add_bookmark_bitmap'
  | 'delete_bookmark_bitmap' | 'help_side_panel_bitmap'
  | 'help_settings_bitmap' | 'help_book_bitmap' | 'help_folder_bitmap'
@@ -134,8 +134,8 @@ See also `gui_constants:get_standard_bitmap_name_id_topic_spec/0`.
 
 
 -export_type([ bitmap/0, empty_bitmap/0, raw_bitmap/0,
-			   bitmap_display/0, standard_bitmap_name_id/0,
-			   bitmap_name_id/0, backend_bitmap_id/0 ]).
+               bitmap_display/0, standard_bitmap_name_id/0,
+               bitmap_name_id/0, backend_bitmap_id/0 ]).
 
 
 
@@ -147,16 +147,16 @@ See also `gui_constants:get_standard_bitmap_name_id_topic_spec/0`.
 
 % Functions on bitmaps:
 -export([ create/2, create/3,
-		  create_from/1,
-		  create_empty/1, create_empty/2, create_empty_for/1,
-		  get_standard/1, get_standard/2,
-		  destruct/1,
+          create_from/1,
+          create_empty/1, create_empty/2, create_empty_for/1,
+          get_standard/1, get_standard/2,
+          destruct/1,
 
-		  populate_buffer/4,
-		  get_width/1, get_height/1, get_size/1,
+          populate_buffer/4,
+          get_width/1, get_height/1, get_size/1,
 
-		  lock/1, unlock/1,
-		  draw/3 ]).
+          lock/1, unlock/1,
+          draw/3 ]).
 
 
 % Functions about bitmap displays:
@@ -200,7 +200,7 @@ To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create( width(), height() ) -> bitmap().
 create( Width, Height ) ->
-	create( Width, Height, ?wxBITMAP_SCREEN_DEPTH ).
+    create( Width, Height, ?wxBITMAP_SCREEN_DEPTH ).
 
 
 
@@ -211,9 +211,9 @@ To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create( width(), height(), color_depth() ) -> bitmap().
 create( Width, Height, ColorDepth ) ->
-	NewBitmap = create_empty( Width, Height ),
-	populate_buffer( NewBitmap, Width, Height, ColorDepth ),
-	NewBitmap.
+    NewBitmap = create_empty( Width, Height ),
+    populate_buffer( NewBitmap, Width, Height, ColorDepth ),
+    NewBitmap.
 
 
 
@@ -224,7 +224,7 @@ To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_from( any_file_path() ) -> bitmap().
 create_from( ImagePath ) ->
-	gui_image:create_bitmap( ImagePath ).
+    gui_image:create_bitmap( ImagePath ).
 
 
 
@@ -234,7 +234,7 @@ create_from( ImagePath ) ->
 % To be explicitly destructed (see `destruct/1`) when done with it.
 %
 create_empty( _Size={ Width, Height } ) ->
-	create_empty( Width, Height ).
+    create_empty( Width, Height ).
 
 
 
@@ -245,17 +245,17 @@ To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_empty( width(), height() ) -> empty_bitmap().
 create_empty( Width, Height ) ->
-	ImgBitmap = wxBitmap:new( Width, Height ),
+    ImgBitmap = wxBitmap:new( Width, Height ),
 
-	case wxBitmap:isOk( ImgBitmap ) of
+    case wxBitmap:isOk( ImgBitmap ) of
 
-		true ->
-			ImgBitmap;
+        true ->
+            ImgBitmap;
 
-		false ->
-			throw( { bitmap_creation_failed, { Width, Height } } )
+        false ->
+            throw( { bitmap_creation_failed, { Width, Height } } )
 
-	end.
+    end.
 
 
 
@@ -266,8 +266,8 @@ To be explicitly destructed (see `destruct/1`) when done with it.
 """.
 -spec create_empty_for( widget() ) -> empty_bitmap().
 create_empty_for( Widget ) ->
-	ClientSize = wxWindow:getClientSize( Widget ),
-	create_empty( ClientSize ).
+    ClientSize = wxWindow:getClientSize( Widget ),
+    create_empty( ClientSize ).
 
 
 
@@ -279,7 +279,7 @@ not.
 """.
 -spec destruct( bitmap() ) -> void().
 destruct( Bitmap ) ->
-	wxBitmap:destroy( Bitmap ).
+    wxBitmap:destroy( Bitmap ).
 
 
 
@@ -290,20 +290,20 @@ specified identifier.
 -spec get_standard( standard_bitmap_name_id() ) -> bitmap().
 get_standard( StdBitmapId ) ->
 
-	WxArtId = to_wx_bitmap_id( StdBitmapId ),
+    WxArtId = to_wx_bitmap_id( StdBitmapId ),
 
-	NullBitmap = get_wx_null_bitmap(),
+    NullBitmap = get_wx_null_bitmap(),
 
-	% Using default size:
-	case wxArtProvider:getBitmap( WxArtId ) of
+    % Using default size:
+    case wxArtProvider:getBitmap( WxArtId ) of
 
-		NullBitmap ->
-			throw( { standard_bitmap_not_available, StdBitmapId, WxArtId } );
+        NullBitmap ->
+            throw( { standard_bitmap_not_available, StdBitmapId, WxArtId } );
 
-		Bitmap ->
-			Bitmap
+        Bitmap ->
+            Bitmap
 
-	end.
+    end.
 
 
 
@@ -314,21 +314,21 @@ dimensions.
 -spec get_standard( standard_bitmap_name_id(), dimensions() ) -> bitmap().
 get_standard( StdBitmapId, Dimensions ) ->
 
-	WxArtId = to_wx_bitmap_id( StdBitmapId ),
+    WxArtId = to_wx_bitmap_id( StdBitmapId ),
 
-	NullBitmap = get_wx_null_bitmap(),
+    NullBitmap = get_wx_null_bitmap(),
 
-	% Using default size:
-	case wxArtProvider:getBitmap( WxArtId, _Opts=[ { size, Dimensions } ] ) of
+    % Using default size:
+    case wxArtProvider:getBitmap( WxArtId, _Opts=[ { size, Dimensions } ] ) of
 
-		NullBitmap ->
-			throw( { standard_bitmap_not_available, StdBitmapId, Dimensions,
-					 WxArtId } );
+        NullBitmap ->
+            throw( { standard_bitmap_not_available, StdBitmapId, Dimensions,
+                     WxArtId } );
 
-		Bitmap ->
-			Bitmap
+        Bitmap ->
+            Bitmap
 
-	end.
+    end.
 
 
 
@@ -337,32 +337,32 @@ Creates the internal data buffer of the specific (supposedly empty) bitmap
 according to the specified settings.
 """.
 -spec populate_buffer( empty_bitmap(), width(), height(), color_depth() ) ->
-											void().
+                                            void().
 populate_buffer( EmptyBitmap, Width, Height, ColorDepth ) ->
-	wxBitmap:create( EmptyBitmap, Width, Height,
-					 [ { depth, ColorDepth } ] ) orelse
-		throw( { bitmap_buffer_creation_failed, Width, Height, ColorDepth } ).
+    wxBitmap:create( EmptyBitmap, Width, Height,
+                     [ { depth, ColorDepth } ] ) orelse
+        throw( { bitmap_buffer_creation_failed, Width, Height, ColorDepth } ).
 
 
 
 -doc "Returns the current width of the specified bitmap.".
 -spec get_width( bitmap() ) -> width().
 get_width( Bitmap ) ->
-	wxBitmap:getWidth( Bitmap ).
+    wxBitmap:getWidth( Bitmap ).
 
 
 
 -doc "Returns the current height of the specified bitmap.".
 -spec get_height( bitmap() ) -> height().
 get_height( Bitmap ) ->
-	wxBitmap:getHeight( Bitmap ).
+    wxBitmap:getHeight( Bitmap ).
 
 
 
 -doc "Returns the current size of the specified bitmap.".
 -spec get_size( bitmap() ) -> size().
 get_size( Bitmap ) ->
-	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) }.
+    { wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) }.
 
 
 
@@ -374,16 +374,16 @@ Once the desired changes will have been made, this bitmap must be unlocked.
 """.
 -spec lock( bitmap() ) -> device_context().
 lock( Bitmap ) ->
-	DC = wxMemoryDC:new( Bitmap ),
-	case wxDC:isOk( DC ) of
+    DC = wxMemoryDC:new( Bitmap ),
+    case wxDC:isOk( DC ) of
 
-		true ->
-			DC;
+        true ->
+            DC;
 
-		false ->
-			throw( { lock_bitmap_failed, Bitmap } )
+        false ->
+            throw( { lock_bitmap_failed, Bitmap } )
 
-	end.
+    end.
 
 
 
@@ -393,7 +393,7 @@ from a previous locking.
 """.
 -spec unlock( device_context() ) -> void().
 unlock( DC ) ->
-	wxMemoryDC:destroy( DC ).
+    wxMemoryDC:destroy( DC ).
 
 
 
@@ -403,7 +403,7 @@ position.
 """.
 -spec draw( bitmap(), device_context(), point() ) -> void().
 draw( SourceBitmap, TargetDC, PosInTarget ) ->
-	wxDC:drawBitmap( TargetDC, SourceBitmap, PosInTarget ).
+    wxDC:drawBitmap( TargetDC, SourceBitmap, PosInTarget ).
 
 
 
@@ -414,7 +414,7 @@ draw( SourceBitmap, TargetDC, PosInTarget ) ->
 -doc "Creates a bitmap display from the specified bitmap.".
 -spec create_display( bitmap(), parent() ) -> bitmap_display().
 create_display( Bitmap, Parent ) ->
-	create_display( Bitmap, _Opts=[], Parent ).
+    create_display( Bitmap, _Opts=[], Parent ).
 
 
 
@@ -423,16 +423,16 @@ Creates a bitmap display from the specified bitmap and with the specified
 options.
 """.
 -spec create_display( bitmap(), [ window_option() ], parent() ) ->
-												bitmap_display().
+                                                bitmap_display().
 create_display( Bitmap, Options, Parent ) ->
-	wxStaticBitmap:new( Parent, gui_id:get_any_id(), Bitmap, Options ).
+    wxStaticBitmap:new( Parent, gui_id:get_any_id(), Bitmap, Options ).
 
 
 
 -doc "Destructs the specified bitmap display.".
 -spec destruct_display( bitmap_display() ) -> void().
 destruct_display( BitmapDisplay ) ->
-	wxStaticBitmap:destroy( BitmapDisplay ).
+    wxStaticBitmap:destroy( BitmapDisplay ).
 
 
 
@@ -443,8 +443,8 @@ found.
 """.
 -spec get_wx_null_bitmap() -> bitmap().
 get_wx_null_bitmap() ->
-	% Computed (not a literal constant):
-	?wxNullBitmap.
+    % Computed (not a literal constant):
+    ?wxNullBitmap.
 
 
 
@@ -454,13 +454,13 @@ wx-specific one.
 """.
 -spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
 to_wx_bitmap_id( BitmapId ) ->
-	case gui_generated:get_maybe_second_for_standard_bitmap_name_id(
-			BitmapId ) of
+    case gui_generated:get_maybe_second_for_standard_bitmap_name_id(
+            BitmapId ) of
 
-		undefined ->
-			throw( { unknown_bitmap_id, BitmapId } );
+        undefined ->
+            throw( { unknown_bitmap_id, BitmapId } );
 
-		WxArtId ->
-			WxArtId
+        WxArtId ->
+            WxArtId
 
-	end.
+    end.

@@ -43,7 +43,7 @@ See the `spell_tree` tested module.
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
     test_facilities:display( "Testing spell trees." ),
 
@@ -105,4 +105,4 @@ run() ->
                     || { S, Rs } <- lists:zip( ToResolveStrs,
                                                ResolvedStrs ) ] ) ] ),
 
-	test_facilities:stop().
+    test_facilities:stop().

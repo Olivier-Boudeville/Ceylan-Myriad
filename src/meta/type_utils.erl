@@ -812,11 +812,11 @@ Datatypes are `int` (for integer) and `float` (for standard IEEE signed,
 floating-point values).
 """.
 -type low_level_type() :: 'uint8'  | 'sint8'
-						| 'uint16' | 'sint16'
-						| 'uint32' | 'sint32'
-						| 'uint64' | 'sint64'
-						| 'float32'
-						| 'float64'.
+                        | 'uint16' | 'sint16'
+                        | 'uint32' | 'sint32'
+                        | 'uint64' | 'sint64'
+                        | 'float32'
+                        | 'float64'.
 
 
 -doc """
@@ -1063,10 +1063,10 @@ permanent iff all the terms that they aggregate are themselves permanent terms.
 Permanent terms are the opposite of transient ones.
 """.
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
-	| list( permanent_term() ) | tuple( permanent_term() )
-	% (maps:)map/2 does not exist apparently:
-	%| map( permanent_term(), permanent_term() )
-	| map().
+    | list( permanent_term() ) | tuple( permanent_term() )
+    % (maps:)map/2 does not exist apparently:
+    %| map( permanent_term(), permanent_term() )
+    | map().
 
 
 
@@ -1090,7 +1090,7 @@ Transient terms are the opposite of permanent ones.
                text_type/0, user_text_type/0,
                contextual_type/0, explicit_type/0,
 
-			   primitive_type_name/0, primitive_type_specialiser/0,
+               primitive_type_name/0, primitive_type_specialiser/0,
                primitive_type_spec/0,
 
                concrete_type_name/0, abstract_type_name/0,
@@ -1101,25 +1101,25 @@ Transient terms are the opposite of permanent ones.
                value/0, value_description/0,
                type_variable_name/0, type_definition/0, typevar_binding/0,
                typedef_table/0,
-			   nesting_depth/0, void/0, low_level_type/0,
+               nesting_depth/0, void/0, low_level_type/0,
 
-			   option/1, safe_option/1, wildcardable/1,
+               option/1, safe_option/1, wildcardable/1,
 
-			   bit_mask/0,
+               bit_mask/0,
 
-			   uint8/0, uint16/0, uint32/0, uint64/0,
-			   sint8/0, sint16/0, sint32/0, sint64/0,
-			   int8/0, int16/0, int32/0, int64/0,
-			   float32/0, float64/0,
+               uint8/0, uint16/0, uint32/0, uint64/0,
+               sint8/0, sint16/0, sint32/0, sint64/0,
+               int8/0, int16/0, int32/0, int64/0,
+               float32/0, float64/0,
 
-			   positive_float/0, non_negative_float/0,
+               positive_float/0, non_negative_float/0,
 
-			   record/0,
-			   tuploid/0, tuploid/1,
-			   pair/0, triplet/0, tuple/1, tuple/2,
-			   map/2,
-			   pid_ref/0,
-			   permanent_term/0, transient_term/0 ]).
+               record/0,
+               tuploid/0, tuploid/1,
+               pair/0, triplet/0, tuple/1, tuple/2,
+               map/2,
+               pid_ref/0,
+               permanent_term/0, transient_term/0 ]).
 
 
 
@@ -1129,15 +1129,15 @@ Transient terms are the opposite of permanent ones.
           interpret_type_of/1, interpret_type_of/2,
           describe_type_of/1,
 
-		  get_immediate_types/0, get_ast_builtin_types/0,
-		  get_elementary_types/0, get_plain_builtin_types/0,
-		  is_type/1, is_of_type/2,
-		  is_homogeneous/1, is_homogeneous/2,
-		  are_types_identical/2, is_subtype_of/2,
-		  is_value_matching/2,
-		  get_low_level_type_size/1,
-		  is_transient/1, is_byte/1,
-		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
+          get_immediate_types/0, get_ast_builtin_types/0,
+          get_elementary_types/0, get_plain_builtin_types/0,
+          is_type/1, is_of_type/2,
+          is_homogeneous/1, is_homogeneous/2,
+          are_types_identical/2, is_subtype_of/2,
+          is_value_matching/2,
+          get_low_level_type_size/1,
+          is_transient/1, is_byte/1,
+          is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1,
           parse_type/1, interpret_parse_type_error/1, vet_contextual_type/1,
           resolve_type/2, instantiate_type/2,
           vet_explicit_type/1,
@@ -1170,46 +1170,46 @@ Transient terms are the opposite of permanent ones.
 % for example, depending on whether such a check should be conditional.
 %
 -export([ check_atom/1, check_atoms/1,
-		  check_boolean/1, check_booleans/1,
+          check_boolean/1, check_booleans/1,
 
-		  check_pid/1, check_maybe_pid/1, check_pids/1,
+          check_pid/1, check_maybe_pid/1, check_pids/1,
 
-		  check_number/1, check_maybe_number/1,
-		  check_positive_number/1,
-		  check_strictly_positive_number/1,
+          check_number/1, check_maybe_number/1,
+          check_positive_number/1,
+          check_strictly_positive_number/1,
 
-		  check_numbers/1, check_maybe_numbers/1,
+          check_numbers/1, check_maybe_numbers/1,
 
-		  check_byte/1,
+          check_byte/1,
 
-		  check_integer/1, check_maybe_integer/1,
-		  check_positive_integer/1, check_strictly_positive_integer/1,
-		  check_maybe_positive_integer/1,
+          check_integer/1, check_maybe_integer/1,
+          check_positive_integer/1, check_strictly_positive_integer/1,
+          check_maybe_positive_integer/1,
 
-		  check_integers/1, check_maybe_integers/1,
+          check_integers/1, check_maybe_integers/1,
 
-		  check_float/1, check_maybe_float/1,
-		  check_floats/1, check_maybe_floats/1,
+          check_float/1, check_maybe_float/1,
+          check_floats/1, check_maybe_floats/1,
 
-		  check_positive_float/1,
-		  check_maybe_positive_float/1,
-		  check_positive_floats/1,
+          check_positive_float/1,
+          check_maybe_positive_float/1,
+          check_positive_floats/1,
 
-		  check_strictly_positive_float/1,
-		  check_maybe_strictly_positive_float/1,
+          check_strictly_positive_float/1,
+          check_maybe_strictly_positive_float/1,
 
-		  check_list/1,
-		  check_binary/1, check_binaries/1,
-		  check_map/1, check_tuple/1 ]).
+          check_list/1,
+          check_binary/1, check_binaries/1,
+          check_map/1, check_tuple/1 ]).
 
 
 % Checks with potential conversions:
 -export([ ensure_integer/1,
-		  ensure_rounded_integer/1,
-		  ensure_floored_integer/1, ensure_ceiled_integer/1,
+          ensure_rounded_integer/1,
+          ensure_floored_integer/1, ensure_ceiled_integer/1,
 
-		  ensure_float/1, ensure_positive_float/1,
-		  ensure_string/1, ensure_binary/1,
+          ensure_float/1, ensure_positive_float/1,
+          ensure_string/1, ensure_binary/1,
 
           integer_to_boolean/1 ]).
 
@@ -1229,23 +1229,23 @@ Transient terms are the opposite of permanent ones.
 % that the next term-returning checkings of the next section.
 %
 -export([ are_numbers/1, are_maybe_numbers/1,
-		  are_integers/1, are_maybe_integers/1,
-		  are_floats/1, are_maybe_floats/1,
-		  are_positive_floats/1,
-		  are_binaries/1 ]).
+          are_integers/1, are_maybe_integers/1,
+          are_floats/1, are_maybe_floats/1,
+          are_positive_floats/1,
+          are_binaries/1 ]).
 
 
 
 % Counter section:
 -export([ initialise_counters/1, initialise_counters/2,
-		  increment_counter/2, add_to_counter/3 ]).
+          increment_counter/2, add_to_counter/3 ]).
 
 
 % Specials for datatypes:
 -export([ get_record_tag/1,
           get_last_tuple_element/1, set_last_tuple_element/2,
           augment_tuploid/2,
-		  array_to_string/1 ]).
+          array_to_string/1 ]).
 
 
 % For the ast_transforms record:
@@ -1295,65 +1295,65 @@ The lowest-level/most precise typing can be obtained with the (undocumented)
 """.
 -spec get_type_of( term() ) -> value_description().
 get_type_of( Term ) when is_boolean( Term ) ->
-	'boolean';
+    'boolean';
 
 get_type_of( Term ) when is_atom( Term ) ->
-	'atom';
+    'atom';
 
 get_type_of( Term ) when is_integer( Term ) ->
-	'integer';
+    'integer';
 
 get_type_of( Term ) when is_float( Term ) ->
-	'float';
+    'float';
 
 get_type_of( Term ) when is_list( Term ) ->
-	case text_utils:is_string( Term ) of
+    case text_utils:is_string( Term ) of
 
-		true ->
-			'string';
+        true ->
+            'string';
 
-		false ->
-			% case text_utils:are_strings( Term ) of
+        false ->
+            % case text_utils:are_strings( Term ) of
 
-			%   true ->
-			%       '[string]';
+            %   true ->
+            %       '[string]';
 
-			%   false ->
-			%       'list'
+            %   false ->
+            %       'list'
 
-			% end
+            % end
             'list'
-	end;
+    end;
 
 get_type_of( Term ) when is_binary( Term ) ->
-	'binary';
+    'binary';
 
 get_type_of( Term ) when is_function( Term ) ->
-	'function';
+    'function';
 
 get_type_of( Term ) when is_pid( Term ) ->
-	'pid';
+    'pid';
 
 get_type_of( Term ) when is_map( Term ) ->
-	'table';
+    'table';
 
 get_type_of( Term ) when is_port( Term ) ->
-	'port';
+    'port';
 
 %get_type_of( Term ) when is_record( Term ) ->
 %   'record';
 
 get_type_of( Term ) when is_tuple( Term ) ->
-	'tuple';
+    'tuple';
 
 get_type_of( Term ) when is_list( Term ) ->
-	'list';
+    'list';
 
 get_type_of( Term ) when is_reference( Term ) ->
-	'reference';
+    'reference';
 
 get_type_of( Term ) ->
-	throw( { no_type_for_value, Term } ).
+    throw( { no_type_for_value, Term } ).
 
 
 
@@ -1365,7 +1365,7 @@ information about its value.
 """.
 -spec interpret_type_of( term() ) -> ustring().
 interpret_type_of( Term ) ->
-	interpret_type_helper( Term, _CurrentNestingLevel=0, _MaxNestingLevel=1 ).
+    interpret_type_helper( Term, _CurrentNestingLevel=0, _MaxNestingLevel=1 ).
 
 
 
@@ -1377,7 +1377,7 @@ giving some information about its value.
 """.
 -spec interpret_type_of( term(), level() | 'infinite' ) -> ustring().
 interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
-	interpret_type_helper( Term, _CurrentNestingLevel=0, MaxNestingLevel ).
+    interpret_type_helper( Term, _CurrentNestingLevel=0, MaxNestingLevel ).
 
 
 
@@ -1388,120 +1388,120 @@ giving some information about its value.
 """.
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_boolean( Term ) ->
-	text_utils:format( "boolean of value '~ts'", [ Term ] );
+                when is_boolean( Term ) ->
+    text_utils:format( "boolean of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_atom( Term ) ->
-	text_utils:format( "atom of value '~ts'", [ Term ] );
+                when is_atom( Term ) ->
+    text_utils:format( "atom of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_binary( Term ) ->
-	% Text might be incorrectly encoded ('~ts' would be needed):
-	text_utils:format( "binary of value '~p'", [ Term ] );
+                when is_binary( Term ) ->
+    % Text might be incorrectly encoded ('~ts' would be needed):
+    text_utils:format( "binary of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_float( Term ) ->
-	text_utils:format( "float of value '~f'", [ Term ] );
+                when is_float( Term ) ->
+    text_utils:format( "float of value '~f'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_function( Term ) ->
-	text_utils:format( "function of value '~w'", [ Term ] );
+                when is_function( Term ) ->
+    text_utils:format( "function of value '~w'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_integer( Term ) ->
-	text_utils:format( "integer of value '~B'", [ Term ] );
+                when is_integer( Term ) ->
+    text_utils:format( "integer of value '~B'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_pid( Term ) ->
-	text_utils:format( "PID of value '~w'", [ Term ] );
+                when is_pid( Term ) ->
+    text_utils:format( "PID of value '~w'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_port( Term ) ->
-	text_utils:format( "port of value '~p'", [ Term ] );
+                when is_port( Term ) ->
+    text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-				when is_reference( Term ) ->
-	text_utils:format( "reference of value '~p'", [ Term ] );
+                when is_reference( Term ) ->
+    text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( _Term=[], _CurrentNestingLevel, _MaxNestingLevel ) ->
-	"empty list/string";
+    "empty list/string";
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-				when is_list( Term ) ->
+                when is_list( Term ) ->
 
-	case text_utils:is_string( Term ) of
+    case text_utils:is_string( Term ) of
 
-		true ->
-			text_utils:format( "plain string '~ts'", [ Term ] );
+        true ->
+            text_utils:format( "plain string '~ts'", [ Term ] );
 
-		false ->
-			case CurrentNestingLevel of
+        false ->
+            case CurrentNestingLevel of
 
-				MaxNestingLevel ->
-					text_utils:format( "list of ~B elements",
-									   [ length( Term ) ] );
+                MaxNestingLevel ->
+                    text_utils:format( "list of ~B elements",
+                                       [ length( Term ) ] );
 
-				_ ->
-					Elems = [ interpret_type_helper( E,
-								CurrentNestingLevel+1, MaxNestingLevel )
-									|| E <- Term ],
+                _ ->
+                    Elems = [ interpret_type_helper( E,
+                                CurrentNestingLevel+1, MaxNestingLevel )
+                                    || E <- Term ],
 
-					text_utils:format( "list of ~B elements: ~ts",
-						[ length( Term ),
-						  text_utils:strings_to_enumerated_string( Elems,
-							CurrentNestingLevel ) ] )
+                    text_utils:format( "list of ~B elements: ~ts",
+                        [ length( Term ),
+                          text_utils:strings_to_enumerated_string( Elems,
+                            CurrentNestingLevel ) ] )
 
-			end
+            end
 
-	end;
+    end;
 
 interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
-					   MaxNestingLevel ) when is_map( Term ) ->
-	text_utils:format( "table of ~B entries", [ maps:size( Term ) ] );
+                       MaxNestingLevel ) when is_map( Term ) ->
+    text_utils:format( "table of ~B entries", [ maps:size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-				when is_map( Term ) ->
+                when is_map( Term ) ->
 
-	Elems = [ text_utils:format( "key ~ts associated to value ~ts",
-				[ interpret_type_helper( K, CurrentNestingLevel+1,
-										 MaxNestingLevel ),
-				  interpret_type_helper( V, CurrentNestingLevel+1,
-										 MaxNestingLevel ) ] )
-						|| { K, V } <- maps:to_list( Term ) ],
+    Elems = [ text_utils:format( "key ~ts associated to value ~ts",
+                [ interpret_type_helper( K, CurrentNestingLevel+1,
+                                         MaxNestingLevel ),
+                  interpret_type_helper( V, CurrentNestingLevel+1,
+                                         MaxNestingLevel ) ] )
+                        || { K, V } <- maps:to_list( Term ) ],
 
-	text_utils:format( "table of ~B entries: ~ts", [ maps:size( Term ),
-		text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
+    text_utils:format( "table of ~B entries: ~ts", [ maps:size( Term ),
+        text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
 
 
 interpret_type_helper( _Term={ _A, _B }, _CurrentNestingLevel=MaxNestingLevel,
-					   MaxNestingLevel ) ->
-	"pair";
+                       MaxNestingLevel ) ->
+    "pair";
 
 interpret_type_helper(_Term={ _A, _B, _C },
-		  _CurrentNestingLevel=MaxNestingLevel, MaxNestingLevel ) ->
-	"triplet";
+          _CurrentNestingLevel=MaxNestingLevel, MaxNestingLevel ) ->
+    "triplet";
 
 interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
-					   MaxNestingLevel ) when is_tuple( Term ) ->
-	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
+                       MaxNestingLevel ) when is_tuple( Term ) ->
+    text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
                                             when is_tuple( Term ) ->
 
-	Elems = [ interpret_type_helper( E, CurrentNestingLevel+1,
-									 MaxNestingLevel )
-				|| E <- tuple_to_list( Term ) ],
+    Elems = [ interpret_type_helper( E, CurrentNestingLevel+1,
+                                     MaxNestingLevel )
+                || E <- tuple_to_list( Term ) ],
 
-	BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
-										   MaxNestingLevel ),
+    BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
+                                           MaxNestingLevel ),
 
-	text_utils:format( "~ts made of: ~ts", [ BaseTupleDesc,
-		text_utils:strings_to_enumerated_string( Elems,
-												 CurrentNestingLevel ) ] );
+    text_utils:format( "~ts made of: ~ts", [ BaseTupleDesc,
+        text_utils:strings_to_enumerated_string( Elems,
+                                                 CurrentNestingLevel ) ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
-	text_utils:format( "unknown type for '~p'", [ Term ] ).
+    text_utils:format( "unknown type for '~p'", [ Term ] ).
 
 
 
@@ -1551,27 +1551,27 @@ describe_type_of( _Term=[ _ ] )  ->
 
 describe_type_of( Term ) when is_list( Term ) ->
     Len = length( Term ),
-	case text_utils:is_string( Term ) of
+    case text_utils:is_string( Term ) of
 
-		true ->
-			text_utils:format( "a plain string of ~B characters", [ Len ] );
+        true ->
+            text_utils:format( "a plain string of ~B characters", [ Len ] );
 
-		false ->
+        false ->
             text_utils:format( "a list of ~B elements", [ Len ] )
 
     end;
 
 describe_type_of( Term ) when is_map( Term ) ->
-	text_utils:format( "a map of ~B entries", [ maps:size( Term ) ] );
+    text_utils:format( "a map of ~B entries", [ maps:size( Term ) ] );
 
 describe_type_of( _Term={ _A, _B } ) ->
-	"a pair";
+    "a pair";
 
 describe_type_of( _Term={ _A, _B, _C } ) ->
-	"a triplet";
+    "a triplet";
 
 describe_type_of( Term ) when is_tuple( Term ) ->
-	text_utils:format( "a tuple of ~B elements", [ size( Term ) ] );
+    text_utils:format( "a tuple of ~B elements", [ size( Term ) ] );
 
 % Unknown:
 describe_type_of( _Term ) ->
@@ -1582,8 +1582,8 @@ describe_type_of( _Term ) ->
 -doc "Returns a list of the possible types for immediate values.".
 -spec get_immediate_types() -> [ type_name() ].
 get_immediate_types() ->
-	% Not sure this list is very accurate or relevant:
-	[ 'atom', 'float', 'integer', 'binary', 'boolean' ].
+    % Not sure this list is very accurate or relevant:
+    [ 'atom', 'float', 'integer', 'binary', 'boolean' ].
 
 
 
@@ -1613,15 +1613,15 @@ Actually additional types can be found in ASTs.
 -spec get_ast_builtin_types() -> [ type_name() ].
 get_ast_builtin_types() ->
 
-	% See http://erlang.org/doc/reference_manual/typespec.html for a complete
-	% list:
-	%
-	[ 'term', 'binary', 'bitstring', 'boolean', 'byte', 'char', 'nil', 'number',
-	  'list', 'maybe_improper_list', 'nonempty_list', 'string',
-	  'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
-	  'arity', 'identifier', 'node', 'timeout', 'no_return',
-	  'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
-	  'non_neg_integer', 'pid', 'reference', 'port' ].
+    % See http://erlang.org/doc/reference_manual/typespec.html for a complete
+    % list:
+    %
+    [ 'term', 'binary', 'bitstring', 'boolean', 'byte', 'char', 'nil', 'number',
+      'list', 'maybe_improper_list', 'nonempty_list', 'string',
+      'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
+      'arity', 'identifier', 'node', 'timeout', 'no_return',
+      'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
+      'non_neg_integer', 'pid', 'reference', 'port' ].
 
 
 
@@ -1630,9 +1630,9 @@ Returns a list of the base, elementary, "atomic", built-in types.
 """.
 -spec get_elementary_types() -> [ type_name() ].
 get_elementary_types() ->
-	get_immediate_types() ++
-		[ 'function', 'list', 'map', 'pid', 'port', 'record', 'reference',
-		  'tuple', 'any' ].
+    get_immediate_types() ++
+        [ 'function', 'list', 'map', 'pid', 'port', 'record', 'reference',
+          'tuple', 'any' ].
 
 
 
@@ -1642,7 +1642,7 @@ forms.
 """.
 -spec get_plain_builtin_types() -> [ type_name() ].
 get_plain_builtin_types() ->
-	get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any', 'no_return' ].
+    get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any', 'no_return' ].
 
 
 
@@ -1654,14 +1654,14 @@ instance).
 % First, our own simple types, as always in definition order:
 % The atom/0 type::
 is_type( { atom, [] } ) ->
-	true;
+    true;
 
 % Atome literal (i.e. a specific atom):
 is_type( { atom, A } ) when is_atom( A ) ->
-	true;
+    true;
 
 is_type( { atom, _ } ) ->
-	false;
+    false;
 
 
 % boolean/0:
@@ -1686,47 +1686,47 @@ is_type( { integer, I } ) when is_integer( I ) ->
     true;
 
 %is_type( { integer, _ ) ->
-%	false;
+%   false;
 
 
 is_type( { float, [] } ) ->
-	true;
+    true;
 
 is_type( { float, F } ) when is_float( F ) ->
     true;
 
 %is_type( { float, _ } ) ->
-%	false;
+%   false;
 
 
 is_type( { string, [] } ) ->
-	true;
+    true;
 
 is_type( { string, S } ) when is_list( S ) ->
-	text_utils:is_string( S );
+    text_utils:is_string( S );
 
 %is_type( { string, _ } ) ->
-%	false;
+%   false;
 
 
 is_type( { any, [] } ) ->
-	true;
+    true;
 
 %is_type( { any, _ } ) ->
-%	false;
+%   false;
 
 
 is_type( { none, [] } ) ->
-	true;
+    true;
 
 %is_type( { none, _ } ) ->
-%	false;
+%   false;
 
 is_type( { void, [] } ) ->
-	true;
+    true;
 
 %is_type( { void, _ } ) ->
-%	false;
+%   false;
 
 is_type( { option, ElemType } ) ->
     is_type( ElemType );
@@ -1759,48 +1759,48 @@ Tells whether the specified term (value) is of the specified explicit type
 % First, our own simple types, as always in definition order:
 % The atom/0 type::
 is_of_type( _Term=A, _Type={ atom, [] } ) when is_atom( A ) ->
-	true;
+    true;
 
 % A specific atom:
 is_of_type( _Term=A, _Type={ atom, A } ) when is_atom( A ) ->
-	true;
+    true;
 
 is_of_type( _Term, _Type={ atom, _ } ) ->
-	false;
+    false;
 
 
 is_of_type( Term, _Type={ boolean, [] } ) when is_boolean( Term ) ->
     true;
 
 is_of_type( _Term, _Type={ boolean, [] } ) ->
-	false;
+    false;
 
 
 is_of_type( Term, _Type={ integer, [] } ) when is_integer( Term ) ->
     true;
 
 is_of_type( _Term, _Type={ integer, [] } ) ->
-	false;
+    false;
 
 
 is_of_type( Term, _Type={ float, [] } ) when is_float( Term ) ->
     true;
 
 is_of_type( _Term, _Type={ float, [] } ) ->
-	false;
+    false;
 
 
 is_of_type( Term, _Type={ string, [] } ) when is_list( Term ) ->
-	text_utils:is_string( Term );
+    text_utils:is_string( Term );
 
 is_of_type( _Term, _Type={ string, [] } ) ->
-	false;
+    false;
 
 is_of_type( _Term, _Type={ any, [] } ) ->
-	true;
+    true;
 
 is_of_type( _Term, _Type={ none, [] } ) ->
-	false;
+    false;
 
 
 is_of_type( _Term=undefined, _Type={ option, _ElemType } ) ->
@@ -1811,7 +1811,7 @@ is_of_type( Term, _Type={ option, ElemType } ) ->
 
 
 is_of_type( ListTerm, _Type={ list, ElemType } ) when is_list( ListTerm ) ->
-	lists:all( _Pred=fun( E ) -> is_of_type( E, ElemType ) end,
+    lists:all( _Pred=fun( E ) -> is_of_type( E, ElemType ) end,
                ListTerm );
 
 is_of_type( _Term, _Type={ list, _ElemType } ) ->
@@ -1854,19 +1854,19 @@ If true, returns the common type.
 If false, returns two of the different types found in the container.
 """.
 -spec is_homogeneous( monomorphic_container_type_name() ) ->
-		{ 'true', primitive_type_name() } | { 'false',
-			{ primitive_type_name(), primitive_type_name() } }.
+        { 'true', primitive_type_name() } | { 'false',
+            { primitive_type_name(), primitive_type_name() } }.
 is_homogeneous( _List=[] ) ->
-	% We want to return types:
-	throw( empty_container );
+    % We want to return types:
+    throw( empty_container );
 
 is_homogeneous( _List=[ H | T ] ) ->
-	Type = get_type_of( H ),
-	is_homogeneous_full_helper( T, Type );
+    Type = get_type_of( H ),
+    is_homogeneous_full_helper( T, Type );
 
 is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
-	ElemList = tuple_to_list( Tuple ),
-	is_homogeneous( ElemList ).
+    ElemList = tuple_to_list( Tuple ),
+    is_homogeneous( ElemList ).
 
 
 
@@ -1878,43 +1878,43 @@ primitive type.
 -spec is_homogeneous( monomorphic_container_type_name(),
                       primitive_type_name() ) -> boolean().
 is_homogeneous( _List=[], _Type ) ->
-	% Considered homogeneous:
-	true;
+    % Considered homogeneous:
+    true;
 
 is_homogeneous( { option, Type }, Type ) ->
-	true;
+    true;
 
 is_homogeneous( { option, _DifferentType }, _Type ) ->
-	false;
+    false;
 
 is_homogeneous( List, Type ) when is_list( List ) ->
-	is_homogeneous_helper( List, Type );
+    is_homogeneous_helper( List, Type );
 
 is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
-	ElemList = tuple_to_list( Tuple ),
-	is_homogeneous_helper( ElemList, Type ).
+    ElemList = tuple_to_list( Tuple ),
+    is_homogeneous_helper( ElemList, Type ).
 
 
 % Helper:
 is_homogeneous_full_helper( _Elems=[], Type ) ->
-	{ true, Type };
+    { true, Type };
 
 is_homogeneous_full_helper( _Elems=[ H | T ], Type ) ->
-	case get_type_of( H ) of
+    case get_type_of( H ) of
 
-		Type ->
-			is_homogeneous_full_helper( T, Type );
+        Type ->
+            is_homogeneous_full_helper( T, Type );
 
-		OtherType ->
-			{ false, { Type, OtherType } }
+        OtherType ->
+            { false, { Type, OtherType } }
 
-	end.
+    end.
 
 
 % Other helper:
 is_homogeneous_helper( Elems, Type ) ->
-	{ Bool, _TypeInfo } = is_homogeneous_full_helper( Elems, Type ),
-	Bool.
+    { Bool, _TypeInfo } = is_homogeneous_full_helper( Elems, Type ),
+    Bool.
 
 
 
@@ -1929,10 +1929,10 @@ Quite often a more relevant test can be done with `is_subtype_of/2`.
 """.
 -spec are_types_identical( explicit_type(), explicit_type() ) -> boolean().
 are_types_identical( ExplType, ExplType ) ->
-	true;
+    true;
 
 are_types_identical( _FirstExplType, _SecondExplType ) ->
-	false.
+    false.
 
 
 
@@ -2026,80 +2026,80 @@ Tells whether the specified value matches the specified value description.
 """.
 -spec is_value_matching( value_description(), term() ) -> boolean().
 is_value_matching( _VDesc=atom, Value ) ->
-	is_atom( Value );
+    is_atom( Value );
 
 is_value_matching( _VDesc=binary, Value ) ->
-	is_binary( Value );
+    is_binary( Value );
 
 is_value_matching( _VDesc=bitstring, Value ) ->
-	is_bitstring( Value );
+    is_bitstring( Value );
 
 is_value_matching( _VDesc=boolean, Value ) ->
-	is_boolean( Value );
+    is_boolean( Value );
 
 is_value_matching( _VDesc=float, Value ) ->
-	is_float( Value );
+    is_float( Value );
 
 is_value_matching( _VDesc=function, Value ) ->
-	is_function( Value );
+    is_function( Value );
 
 is_value_matching( _VDesc=atom_or_function, Value ) ->
-	is_atom( Value) orelse is_function( Value );
+    is_atom( Value) orelse is_function( Value );
 
 is_value_matching( _VDesc=byte, Value ) ->
-	is_byte( Value );
+    is_byte( Value );
 
 is_value_matching( _VDesc=char, Value ) ->
-	text_utils:is_char( Value );
+    text_utils:is_char( Value );
 
 is_value_matching( _VDesc=string, Value ) ->
-	text_utils:is_string( Value );
+    text_utils:is_string( Value );
 
 is_value_matching( _VDesc=nonempty_string, Value ) ->
-	text_utils:is_non_empty_string( Value );
+    text_utils:is_non_empty_string( Value );
 
 is_value_matching( _VDesc=string_like, Value ) ->
-	text_utils:is_string_like( Value );
+    text_utils:is_string_like( Value );
 
 is_value_matching( _VDesc=integer, Value ) ->
-	is_integer( Value );
+    is_integer( Value );
 
 is_value_matching( _VDesc=pos_integer, Value ) ->
-	is_pos_integer( Value );
+    is_pos_integer( Value );
 
 is_value_matching( _VDesc=neg_integer, Value ) ->
-	is_neg_integer( Value );
+    is_neg_integer( Value );
 
 is_value_matching( _VDesc=non_neg_integer, Value ) ->
-	is_non_neg_integer( Value );
+    is_non_neg_integer( Value );
 
 is_value_matching( _VDesc=number, Value ) ->
-	is_number( Value );
+    is_number( Value );
 
 is_value_matching( _VDesc=list, Value ) ->
-	is_list( Value );
+    is_list( Value );
 
 is_value_matching( _VDesc=map, Value ) ->
-	is_map( Value );
+    is_map( Value );
 
 is_value_matching( _VDesc=pid, Value ) ->
-	is_pid( Value );
+    is_pid( Value );
 
 is_value_matching( _VDesc=port, Value ) ->
-	is_port( Value ) ;
+    is_port( Value ) ;
 
 is_value_matching( _VDesc=record, Value ) ->
-	% The BIF is is_record/2. Records having at least a tag:
-	is_tuple( Value ) andalso is_atom( element( _FirstIndex=1, Value ) );
+    % The BIF is is_record/2. Records having at least a tag:
+    is_tuple( Value ) andalso is_atom( element( _FirstIndex=1, Value ) );
 
 is_value_matching( _VDesc=reference, Value ) ->
-	is_reference( Value );
+    is_reference( Value );
 
 is_value_matching( _VDesc=tuple, Value ) ->
-	is_tuple( Value );
+    is_tuple( Value );
 
 is_value_matching( _VDesc=term, _Value ) ->
-	true.
+    true.
 
 
 
@@ -2129,47 +2129,47 @@ get_low_level_type_size( float64 ) -> 8.
 % Maybe is_function/1 could be relevant here:
 is_transient( T ) when is_pid( T ) orelse is_port( T )
                                             orelse is_reference( T ) ->
-	true;
+    true;
 
 is_transient( _T ) ->
-	false.
+    false.
 
 
 
 -doc "Tells whether the specified term is a byte.".
 -spec is_byte( term() ) -> boolean().
 is_byte( I ) when is_integer( I ), I >= 0, I =< 255 ->
-	true;
+    true;
 
 is_byte( _Other ) ->
-	false.
+    false.
 
 
 -doc "Tells whether the specified term is a positive (possibly zero) integer.".
 -spec is_non_neg_integer( term() ) -> boolean().
 is_non_neg_integer( I ) when is_integer( I ), I >= 0 ->
-	true;
+    true;
 
 is_non_neg_integer( _Other ) ->
-	false.
+    false.
 
 
 -doc "Tells whether the specified term is a strictly positive integer.".
 -spec is_pos_integer( term() ) -> boolean().
 is_pos_integer( I ) when is_integer( I ), I > 0 ->
-	true;
+    true;
 
 is_pos_integer( _Other ) ->
-	false.
+    false.
 
 
 -doc "Tells whether the specified term is a strictly negative integer.".
 -spec is_neg_integer( term() ) -> boolean().
 is_neg_integer( I ) when is_integer( I ), I < 0 ->
-	true;
+    true;
 
 is_neg_integer( _Other ) ->
-	false.
+    false.
 
 
 
@@ -2777,126 +2777,126 @@ type_to_string( _Type={ atom, [] } ) ->
 % A specific atom (an atom literal):
 type_to_string( _Type={ atom, AtomName } ) ->
     % Adding single quoted at least for clarity:
-	text_utils:format( "'~ts'", [ AtomName ] );
+    text_utils:format( "'~ts'", [ AtomName ] );
 
 
 type_to_string( _Type={ binary, [] } ) ->
    "binary()";
 
 type_to_string( _Type={ binary, Bin } ) ->
-	text_utils:binary_to_string( Bin );
+    text_utils:binary_to_string( Bin );
 
 
 type_to_string( _Type={ boolean, [] } ) ->
-	"boolean()";
+    "boolean()";
 
 type_to_string( _Type={ boolean, _Literal=true } ) ->
-	"'true'";
+    "'true'";
 
 type_to_string( _Type={ boolean, _Literal=false } ) ->
-	"'false'";
+    "'false'";
 
 
 type_to_string( _Type={ integer, [] } ) ->
-	"integer()";
+    "integer()";
 
 type_to_string( _Type={ integer, I } ) ->
-	text_utils:integer_to_string( I );
+    text_utils:integer_to_string( I );
 
 
 type_to_string( _Type={ float, [] } ) ->
-	"float()";
+    "float()";
 
 type_to_string( _Type={ float, F } ) ->
-	text_utils:float_to_string( F );
+    text_utils:float_to_string( F );
 
 
 type_to_string( _Type={ pid, [] } ) ->
-	"pid()";
+    "pid()";
 
 type_to_string( _Type={ pid, F } ) ->
-	text_utils:pid_to_string( F );
+    text_utils:pid_to_string( F );
 
 
 type_to_string( _Type={ port, [] } ) ->
-	"port()";
+    "port()";
 
 type_to_string( _Type={ port, P } ) ->
-	text_utils:port_to_string( P );
+    text_utils:port_to_string( P );
 
 type_to_string( _Type={ reference, [] } ) ->
-	"reference()";
+    "reference()";
 
 type_to_string( _Type={ reference, R } ) ->
-	text_utils:reference_to_string( R );
+    text_utils:reference_to_string( R );
 
 
 type_to_string( _Type={ string, [] } ) ->
-	"string()";
+    "string()";
 
 type_to_string( _Type={ string, S } ) ->
-	S;
+    S;
 
 
 type_to_string( _Type={ any, [] } ) ->
-	"any()";
+    "any()";
 
 type_to_string( _Type={ none, [] } ) ->
-	"none()";
+    "none()";
 
 type_to_string( _Type={ void, [] } ) ->
-	"void()";
+    "void()";
 
 % Then parametrised constructs:
 
 type_to_string( _Type={ option, T } ) ->
-	text_utils:format( "option(~ts)", [ type_to_string( T ) ] );
+    text_utils:format( "option(~ts)", [ type_to_string( T ) ] );
 
 type_to_string( _Type={ list, T } ) ->
-	text_utils:format( "[~ts]", [ type_to_string( T ) ] );
+    text_utils:format( "[~ts]", [ type_to_string( T ) ] );
 
 type_to_string( _Type={ table, { Tk, Tv } } ) ->
-	text_utils:format( "table(~ts, ~ts)",
+    text_utils:format( "table(~ts, ~ts)",
                        [ type_to_string( Tk ), type_to_string( Tv ) ] );
 
 type_to_string( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
 
-	TypeStr = text_utils:join( _Separator=", ",
-		[ type_to_string( T ) || T <- TypeList ] ),
+    TypeStr = text_utils:join( _Separator=", ",
+        [ type_to_string( T ) || T <- TypeList ] ),
 
-	text_utils:format( "{~ts}", [ TypeStr ] );
+    text_utils:format( "{~ts}", [ TypeStr ] );
 
 
 type_to_string( _Type={ union, TypeList } ) when is_list( TypeList ) ->
     % Would not be easily parsable:
-	%text_utils:join( _Separator="|",
-	%                 [ type_to_string( T ) || T <- TypeList ] );
+    %text_utils:join( _Separator="|",
+    %                 [ type_to_string( T ) || T <- TypeList ] );
 
-	TypeStr = text_utils:join( _Separator=", ",
-		[ type_to_string( T ) || T <- TypeList ] ),
+    TypeStr = text_utils:join( _Separator=", ",
+        [ type_to_string( T ) || T <- TypeList ] ),
 
-	text_utils:format( "union(~ts)", [ TypeStr ] );
+    text_utils:format( "union(~ts)", [ TypeStr ] );
 
 
 type_to_string( _Type={ typevar, T } ) ->
-	text_utils:atom_to_string( T );
+    text_utils:atom_to_string( T );
 
 type_to_string( _Type={ NonBuiltinType, TypeList } ) when is_list( TypeList ) ->
 
-	TypeStr = text_utils:join( _Separator=", ",
+    TypeStr = text_utils:join( _Separator=", ",
                                [ type_to_string( T ) || T <- TypeList ] ),
 
-	text_utils:format( "~ts(~ts)", [ NonBuiltinType, TypeStr ] );
+    text_utils:format( "~ts(~ts)", [ NonBuiltinType, TypeStr ] );
 
 
 type_to_string( Type ) ->
 
-	% Could be misleading (e.g. any() not matching any()):
-	%"any".
+    % Could be misleading (e.g. any() not matching any()):
+    %"any".
 
-	%text_utils:format( "~p", [ Type ] ).
+    %text_utils:format( "~p", [ Type ] ).
 
-	throw( { type_to_string_failed, Type } ).
+    throw( { type_to_string_failed, Type } ).
 
 
 
@@ -2917,13 +2917,13 @@ If it is a float, will return a truncated (integer) version of it.
 """.
 -spec ensure_integer( number() ) -> integer().
 ensure_integer( N ) when is_integer( N ) ->
-	N;
+    N;
 
 ensure_integer( N ) when is_float( N ) ->
-	trunc( N );
+    trunc( N );
 
 ensure_integer( N ) ->
-	throw( { cannot_coerce_to_integer, N } ).
+    throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -2934,13 +2934,13 @@ If it is a float, will return a rounded (integer) version of it.
 """.
 -spec ensure_rounded_integer( number() ) -> integer().
 ensure_rounded_integer( N ) when is_integer( N ) ->
-	N;
+    N;
 
 ensure_rounded_integer( N ) when is_float( N ) ->
-	round( N );
+    round( N );
 
 ensure_rounded_integer( N ) ->
-	throw( { cannot_coerce_to_integer, N } ).
+    throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -2951,13 +2951,13 @@ If it is a float, will return a floored (rounded-down integer) version of it.
 """.
 -spec ensure_floored_integer( number() ) -> integer().
 ensure_floored_integer( N ) when is_integer( N ) ->
-	N;
+    N;
 
 ensure_floored_integer( N ) when is_float( N ) ->
-	math_utils:floor( N );
+    math_utils:floor( N );
 
 ensure_floored_integer( N ) ->
-	throw( { cannot_coerce_to_integer, N } ).
+    throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -2968,13 +2968,13 @@ If it is a float, will return a ceiled (rounded-up integer) version of it.
 """.
 -spec ensure_ceiled_integer( number() ) -> integer().
 ensure_ceiled_integer( N ) when is_integer( N ) ->
-	N;
+    N;
 
 ensure_ceiled_integer( N ) when is_float( N ) ->
-	math_utils:ceiling( N );
+    math_utils:ceiling( N );
 
 ensure_ceiled_integer( N ) ->
-	throw( { cannot_coerce_to_integer, N } ).
+    throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -2987,13 +2987,13 @@ Yet `float/1` mostly suffices (as it can can operate on floats).
 """.
 -spec ensure_float( number() ) -> float().
 ensure_float( N ) when is_float( N ) ->
-	N;
+    N;
 
 ensure_float( N ) when is_integer( N ) ->
-	float( N );
+    float( N );
 
 ensure_float( N ) ->
-	throw( { cannot_coerce_to_float, N } ).
+    throw( { cannot_coerce_to_float, N } ).
 
 
 
@@ -3005,27 +3005,27 @@ If it is an integer, will return a floating-point version of it.
 """.
 -spec ensure_positive_float( number() ) -> float().
 ensure_positive_float( F ) when is_float( F ), F >= 0.0 ->
-	F;
+    F;
 
 ensure_positive_float( I ) when is_integer( I ), I >= 0 ->
-	float( I );
+    float( I );
 
 ensure_positive_float( Other ) ->
-	throw( { cannot_coerce_to_positive_float, Other } ).
+    throw( { cannot_coerce_to_positive_float, Other } ).
 
 
 
 -doc "Ensures that the specified term is a string, and returns it.".
 -spec ensure_string( term() ) -> ustring().
 ensure_string( S ) ->
-	text_utils:ensure_string( S ).
+    text_utils:ensure_string( S ).
 
 
 
 -doc "Ensures that the specified term is a binary string, and returns it.".
 -spec ensure_binary( term() ) -> ustring().
 ensure_binary( S ) ->
-	text_utils:ensure_binary( S ).
+    text_utils:ensure_binary( S ).
 
 
 
@@ -3061,71 +3061,71 @@ Directly inspired from `wings_utils:share/*`.
 -spec share( term() ) -> term().
 % Pair:
 share( {X,X} ) ->
-	{X,X};
+    {X,X};
 
 % Triplet:
 share( {X,X,X} ) ->
-	{X,X,X};
+    {X,X,X};
 
 share( {X,X,Z} ) ->
-	{X,X,Z};
+    {X,X,Z};
 
 share( {X,Y,Y} ) ->
-	{X,Y,Y};
+    {X,Y,Y};
 
 share( {X,Y,X} ) ->
-	{X,Y,X};
+    {X,Y,X};
 
 % Quadruplet:
 share( {X,X,X,X} ) ->
-	{X,X,X,X};
+    {X,X,X,X};
 
 % (3 equal)
 share( {X,X,X,A} ) ->
-	{X,X,X,A};
+    {X,X,X,A};
 
 share( {X,X,Z,X} ) ->
-	{X,X,Z,X};
+    {X,X,Z,X};
 
 share( {X,Y,X,X} ) ->
-	{X,Y,X,X};
+    {X,Y,X,X};
 
 share( {X,Y,Y,Y} ) ->
-	{X,Y,Y,Y};
+    {X,Y,Y,Y};
 
 
 % (2x2 equal)
 share( {X,X,Y,Y} ) ->
-	{X,X,Y,Y};
+    {X,X,Y,Y};
 
 share( {X,Y,X,Y} ) ->
-	{X,Y,X,Y};
+    {X,Y,X,Y};
 
 share( {X,Y,Y,X} ) ->
-	{X,Y,Y,X};
+    {X,Y,Y,X};
 
 % (3 equal)
 share( {X,X,Z,A} ) ->
-	{X,X,Z,A};
+    {X,X,Z,A};
 
 share( {X,Y,X,A} ) ->
-	{X,Y,X,A};
+    {X,Y,X,A};
 
 share( {X,Y,Z,X} ) ->
-	{X,Y,Z,X};
+    {X,Y,Z,X};
 
 share( {X,Y,Y,A} ) ->
-	{X,Y,Y,A};
+    {X,Y,Y,A};
 
 share( {X,Y,Z,Y} ) ->
-	{X,Y,Z,Y};
+    {X,Y,Z,Y};
 
 share( {X,Y,Z,Z} ) ->
-	{X,Y,Z,Z};
+    {X,Y,Z,Z};
 
 % Untouched:
 share( Other ) ->
-	Other.
+    Other.
 
 
 
@@ -3142,10 +3142,10 @@ Directly inspired from `wings_utils:share/*`.
 """.
 -spec share( term(), term() ) -> pair().
 share( X, X ) ->
-	{X,X};
+    {X,X};
 
 share( X, Y ) ->
-	{X,Y}.
+    {X,Y}.
 
 
 
@@ -3162,19 +3162,19 @@ Directly inspired from `wings_utils:share/*`.
 """.
 -spec share( term(), term(), term() ) -> triplet().
 share( X, X, X ) ->
-	{X,X,X};
+    {X,X,X};
 
 share( X, X ,Z ) ->
-	{X,X,Z};
+    {X,X,Z};
 
 share( X, Y, Y ) ->
-	{X,Y,Y};
+    {X,Y,Y};
 
 share( X, Y, X ) ->
-	{X,Y,X};
+    {X,Y,X};
 
 share( X, Y, Z ) ->
-	{ X, Y, Z }.
+    { X, Y, Z }.
 
 
 
@@ -3186,52 +3186,52 @@ share( X, Y, Z ) ->
 -doc "Returns whether the specified term is a list of numbers.".
 -spec are_numbers( term() ) -> boolean().
 are_numbers( [] )  ->
-	true;
+    true;
 
 are_numbers( [ N | T ] ) when is_number( N ) ->
-	are_numbers( T );
+    are_numbers( T );
 
 are_numbers( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of maybe-numbers.".
 -spec are_maybe_numbers( term() ) -> boolean().
 are_maybe_numbers( [] )  ->
-	true;
+    true;
 
 are_maybe_numbers( [ MN | T ] ) when is_number( MN ); MN =:= undefined ->
-	are_maybe_numbers( T );
+    are_maybe_numbers( T );
 
 are_maybe_numbers( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of integers.".
 -spec are_integers( term() ) -> boolean().
 are_integers( [] )  ->
-	true;
+    true;
 
 are_integers( [ I | T ] ) when is_integer( I ) ->
-	are_integers( T );
+    are_integers( T );
 
 are_integers( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of maybe-integers.".
 -spec are_maybe_integers( term() ) -> boolean().
 are_maybe_integers( [] )  ->
-	true;
+    true;
 
 are_maybe_integers( [ MI | T ] ) when is_integer( MI ); MI =:= undefined ->
-	are_maybe_integers( T );
+    are_maybe_integers( T );
 
 are_maybe_integers( _Other ) ->
-	false.
+    false.
 
 
 
@@ -3239,52 +3239,52 @@ are_maybe_integers( _Other ) ->
 -doc "Returns whether the specified term is a list of floats.".
 -spec are_floats( term() ) -> boolean().
 are_floats( [] )  ->
-	true;
+    true;
 
 are_floats( [ F | T ] ) when is_float( F ) ->
-	are_floats( T );
+    are_floats( T );
 
 are_floats( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of maybe-floats.".
 -spec are_maybe_floats( term() ) -> boolean().
 are_maybe_floats( [] )  ->
-	true;
+    true;
 
 are_maybe_floats( [ MF | T ] ) when is_float( MF ); MF =:= undefined ->
-	are_maybe_floats( T );
+    are_maybe_floats( T );
 
 are_maybe_floats( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of positive floats.".
 -spec are_positive_floats( term() ) -> boolean().
 are_positive_floats( [] )  ->
-	true;
+    true;
 
 are_positive_floats( [ PF | T ] ) when is_float( PF ), PF >= 0.0 ->
-	are_positive_floats( T );
+    are_positive_floats( T );
 
 are_positive_floats( _Other ) ->
-	false.
+    false.
 
 
 
 -doc "Returns whether the specified term is a list of binaries.".
 -spec are_binaries( term() ) -> boolean().
 are_binaries( [] )  ->
-	true;
+    true;
 
 are_binaries( [ B | T ] ) when is_binary( B ) ->
-	are_binaries( T );
+    are_binaries( T );
 
 are_binaries( _Other ) ->
-	false.
+    false.
 
 
 
@@ -3294,10 +3294,10 @@ are_binaries( _Other ) ->
 -doc "Checks that the specified term is an atom indeed, and returns it.".
 -spec check_atom( term() ) -> atom().
 check_atom( Atom ) when is_atom( Atom ) ->
-	Atom;
+    Atom;
 
 check_atom( Other ) ->
-	throw( { not_atom, Other } ).
+    throw( { not_atom, Other } ).
 
 
 
@@ -3306,21 +3306,21 @@ Checks that the specified term is a list of atoms indeed, and returns it.
 """.
 -spec check_atoms( term() ) -> [ atom() ].
 check_atoms( Atoms ) ->
-	[ check_atom( T ) || T <- Atoms ],
-	Atoms.
+    [ check_atom( T ) || T <- Atoms ],
+    Atoms.
 
 
 
 -doc "Checks that the specified term is a boolean indeed, and returns it.".
 -spec check_boolean( term() ) -> boolean().
 check_boolean( true ) ->
-	true;
+    true;
 
 check_boolean( false ) ->
-	false;
+    false;
 
 check_boolean( Other ) ->
-	throw( { not_boolean, Other } ).
+    throw( { not_boolean, Other } ).
 
 
 
@@ -3329,18 +3329,18 @@ Checks that the specified term is a list of booleans indeed, and returns it.
 """.
 -spec check_booleans( term() ) -> [ boolean() ].
 check_booleans( Booleans ) ->
-	[ check_boolean( T ) || T <- Booleans ],
-	Booleans.
+    [ check_boolean( T ) || T <- Booleans ],
+    Booleans.
 
 
 
 -doc "Checks that the specified term is a PID indeed, and returns it.".
 -spec check_pid( term() ) -> pid().
 check_pid( Pid ) when is_pid( Pid ) ->
-	Pid;
+    Pid;
 
 check_pid( Other ) ->
-	throw( { not_pid, Other } ).
+    throw( { not_pid, Other } ).
 
 
 
@@ -3350,13 +3350,13 @@ returns it.
 """.
 -spec check_maybe_pid( term() ) -> option( pid() ).
 check_maybe_pid( Pid ) when is_pid( Pid ) ->
-	Pid;
+    Pid;
 
 check_maybe_pid( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_pid( Other ) ->
-	throw( { not_maybe_pid, Other } ).
+    throw( { not_maybe_pid, Other } ).
 
 
 
@@ -3365,19 +3365,19 @@ Checks that the specified term is a list of PIDs indeed, and returns it.
 """.
 -spec check_pids( term() ) -> [ pid() ].
 check_pids( Pids )  ->
-	% Possibly a bit quicker that way:
-	[ check_pid( P ) || P <- Pids ],
-	Pids.
+    % Possibly a bit quicker that way:
+    [ check_pid( P ) || P <- Pids ],
+    Pids.
 
 
 
 -doc "Checks that the specified term is a number indeed, and returns it.".
 -spec check_number( term() ) -> number().
 check_number( Num ) when is_number( Num ) ->
-	Num;
+    Num;
 
 check_number( Other ) ->
-	throw( { not_number, Other } ).
+    throw( { not_number, Other } ).
 
 
 
@@ -3386,13 +3386,13 @@ Checks that the specified term is a maybe-number indeed, and returns it.
 """.
 -spec check_maybe_number( term() ) -> option( number() ).
 check_maybe_number( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_number( Num ) when is_number( Num ) ->
-	Num;
+    Num;
 
 check_maybe_number( Other ) ->
-	throw( { not_maybe_number, Other } ).
+    throw( { not_maybe_number, Other } ).
 
 
 
@@ -3402,10 +3402,10 @@ it.
 """.
 -spec check_positive_number( term() ) -> number().
 check_positive_number( Num ) when is_number( Num ), Num >= 0 ->
-	Num;
+    Num;
 
 check_positive_number( Other ) ->
-	throw( { not_positive_number, Other } ).
+    throw( { not_positive_number, Other } ).
 
 
 
@@ -3415,10 +3415,10 @@ it.
 """.
 -spec check_strictly_positive_number( term() ) -> number().
 check_strictly_positive_number( Num ) when is_number( Num ), Num > 0 ->
-	Num;
+    Num;
 
 check_strictly_positive_number( Other ) ->
-	throw( { not_strictly_positive_number, Other } ).
+    throw( { not_strictly_positive_number, Other } ).
 
 
 
@@ -3427,9 +3427,9 @@ Checks that the specified term is a list of numbers indeed, and returns it.
 """.
 -spec check_numbers( term() ) -> [ number() ].
 check_numbers( Numbers ) ->
-	% Possibly a bit quicker that way:
-	[ check_number( N ) || N <- Numbers ],
-	Numbers.
+    % Possibly a bit quicker that way:
+    [ check_number( N ) || N <- Numbers ],
+    Numbers.
 
 
 
@@ -3439,29 +3439,29 @@ it.
 """.
 -spec check_maybe_numbers( term() ) -> [ option( number() ) ].
 check_maybe_numbers( MaybeNumbers ) ->
-	% Possibly a bit quicker that way:
-	[ check_maybe_number( MN ) || MN <- MaybeNumbers ],
-	MaybeNumbers.
+    % Possibly a bit quicker that way:
+    [ check_maybe_number( MN ) || MN <- MaybeNumbers ],
+    MaybeNumbers.
 
 
 
 -doc "Checks that the specified term is a byte indeed, and returns it.".
 -spec check_byte( term() ) -> integer().
 check_byte( Int ) when is_integer( Int ), Int >= 0, Int =< 255 ->
-	Int;
+    Int;
 
 check_byte( Other ) ->
-	throw( { not_byte, Other } ).
+    throw( { not_byte, Other } ).
 
 
 
 -doc "Checks that the specified term is an integer indeed, and returns it.".
 -spec check_integer( term() ) -> integer().
 check_integer( Int ) when is_integer( Int ) ->
-	Int;
+    Int;
 
 check_integer( Other ) ->
-	throw( { not_integer, Other } ).
+    throw( { not_integer, Other } ).
 
 
 
@@ -3470,13 +3470,13 @@ Checks that the specified term is a maybe-integer indeed, and returns it.
 """.
 -spec check_maybe_integer( term() ) -> option( integer() ).
 check_maybe_integer( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_integer( Int ) when is_integer( Int ) ->
-	Int;
+    Int;
 
 check_maybe_integer( Other ) ->
-	throw( { not_maybe_integer, Other } ).
+    throw( { not_maybe_integer, Other } ).
 
 
 
@@ -3485,10 +3485,10 @@ Checks that the specified term is a positive or null integer, and returns it.
 """.
 -spec check_positive_integer( term() ) -> pos_integer().
 check_positive_integer( Int ) when is_integer( Int ), ( Int >= 0 ) ->
-	Int;
+    Int;
 
 check_positive_integer( Other ) ->
-	throw( { not_positive_integer, Other } ).
+    throw( { not_positive_integer, Other } ).
 
 
 
@@ -3497,10 +3497,10 @@ Checks that the specified term is a strictly positive integer, and returns it.
 """.
 -spec check_strictly_positive_integer( term() ) -> pos_integer().
 check_strictly_positive_integer( Int ) when is_integer( Int ), Int > 0 ->
-	Int;
+    Int;
 
 check_strictly_positive_integer( Other ) ->
-	throw( { not_strictly_positive_integer, Other } ).
+    throw( { not_strictly_positive_integer, Other } ).
 
 
 
@@ -3510,13 +3510,13 @@ atom, and returns it.
 """.
 -spec check_maybe_positive_integer( term() ) -> option( pos_integer() ).
 check_maybe_positive_integer( Int ) when is_integer( Int ), Int >= 0 ->
-	Int;
+    Int;
 
 check_maybe_positive_integer( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_positive_integer( Other ) ->
-	throw( { not_maybe_positive_integer, Other } ).
+    throw( { not_maybe_positive_integer, Other } ).
 
 
 
@@ -3525,9 +3525,9 @@ Checks that the specified term is a list of integers indeed, and returns it.
 """.
 -spec check_integers( term() ) -> [ integer() ].
 check_integers( Integers ) ->
-	% Possibly a bit quicker that way:
-	[ check_integer( I ) || I <- Integers ],
-	Integers.
+    % Possibly a bit quicker that way:
+    [ check_integer( I ) || I <- Integers ],
+    Integers.
 
 
 
@@ -3537,19 +3537,19 @@ it.
 """.
 -spec check_maybe_integers( term() ) -> [ option( integer() ) ].
 check_maybe_integers( MaybeIntegers ) ->
-	% Possibly a bit quicker that way:
-	[ check_maybe_integer( MI ) || MI <- MaybeIntegers ],
-	MaybeIntegers.
+    % Possibly a bit quicker that way:
+    [ check_maybe_integer( MI ) || MI <- MaybeIntegers ],
+    MaybeIntegers.
 
 
 
 -doc "Checks that the specified term is a float indeed, and returns it.".
 -spec check_float( term() ) -> float().
 check_float( Float ) when is_float( Float ) ->
-	Float;
+    Float;
 
 check_float( Other ) ->
-	throw( { not_float, Other } ).
+    throw( { not_float, Other } ).
 
 
 
@@ -3558,13 +3558,13 @@ Checks that the specified term is a maybe-float indeed, and returns it.
 """.
 -spec check_maybe_float( term() ) -> option( float() ).
 check_maybe_float( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_float( F ) when is_float( F ) ->
-	F;
+    F;
 
 check_maybe_float( Other ) ->
-	throw( { not_maybe_float, Other } ).
+    throw( { not_maybe_float, Other } ).
 
 
 
@@ -3573,9 +3573,9 @@ Checks that the specified term is a list of floats indeed, and returns it.
 """.
 -spec check_floats( term() ) -> [ float() ].
 check_floats( Floats ) ->
-	% Possibly a bit quicker that way:
-	[ check_float( F ) || F <- Floats ],
-	Floats.
+    % Possibly a bit quicker that way:
+    [ check_float( F ) || F <- Floats ],
+    Floats.
 
 
 
@@ -3584,9 +3584,9 @@ Checks that the specified term is a list of maybe-floats indeed, and returns it.
 """.
 -spec check_maybe_floats( term() ) -> [ option( float() ) ].
 check_maybe_floats( MaybeFloats ) ->
-	% Possibly a bit quicker that way:
-	[ check_maybe_float( MF ) || MF <- MaybeFloats ],
-	MaybeFloats.
+    % Possibly a bit quicker that way:
+    [ check_maybe_float( MF ) || MF <- MaybeFloats ],
+    MaybeFloats.
 
 
 
@@ -3596,10 +3596,10 @@ it.
 """.
 -spec check_positive_float( term() ) -> float().
 check_positive_float( Float ) when is_float( Float ), Float >= 0.0 ->
-	Float;
+    Float;
 
 check_positive_float( Other ) ->
-	throw( { not_positive_float, Other } ).
+    throw( { not_positive_float, Other } ).
 
 
 
@@ -3609,13 +3609,13 @@ it.
 """.
 -spec check_maybe_positive_float( term() ) -> option( float() ).
 check_maybe_positive_float( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_positive_float( Float ) when is_float( Float ), Float >= 0.0 ->
-	Float;
+    Float;
 
 check_maybe_positive_float( Other ) ->
-	throw( { not_maybe_positive_float, Other } ).
+    throw( { not_maybe_positive_float, Other } ).
 
 
 
@@ -3625,10 +3625,10 @@ and returns it.
 """.
 -spec check_positive_floats( term() ) -> [ float() ].
 check_positive_floats( Floats ) ->
-	% Possibly a bit quicker that way:
-	[ ( is_float( F ) andalso F >= 0.0 ) orelse
-		throw( { not_positive_float, F } ) || F <- Floats ],
-	Floats.
+    % Possibly a bit quicker that way:
+    [ ( is_float( F ) andalso F >= 0.0 ) orelse
+        throw( { not_positive_float, F } ) || F <- Floats ],
+    Floats.
 
 
 
@@ -3639,10 +3639,10 @@ it.
 -spec check_strictly_positive_float( term() ) -> float().
 check_strictly_positive_float( Float )
                                 when is_float( Float ) andalso Float > 0.0 ->
-	Float;
+    Float;
 
 check_strictly_positive_float( Other ) ->
-	throw( { not_strictly_positive_float, Other } ).
+    throw( { not_strictly_positive_float, Other } ).
 
 
 
@@ -3652,34 +3652,34 @@ returns it.
 """.
 -spec check_maybe_strictly_positive_float( term() ) -> option( float() ).
 check_maybe_strictly_positive_float( undefined ) ->
-	undefined;
+    undefined;
 
 check_maybe_strictly_positive_float( Float )
                                 when is_float( Float ), Float > 0.0 ->
-	Float;
+    Float;
 
 check_maybe_strictly_positive_float( Other ) ->
-	throw( { not_maybe_strictly_positive_float, Other } ).
+    throw( { not_maybe_strictly_positive_float, Other } ).
 
 
 
 -doc "Checks that the specified term is a list indeed, and returns it.".
 -spec check_list( term() ) -> list().
 check_list( List ) when is_list( List ) ->
-	List;
+    List;
 
 check_list( Other ) ->
-	throw( { not_list, Other } ).
+    throw( { not_list, Other } ).
 
 
 
 -doc "Checks that the specified term is a binary indeed, and returns it.".
 -spec check_binary( term() ) -> binary().
 check_binary( Binary ) when is_binary( Binary ) ->
-	Binary;
+    Binary;
 
 check_binary( Other ) ->
-	throw( { not_binary, Other } ).
+    throw( { not_binary, Other } ).
 
 
 
@@ -3688,36 +3688,36 @@ Checks that the specified term is a list of binaries indeed, and returns it.
 """.
 -spec check_binaries( term() ) -> [ binary() ].
 check_binaries( Binaries ) ->
-	% Possibly a bit quicker that way:
-	[ check_binary( B ) || B <- Binaries ],
-	Binaries.
+    % Possibly a bit quicker that way:
+    [ check_binary( B ) || B <- Binaries ],
+    Binaries.
 
 
 
 -doc "Checks that the specified term is a map indeed, and returns it.".
 -spec check_map( term() ) -> map().
 check_map( Map ) when is_map( Map ) ->
-	Map;
+    Map;
 
 check_map( Other ) ->
-	throw( { not_map, Other } ).
+    throw( { not_map, Other } ).
 
 
 
 -doc "Checks that the specified term is a tuple indeed, and returns it.".
 -spec check_tuple( term() ) -> tuple().
 check_tuple( Tuple ) when is_tuple( Tuple ) ->
-	Tuple;
+    Tuple;
 
 check_tuple( Other ) ->
-	throw( { not_tuple, Other } ).
+    throw( { not_tuple, Other } ).
 
 
 
 -doc "Returns the tag of the specified record instance.".
 -spec get_record_tag( record() ) -> record_tag().
 get_record_tag( RecordTuple ) ->
-	element( _Index=1, RecordTuple ).
+    element( _Index=1, RecordTuple ).
 
 
 
@@ -3734,7 +3734,7 @@ get_record_tag( RecordTuple ) ->
 -doc "Initialises the specified number of counters to zero.".
 -spec initialise_counters( count() ) -> counters().
 initialise_counters( Count ) ->
-	initialise_counters( Count, _InitValue=0 ).
+    initialise_counters( Count, _InitValue=0 ).
 
 
 
@@ -3743,35 +3743,35 @@ Initialises the specified number of counters to the specified (initial) value.
 """.
 -spec initialise_counters( count(), integer() ) -> counters().
 initialise_counters( Count, InitValue ) ->
-	list_to_tuple( list_utils:duplicate( InitValue, Count ) ).
+    list_to_tuple( list_utils:duplicate( InitValue, Count ) ).
 
 
 
 -doc "Increments the specified counter.".
 -spec increment_counter( positive_index(), counters() ) -> counters().
 increment_counter( CounterIndex, Counters ) ->
-	add_to_counter( _ToAdd=1, CounterIndex, Counters ).
+    add_to_counter( _ToAdd=1, CounterIndex, Counters ).
 
 
 
 -doc "Adds the specified value to the specified counter.".
 -spec add_to_counter( number(), positive_index(), counters() ) -> counters().
 add_to_counter( ToAdd, CounterIndex, Counters ) ->
-	NewElem = element( CounterIndex, Counters ) + ToAdd,
-	setelement( CounterIndex, Counters, NewElem ).
+    NewElem = element( CounterIndex, Counters ) + ToAdd,
+    setelement( CounterIndex, Counters, NewElem ).
 
 
 
 -doc "Returns the last element of the specified tuple.".
 -spec get_last_tuple_element( tuple() ) -> term().
 get_last_tuple_element( Tuple ) ->
-	element( _PosIndex=size( Tuple ), Tuple ).
+    element( _PosIndex=size( Tuple ), Tuple ).
 
 
 -doc "Sets the last element of the specified tuple.".
 -spec set_last_tuple_element( tuple(), term() ) -> tuple().
 set_last_tuple_element( Tuple, NewElement ) ->
-	setelement( _PosIndex=size( Tuple ), Tuple, NewElement ).
+    setelement( _PosIndex=size( Tuple ), Tuple, NewElement ).
 
 
 -doc """
@@ -3791,23 +3791,23 @@ this extra information.
 """.
 -spec augment_tuploid( tuploid(), term() ) -> tuploid().
 augment_tuploid( Tuploid, ExtraTerm ) when is_tuple( Tuploid ) ->
-	List = list_utils:append_at_end( ExtraTerm, tuple_to_list( Tuploid ) ),
-	list_to_tuple( List );
+    List = list_utils:append_at_end( ExtraTerm, tuple_to_list( Tuploid ) ),
+    list_to_tuple( List );
 
 augment_tuploid( BasicTuploid, ExtraTerm ) ->
-	{ BasicTuploid, ExtraTerm }.
+    { BasicTuploid, ExtraTerm }.
 
 
 
 -doc "Returns a textual description of the specified array.".
 -spec array_to_string( array() ) -> ustring().
 array_to_string( Array ) ->
-	case array:to_list( Array ) of
+    case array:to_list( Array ) of
 
-		[] ->
-			"empty array";
+        [] ->
+            "empty array";
 
-		L ->
-			text_utils:format( "array of ~B elements: ~p", [ length( L ), L ] )
+        L ->
+            text_utils:format( "array of ~B elements: ~p", [ length( L ), L ] )
 
-	end.
+    end.

@@ -163,7 +163,7 @@
 -define(MYR_K_BACKQUOTE, $`).    % 96
 
 -define(MYR_K_a, 97). % For 'a': neither 65 (keycode for 'A') nor 24 (scancode
-					  % of the key labelled 'A' on a French keyboard)
+                      % of the key labelled 'A' on a French keyboard)
 -define(MYR_K_b, 98). % Neither 66 nor 56
 -define(MYR_K_c, 54). % Not 67 nor 99.
 -define(MYR_K_d, 40). % Not 68.

@@ -37,11 +37,11 @@
 %
 -record( raw_bitmap, {
 
-	dimensions :: gui:dimensions(),
-	% The dimensions of that raw bitmap.
+    dimensions :: gui:dimensions(),
+    % The dimensions of that raw bitmap.
 
-	pixels :: binary()
-	% The actual content of that raw bitmap.
+    pixels :: binary()
+    % The actual content of that raw bitmap.
 
 } ).
 

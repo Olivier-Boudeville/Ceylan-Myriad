@@ -59,12 +59,12 @@ whole) was compiled with, that is either the atom 'development' or 'production'.
 
 -spec get_execution_target() -> 'production'.
 get_execution_target() ->
-	production.
+    production.
 
 -else. % exec_target_is_production
 
 -spec get_execution_target() -> 'development'.
 get_execution_target() ->
-	development.
+    development.
 
 -endif. % exec_target_is_production

@@ -29,10 +29,10 @@
 % State of a repository centralising resources.
 -record( resource_repository, {
 
-	% The (absolute) root directory (if any) whence file-based resources are
-	% loaded: (this can be an actual directory or a symbolic link)
-	%
-	root_directory :: option( file_utils:bin_directory_path() ),
+    % The (absolute) root directory (if any) whence file-based resources are
+    % loaded: (this can be an actual directory or a symbolic link)
+    %
+    root_directory :: option( file_utils:bin_directory_path() ),
 
-	% The table storing the currently-loaded resources:
-	table :: resource:resource_table() } ).
+    % The table storing the currently-loaded resources:
+    table :: resource:resource_table() } ).

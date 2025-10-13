@@ -38,9 +38,9 @@ See also the `ast_utils` module for example `ast_utils:term_to_form/1`.
 -export([ list_to_form/1, form_to_list/1, list_form_length/1,
           list_to_tuple_form/2,
           %tuple_to_form/1, form_to_tuple/1,
-		  atoms_to_form/1, form_to_atoms/1, form_to_term/1,
-		  enumerated_variables_to_form/1,
-		  get_iterated_param_name/1, get_header_params/1 ]).
+          atoms_to_form/1, form_to_atoms/1, form_to_term/1,
+          enumerated_variables_to_form/1,
+          get_iterated_param_name/1, get_header_params/1 ]).
 
 
 % Type shorthands:
@@ -70,10 +70,10 @@ See `form_to_list/1` for the reciprocal function.
 """.
 -spec list_to_form( list() ) -> form_element().
 list_to_form( _List=[] ) ->
-	{ nil, ?default_generation_location };
+    { nil, ?default_generation_location };
 
 list_to_form( _List=[ E | T ] ) ->
-	{ cons, ?default_generation_location, E, list_to_form( T ) }.
+    { cons, ?default_generation_location, E, list_to_form( T ) }.
 
 
 
@@ -87,10 +87,10 @@ See `list_to_form/1` for the reciprocal function.
 """.
 -spec form_to_list( form_element() ) -> list().
 form_to_list( { nil, _FileLoc } ) ->
-	[];
+    [];
 
 form_to_list( { cons, _FileLoc, E, NestedForm } ) ->
-	[ E | form_to_list( NestedForm ) ].
+    [ E | form_to_list( NestedForm ) ].
 
 
 
@@ -101,10 +101,10 @@ Cheaper than `length(form_to_list(MyForm))`.
 """.
 -spec list_form_length( form_element() ) -> count().
 list_form_length( { nil, _FileLoc } ) ->
-	0;
+    0;
 
 list_form_length( { cons, _FileLoc, _E, NestedForm } ) ->
-	1 + list_form_length( NestedForm ).
+    1 + list_form_length( NestedForm ).
 
 
 
@@ -129,11 +129,11 @@ For example: `{cons, FileLoc, {atom,FileLoc,a}, {cons, FileLoc,
 """.
 -spec atoms_to_form( [ atom() ] ) -> form_element().
 atoms_to_form( _AtomList=[] ) ->
-	{ nil, ?default_generation_location };
+    { nil, ?default_generation_location };
 
 atoms_to_form( _AtomList=[ Atom | H ] ) ->
-	FileLoc = ?default_generation_location,
-	{ cons, FileLoc, { atom, FileLoc, Atom }, atoms_to_form( H ) }.
+    FileLoc = ?default_generation_location,
+    { cons, FileLoc, { atom, FileLoc, Atom }, atoms_to_form( H ) }.
 
 
 
@@ -145,10 +145,10 @@ For example `['a', 'b'] = atoms_to_form( {cons, FileLoc, {atom,FileLoc,a},
 """.
 -spec form_to_atoms( form_element() ) -> [ atom() ].
 form_to_atoms( { nil, _FileLoc } ) ->
-	[];
+    [];
 
 form_to_atoms( { cons, _FileLoc, {atom,_,Atom}, NestedForm } ) ->
-	[ Atom | form_to_atoms( NestedForm ) ].
+    [ Atom | form_to_atoms( NestedForm ) ].
 
 
 
@@ -181,16 +181,16 @@ See also: `get_header_params/1`.
 """.
 -spec enumerated_variables_to_form( count() ) -> form_element().
 enumerated_variables_to_form( Count ) ->
-	enumerated_variables_to_form( Count, _Index=1 ).
+    enumerated_variables_to_form( Count, _Index=1 ).
 
 
 enumerated_variables_to_form( _Count=0, _Index ) ->
-	{ nil, ?default_generation_location };
+    { nil, ?default_generation_location };
 
 enumerated_variables_to_form( Count, Index ) ->
-	FileLoc = ?default_generation_location,
-	{ cons, FileLoc, { var, FileLoc, get_iterated_param_name( Index ) },
-	  enumerated_variables_to_form( Count-1, Index+1 ) }.
+    FileLoc = ?default_generation_location,
+    { cons, FileLoc, { var, FileLoc, get_iterated_param_name( Index ) },
+      enumerated_variables_to_form( Count-1, Index+1 ) }.
 
 
 
@@ -201,8 +201,8 @@ For example: `'Myriad_Param_4' = get_iterated_param_name(4)`.
 """.
 -spec get_iterated_param_name( count() ) -> atom().
 get_iterated_param_name( Count ) ->
-	String = text_utils:format( "Myriad_Param_~B", [ Count ] ),
-	text_utils:string_to_atom( String ).
+    String = text_utils:format( "Myriad_Param_~B", [ Count ] ),
+    text_utils:string_to_atom( String ).
 
 
 
@@ -220,15 +220,15 @@ See also `enumerated_variables_to_form/1`.
 """.
 -spec get_header_params( arity() ) -> [ form_element() ].
 get_header_params( Arity ) ->
-	get_header_params( Arity, _Acc=[] ).
+    get_header_params( Arity, _Acc=[] ).
 
 
 get_header_params( _Arity=0, Acc ) ->
-	Acc;
+    Acc;
 
 get_header_params( Arity, Acc ) ->
 
-	NewAcc = [ { var, ?default_generation_location,
-				 get_iterated_param_name( Arity ) } | Acc ],
+    NewAcc = [ { var, ?default_generation_location,
+                 get_iterated_param_name( Arity ) } | Acc ],
 
-	get_header_params( Arity-1, NewAcc ).
+    get_header_params( Arity-1, NewAcc ).

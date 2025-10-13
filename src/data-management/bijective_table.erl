@@ -53,15 +53,15 @@ Refer to:
 
 -export([ new/0, new/1,
 
-		  add_entry/2, add_entry/3, add_entries/2,
-		  add_new_entry/2, add_new_entry/3, add_new_entries/2,
+          add_entry/2, add_entry/3, add_entries/2,
+          add_new_entry/2, add_new_entry/3, add_new_entries/2,
 
-		  get_first_for/2, get_maybe_first_for/2, get_first_elements_for/2,
-		  get_second_for/2, get_maybe_second_for/2, get_second_elements_for/2,
+          get_first_for/2, get_maybe_first_for/2, get_first_elements_for/2,
+          get_second_for/2, get_maybe_second_for/2, get_second_elements_for/2,
 
-		  remove_entry_by_first/2, remove_entry_by_second/2,
+          remove_entry_by_first/2, remove_entry_by_second/2,
 
-		  to_string/1 ]).
+          to_string/1 ]).
 
 
 
@@ -115,7 +115,7 @@ Now we recommend using [ entry() ] only.
 
 
 -export_type([ bijective_table/0, bijective_table/2,
-			   entry/0, entries/0 ]).
+               entry/0, entries/0 ]).
 
 
 % Shorthands:
@@ -126,8 +126,8 @@ Now we recommend using [ entry() ] only.
 -doc "Returns a new, empty bijective table.".
 -spec new() -> bijective_table().
 new() ->
-	EmptyTable = table:new(),
-	{ EmptyTable, EmptyTable }.
+    EmptyTable = table:new(),
+    { EmptyTable, EmptyTable }.
 
 
 
@@ -138,26 +138,26 @@ specified (initial) entries.
 -spec new( entries() ) -> bijective_table().
 new( InitialEntries ) -> % list type tested by table:new/1:
 
-	FirstToSecondTable = table:new( InitialEntries ),
+    FirstToSecondTable = table:new( InitialEntries ),
 
-	Reversed = [ { Second, First } || { First, Second } <- InitialEntries ],
+    Reversed = [ { Second, First } || { First, Second } <- InitialEntries ],
 
-	SecondToFirstTable = table:new( Reversed ),
+    SecondToFirstTable = table:new( Reversed ),
 
-	% Detect any unexpected duplicate:
-	case { table:size( FirstToSecondTable ),
-		   table:size( SecondToFirstTable ) } of
+    % Detect any unexpected duplicate:
+    case { table:size( FirstToSecondTable ),
+           table:size( SecondToFirstTable ) } of
 
-		{ S, S } ->
-			{ FirstToSecondTable, SecondToFirstTable };
+        { S, S } ->
+            { FirstToSecondTable, SecondToFirstTable };
 
-		%P={ S1, S2 } ->
-		P ->
-			throw( { non_bijective_sets, P,
-					 table:enumerate( FirstToSecondTable ),
-					 table:enumerate( SecondToFirstTable ) } )
+        %P={ S1, S2 } ->
+        P ->
+            throw( { non_bijective_sets, P,
+                     table:enumerate( FirstToSecondTable ),
+                     table:enumerate( SecondToFirstTable ) } )
 
-	end.
+    end.
 
 
 
@@ -167,12 +167,12 @@ table, possibly overwriting any already-existing entry, and returns this
 enriched table.
 """.
 -spec add_entry( first_type(), second_type(), bijective_table() ) ->
-												bijective_table().
+                                                bijective_table().
 add_entry( First, Second,
-		   _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
-	NewFirstTable = table:add_entry( First, Second, FirstToSecondTable ),
-	NewSecondTable = table:add_entry( Second, First, SecondToFirstTable ),
-	{ NewFirstTable, NewSecondTable }.
+           _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
+    NewFirstTable = table:add_entry( First, Second, FirstToSecondTable ),
+    NewSecondTable = table:add_entry( Second, First, SecondToFirstTable ),
+    { NewFirstTable, NewSecondTable }.
 
 
 
@@ -182,7 +182,7 @@ any already-existing entry, and returns this enriched table.
 """.
 -spec add_entry( entry(), bijective_table() ) -> bijective_table().
 add_entry( _Entry={ First, Second }, BijTable ) ->
-	add_entry( First, Second, BijTable ).
+    add_entry( First, Second, BijTable ).
 
 
 
@@ -192,11 +192,11 @@ overwriting any already-existing entries, and returns this enriched table.
 """.
 -spec add_entries( entries(), bijective_table() ) -> bijective_table().
 add_entries( Entries, BijTable ) ->
-	lists:foldl( fun( E, BijTableAcc ) ->
-					add_entry( E, BijTableAcc )
-				 end,
-				 _List=Entries,
-				 _InitialAcc=BijTable ).
+    lists:foldl( fun( E, BijTableAcc ) ->
+                    add_entry( E, BijTableAcc )
+                 end,
+                 _List=Entries,
+                 _InitialAcc=BijTable ).
 
 
 
@@ -207,12 +207,12 @@ table, none expected to be already registered, and returns this enriched table.
 Throws an exception should an element happened to be already registered.
 """.
 -spec add_new_entry( first_type(), second_type(), bijective_table() ) ->
-												bijective_table().
+                                                bijective_table().
 add_new_entry( First, Second,
-			   _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
-	NewFirstTable = table:add_new_entry( First, Second, FirstToSecondTable ),
-	NewSecondTable = table:add_new_entry( Second, First, SecondToFirstTable ),
-	{ NewFirstTable, NewSecondTable }.
+               _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
+    NewFirstTable = table:add_new_entry( First, Second, FirstToSecondTable ),
+    NewSecondTable = table:add_new_entry( Second, First, SecondToFirstTable ),
+    { NewFirstTable, NewSecondTable }.
 
 
 
@@ -222,7 +222,7 @@ element expected to be already registered, and returns this enriched table.
 """.
 -spec add_new_entry( entry(), bijective_table() ) -> bijective_table().
 add_new_entry( _Entry={ First, Second }, BijTable ) ->
-	add_new_entry( First, Second, BijTable ).
+    add_new_entry( First, Second, BijTable ).
 
 
 
@@ -232,11 +232,11 @@ of the pairs expected to be already registered, and returns this enriched table.
 """.
 -spec add_new_entries( entries(), bijective_table() ) -> bijective_table().
 add_new_entries( Entries, BijTable ) ->
-	lists:foldl( fun( E, BijTableAcc ) ->
-					add_new_entry( E, BijTableAcc )
-				 end,
-				 _List=Entries,
-				 _InitialAcc=BijTable ).
+    lists:foldl( fun( E, BijTableAcc ) ->
+                    add_new_entry( E, BijTableAcc )
+                 end,
+                 _List=Entries,
+                 _InitialAcc=BijTable ).
 
 
 
@@ -246,8 +246,8 @@ of the second type.
 """.
 -spec get_first_for( second_type(), bijective_table() ) -> first_type().
 get_first_for( Second,
-			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
-	table:get_value( Second, SecondToFirstTable ).
+               _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+    table:get_value( Second, SecondToFirstTable ).
 
 
 
@@ -256,18 +256,18 @@ Returns the element of the first type (if any) that corresponds to the specified
 element of the second type.
 """.
 -spec get_maybe_first_for( second_type(), bijective_table() ) ->
-											option( first_type() ).
+                                            option( first_type() ).
 get_maybe_first_for( Second,
-				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
-	case table:lookup_entry( Second, SecondToFirstTable ) of
+                _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+    case table:lookup_entry( Second, SecondToFirstTable ) of
 
-		key_not_found ->
-			undefined;
+        key_not_found ->
+            undefined;
 
-		{ value, First } ->
-			First
+        { value, First } ->
+            First
 
-	end.
+    end.
 
 
 
@@ -276,10 +276,10 @@ Returns the elements of the first type that correspond to the specified elements
 of the second type.
 """.
 -spec get_first_elements_for( [ second_type() ], bijective_table() ) ->
-											[ first_type() ].
+                                            [ first_type() ].
 get_first_elements_for( SecondElems,
-				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
-	table:get_values( SecondElems, SecondToFirstTable ).
+                _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+    table:get_values( SecondElems, SecondToFirstTable ).
 
 
 
@@ -289,8 +289,8 @@ of the first type.
 """.
 -spec get_second_for( first_type(), bijective_table() ) -> second_type().
 get_second_for( First,
-				_BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
-	table:get_value( First, FirstToSecondTable ).
+                _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
+    table:get_value( First, FirstToSecondTable ).
 
 
 
@@ -299,18 +299,18 @@ Returns the element of the second type (if any) that corresponds to the
 specified element of the first type.
 """.
 -spec get_maybe_second_for( first_type(), bijective_table() ) ->
-											option( second_type() ).
+                                            option( second_type() ).
 get_maybe_second_for( First,
-					  _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
-	case table:lookup_entry( First, FirstToSecondTable ) of
+                      _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
+    case table:lookup_entry( First, FirstToSecondTable ) of
 
-		key_not_found ->
-			undefined;
+        key_not_found ->
+            undefined;
 
-		{ value, Second } ->
-			Second
+        { value, Second } ->
+            Second
 
-	end.
+    end.
 
 
 
@@ -319,10 +319,10 @@ Returns the elements of the first type that correspond to the specified elements
 of the first type.
 """.
 -spec get_second_elements_for( [ first_type() ], bijective_table() ) ->
-											[ second_type() ].
+                                            [ second_type() ].
 get_second_elements_for( FirstElems,
-				_BijTable={ _SecondToFirstTable, FirstSecondtoTable } ) ->
-	table:get_values( FirstElems, FirstSecondtoTable ).
+                _BijTable={ _SecondToFirstTable, FirstSecondtoTable } ) ->
+    table:get_values( FirstElems, FirstSecondtoTable ).
 
 
 
@@ -335,13 +335,13 @@ Throws an exception if the corresponding entry is not found.
 Returns an updated table.
 """.
 -spec remove_entry_by_first( first_type(), bijective_table() ) ->
-											bijective_table().
+                                            bijective_table().
 remove_entry_by_first( First,
-				_BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
-	Second = table:get_value( First, FirstToSecondTable ),
-	ShrunkFirstTable = table:remove_entry( First, FirstToSecondTable ),
-	ShrunkSecondTable = table:remove_entry( Second, SecondToFirstTable ),
-	{ ShrunkFirstTable, ShrunkSecondTable }.
+                _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
+    Second = table:get_value( First, FirstToSecondTable ),
+    ShrunkFirstTable = table:remove_entry( First, FirstToSecondTable ),
+    ShrunkSecondTable = table:remove_entry( Second, SecondToFirstTable ),
+    { ShrunkFirstTable, ShrunkSecondTable }.
 
 
 
@@ -354,13 +354,13 @@ Throws an exception if the corresponding entry is not found.
 Returns an updated table.
 """.
 -spec remove_entry_by_second( second_type(), bijective_table() ) ->
-												bijective_table().
+                                                bijective_table().
 remove_entry_by_second( Second,
-				_BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
-	First = table:get_value( Second, SecondToFirstTable ),
-	ShrunkFirstTable = table:remove_entry( First, FirstToSecondTable ),
-	ShrunkSecondTable = table:remove_entry( Second, SecondToFirstTable ),
-	{ ShrunkFirstTable, ShrunkSecondTable }.
+                _BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
+    First = table:get_value( Second, SecondToFirstTable ),
+    ShrunkFirstTable = table:remove_entry( First, FirstToSecondTable ),
+    ShrunkSecondTable = table:remove_entry( Second, SecondToFirstTable ),
+    { ShrunkFirstTable, ShrunkSecondTable }.
 
 
 
@@ -368,16 +368,16 @@ remove_entry_by_second( Second,
 -spec to_string( bijective_table() ) -> ustring().
 to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 
-	case lists:sort( table:enumerate( FirstToSecondTable ) ) of
+    case lists:sort( table:enumerate( FirstToSecondTable ) ) of
 
-		[] ->
-			"empty bijective table";
+        [] ->
+            "empty bijective table";
 
-		Elems ->
-			text_utils:format( "bijective table containing ~B element(s): ~ts",
-				[ table:size( FirstToSecondTable ),
-				  text_utils:strings_to_string(
-					[ text_utils:format( "~p <-> ~p", [ F, S ] )
-						|| { F, S } <- Elems ] ) ] )
+        Elems ->
+            text_utils:format( "bijective table containing ~B element(s): ~ts",
+                [ table:size( FirstToSecondTable ),
+                  text_utils:strings_to_string(
+                    [ text_utils:format( "~p <-> ~p", [ F, S ] )
+                        || { F, S } <- Elems ] ) ] )
 
-	end.
+    end.

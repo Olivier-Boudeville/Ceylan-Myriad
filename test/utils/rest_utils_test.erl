@@ -42,26 +42,26 @@ See the rest_utils.erl tested module.
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
-	case json_utils:is_parser_available() of
+    case json_utils:is_parser_available() of
 
-		true ->
-			test_facilities:display( "JSON parser is available." );
+        true ->
+            test_facilities:display( "JSON parser is available." );
 
-		false ->
-			test_facilities:display( "Warning: no JSON parser available, "
-									 "test stops here." ),
-			test_facilities:stop()
+        false ->
+            test_facilities:display( "Warning: no JSON parser available, "
+                                     "test stops here." ),
+            test_facilities:stop()
 
-	end,
+    end,
 
-	test_facilities:display( "Starting REST services." ),
-	rest_utils:start(),
-
-
-	test_facilities:display( "Stopping REST services." ),
-	rest_utils:stop(),
+    test_facilities:display( "Starting REST services." ),
+    rest_utils:start(),
 
 
-	test_facilities:stop().
+    test_facilities:display( "Stopping REST services." ),
+    rest_utils:stop(),
+
+
+    test_facilities:stop().

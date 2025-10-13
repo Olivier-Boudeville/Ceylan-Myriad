@@ -143,7 +143,7 @@ Example: `{"User-Agent", "Godzilla The Mighty"}`.
 
 
 -type http_option() :: % Not exported yet: httpc:http_option().
-					   any().
+                       any().
 
 
 -type options_for_httpc() :: [ http_option() ].
@@ -151,7 +151,7 @@ Example: `{"User-Agent", "Godzilla The Mighty"}`.
 -type list_options() :: [ { atom(), term() } ].
 
 -type map_options() :: % Not exported yet: maps:maps( atom(), term() ).
-					   table().
+                       table().
 
 -type http_options() :: options_for_httpc() | map_options().
 
@@ -159,7 +159,7 @@ Example: `{"User-Agent", "Godzilla The Mighty"}`.
 
 
 -type request_result() :: { http_status_code(), headers_as_maps(), bin_body() }
-						| { 'error', basic_utils:error_reason() }.
+                        | { 'error', basic_utils:error_reason() }.
 
 
 -type location() :: atom().
@@ -191,24 +191,24 @@ For example `"<p>Hello!</p>"`.
 -doc "There are five classes defined by the standard for HTTP status codes.".
 -type http_status_class() ::
 
-	% 1xx informational response: the request was received, continuing process:
-	'informational_response'
+    % 1xx informational response: the request was received, continuing process:
+    'informational_response'
 
-	% 2xx successful: the request was successfully received, understood, and
-	% accepted:
-	%
-	| 'successful'
+    % 2xx successful: the request was successfully received, understood, and
+    % accepted:
+    %
+    | 'successful'
 
-	% 3xx redirection: further action needs to be taken in order to complete the
-	% request:
-	%
-	| 'redirection'
+    % 3xx redirection: further action needs to be taken in order to complete the
+    % request:
+    %
+    | 'redirection'
 
-	% 4xx client error: the request contains bad syntax or cannot be fulfilled
-	| 'client_error'
+    % 4xx client error: the request contains bad syntax or cannot be fulfilled
+    | 'client_error'
 
-	% 5xx server error: the server failed to fulfill an apparently valid request
-	| 'server_error'.
+    % 5xx server error: the server failed to fulfill an apparently valid request
+    | 'server_error'.
 
 
 
@@ -284,50 +284,50 @@ For example `<<"francecentral">>`.
 
 
 -export_type([ ssl_opt/0,
-			   url/0, bin_url/0, any_url/0,
-			   uri/0, bin_uri/0, any_uri/0,
-			   protocol_type/0, path/0, url_info/0,
+               url/0, bin_url/0, any_url/0,
+               uri/0, bin_uri/0, any_uri/0,
+               protocol_type/0, path/0, url_info/0,
 
-			   body/0, string_body/0, bin_body/0, json_body/0,
-			   headers/0, map_options/0,
-			   http_option/0, http_options/0, ssl_options/0,
-			   location/0, nonce/0,
+               body/0, string_body/0, bin_body/0, json_body/0,
+               headers/0, map_options/0,
+               http_option/0, http_options/0, ssl_options/0,
+               location/0, nonce/0,
 
-			   media_type/0,
-			   html_element/0, http_status_class/0, http_status_code/0,
+               media_type/0,
+               html_element/0, http_status_class/0, http_status_code/0,
 
-			   cloud_provider/0,
-			   service_endpoint/0, api_endpoint/0,
-			   instance_key/0, cloud_instance_info/0,
+               cloud_provider/0,
+               service_endpoint/0, api_endpoint/0,
+               instance_key/0, cloud_instance_info/0,
 
-			   azure_instance_info/0, azure_instance_key/0,
-			   azure_instance_location/0 ]).
+               azure_instance_info/0, azure_instance_key/0,
+               azure_instance_location/0 ]).
 
 
 % HTTP-related section:
 
 % URL subsection:
 -export([ encode_as_url/1, encode_element_as_url/1, escape_as_url/1,
-		  get_last_path_element/1,
+          get_last_path_element/1,
 
-		  % Deprecated in favor of the standard uri_string module:
-		  url_info_to_string/1, string_to_url_info/1, string_to_uri_map/1 ]).
+          % Deprecated in favor of the standard uri_string module:
+          url_info_to_string/1, string_to_url_info/1, string_to_uri_map/1 ]).
 
 
 % HTML-related section:
 -export([ get_ordered_list/1, get_unordered_list/1,
 
-		  escape_as_html_content/1, escape_term_as_html_content/1,
+          escape_as_html_content/1, escape_term_as_html_content/1,
 
-		  get_http_status_class/1, http_status_class_to_string/1,
-		  interpret_http_status_code/1 ]).
+          get_http_status_class/1, http_status_class_to_string/1,
+          interpret_http_status_code/1 ]).
 
 
 % HTTP-related operations:
 -export([ start/0, start/1,
-		  request/6, get/3, post/3, post/4, post/5,
-		  download_file/2, download_file/3,
-		  stop/0 ]).
+          request/6, get/3, post/3, post/4, post/5,
+          download_file/2, download_file/3,
+          stop/0 ]).
 
 
 % SSL-related operations:
@@ -399,28 +399,28 @@ See also `escape_as_url/1` for some more specific uses.
 """.
 -spec encode_as_url( option_list() ) -> ustring().
 encode_as_url( OptionList ) ->
-	encode_as_url( OptionList, _Acc=[] ).
+    encode_as_url( OptionList, _Acc=[] ).
 
 encode_as_url( _OptionList=[], Acc ) ->
-	Acc;
+    Acc;
 
 % First entry:
 encode_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
-	encode_as_url( T,
-		encode_element_as_url( Key ) ++ "=" ++ encode_element_as_url( Value ) );
+    encode_as_url( T,
+        encode_element_as_url( Key ) ++ "=" ++ encode_element_as_url( Value ) );
 
 encode_as_url( [ { Key, Value } | T ], Acc ) ->
-	encode_as_url( T, Acc ++ "&" ++ encode_element_as_url( Key ) ++ "="
-						  ++ encode_element_as_url( Value ) ).
+    encode_as_url( T, Acc ++ "&" ++ encode_element_as_url( Key ) ++ "="
+                          ++ encode_element_as_url( Value ) ).
 
 
 
 -doc "Encodes specified element so that it can be used in an URL.".
 -spec encode_element_as_url( ustring() ) -> ustring().
 encode_element_as_url( E ) ->
-	% They seem to produce quite similar results in our few test cases:
-	edoc_lib:escape_uri( E ).
-	%encode_uri_rfc3986:encode( E ).
+    % They seem to produce quite similar results in our few test cases:
+    edoc_lib:escape_uri( E ).
+    %encode_uri_rfc3986:encode( E ).
 
 
 
@@ -433,33 +433,33 @@ should be preferred in most cases.
 """.
 -spec escape_as_url( option_list() ) -> ustring().
 escape_as_url( OptionList ) ->
-	%trace_utils:debug_fmt( "~n~nEscaping '~p'.", [ OptionList ] ),
-	escape_as_url( OptionList, _Acc=[] ).
+    %trace_utils:debug_fmt( "~n~nEscaping '~p'.", [ OptionList ] ),
+    escape_as_url( OptionList, _Acc=[] ).
 
 escape_as_url( _OptionList=[], Acc ) ->
-	Acc;
+    Acc;
 
 % First entry:
 escape_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
-	escape_as_url( T, escape_key( Key ) ++ "=" ++ escape_value( Value ) );
+    escape_as_url( T, escape_key( Key ) ++ "=" ++ escape_value( Value ) );
 
 escape_as_url( [ { Key, Value } | T ], Acc ) ->
-	escape_as_url( T, Acc ++ "&" ++ escape_key( Key ) ++ "="
-		++ escape_value( Value ) ).
+    escape_as_url( T, Acc ++ "&" ++ escape_key( Key ) ++ "="
+        ++ escape_value( Value ) ).
 
 
 
 -doc "Escapes the specified element so that it can be used in some URL.".
 -spec escape_key( option_list:key() ) -> ustring().
 escape_key( Key ) when is_atom( Key ) ->
-	text_utils:atom_to_string( Key ).
+    text_utils:atom_to_string( Key ).
 
 
 -spec escape_value( ustring() ) -> ustring().
 escape_value( String ) ->
-	R = lists:flatten( [ escape_char( C ) || C <- String ] ),
-	%trace_utils:debug_fmt( "'~ts' became '~ts'.", [ String, R ] ),
-	R.
+    R = lists:flatten( [ escape_char( C ) || C <- String ] ),
+    %trace_utils:debug_fmt( "'~ts' became '~ts'.", [ String, R ] ),
+    R.
 
 
 
@@ -469,20 +469,20 @@ Escapes the specified character.
 Alphanumerical characters are left as are.
 """.
 escape_char( C ) when C >= 48 andalso C =< 57 ->
-	% 0..9 kept as is:
-	C;
+    % 0..9 kept as is:
+    C;
 
 escape_char( C ) when C >= 65 andalso C =< 90 ->
-	% A..Z kept as is:
-	C;
+    % A..Z kept as is:
+    C;
 
 escape_char( C ) when C >= 97 andalso C =< 122 ->
-	% a..z kept as is:
-	C;
+    % a..z kept as is:
+    C;
 
 escape_char( C ) ->
-	% Everything else is blindly encoded:
-	io_lib:format( "%~ts", [ integer_to_list( C, _HexBase=16 ) ] ).
+    % Everything else is blindly encoded:
+    io_lib:format( "%~ts", [ integer_to_list( C, _HexBase=16 ) ] ).
 
 
 
@@ -497,17 +497,17 @@ For example:
 """.
 -spec get_last_path_element( url() ) -> file_name().
 get_last_path_element( Url ) ->
-	% Hackish yet working perfectly:
-	filename:basename( Url ).
+    % Hackish yet working perfectly:
+    filename:basename( Url ).
 
 
 
 -doc "Returns a string describing the specified URL information.".
 -spec url_info_to_string( url_info() ) -> ustring().
 url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
-							   port=Port, path=Path } ) ->
-	text_utils:format( "~ts://~ts:~B/~ts",
-		[ Protocol, net_utils:host_to_string( Host ), Port, Path ] ).
+                               port=Port, path=Path } ) ->
+    text_utils:format( "~ts://~ts:~B/~ts",
+        [ Protocol, net_utils:host_to_string( Host ), Port, Path ] ).
 
 
 
@@ -524,34 +524,34 @@ function remains mostly for backward compatibility.
 -spec string_to_url_info( ustring() ) -> url_info().
 string_to_url_info( String ) ->
 
-	% Deprecated http_uri:parse/1 was used previously, now relying on (available
-	% since Erlang 23.0):
-	%
-	#{ % fragment => unicode:chardata(),
+    % Deprecated http_uri:parse/1 was used previously, now relying on (available
+    % since Erlang 23.0):
+    %
+    #{ % fragment => unicode:chardata(),
 
-	   % host => unicode:chardata(),
-	   host := Host,
+       % host => unicode:chardata(),
+       host := Host,
 
-	   % path => unicode:chardata(),
-	   path := Path,
+       % path => unicode:chardata(),
+       path := Path,
 
-	   % port => integer() >= 0 | undefined,
-	   port := MaybePort,
+       % port => integer() >= 0 | undefined,
+       port := MaybePort,
 
-	   % query => unicode:chardata(),
+       % query => unicode:chardata(),
 
-	   % scheme => unicode:chardata(),
-	   scheme := Scheme
+       % scheme => unicode:chardata(),
+       scheme := Scheme
 
-	   %userinfo => unicode:chardata()
+       %userinfo => unicode:chardata()
 
-		} = string_to_uri_map( String ),
+        } = string_to_uri_map( String ),
 
-	% Hope for the best:
-	SchemeStr = text_utils:string_to_atom( Scheme ),
+    % Hope for the best:
+    SchemeStr = text_utils:string_to_atom( Scheme ),
 
-	#url_info{ protocol=SchemeStr, host_identifier=Host, port=MaybePort,
-			   path=Path }.
+    #url_info{ protocol=SchemeStr, host_identifier=Host, port=MaybePort,
+               path=Path }.
 
 
 
@@ -564,15 +564,15 @@ Throws an exception on failure.
 -spec string_to_uri_map( ustring() ) -> uri_string:uri_map().
 string_to_uri_map( String ) ->
 
-	case uri_string:parse( String ) of
+    case uri_string:parse( String ) of
 
-		{ error, ReasonAtom, ReasonTerm } ->
-			throw( { uri_parsing_failed, String, ReasonAtom, ReasonTerm } );
+        { error, ReasonAtom, ReasonTerm } ->
+            throw( { uri_parsing_failed, String, ReasonAtom, ReasonTerm } );
 
-		URIMap ->
-			URIMap
+        URIMap ->
+            URIMap
 
-	end.
+    end.
 
 
 
@@ -587,10 +587,10 @@ specified list of elements.
 -spec get_ordered_list( [ html_element() ] ) -> html_element().
 get_ordered_list( Elements ) ->
 
-	HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
-					|| E <- Elements ],
+    HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
+                    || E <- Elements ],
 
-	text_utils:format( "  <ol>~n~ts  </ol>~n", [ lists:flatten( HTMLElems ) ] ).
+    text_utils:format( "  <ol>~n~ts  </ol>~n", [ lists:flatten( HTMLElems ) ] ).
 
 
 
@@ -601,10 +601,10 @@ elements.
 -spec get_unordered_list( [ html_element() ] ) -> html_element().
 get_unordered_list( Elements ) ->
 
-	HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
-					|| E <- Elements ],
+    HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
+                    || E <- Elements ],
 
-	text_utils:format( "  <ul>~n~ts  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
+    text_utils:format( "  <ul>~n~ts  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
 
 
 
@@ -616,11 +616,11 @@ Returns an HTML element, as a plain string.
 """.
 -spec escape_as_html_content( any_string() ) -> html_element().
 escape_as_html_content( BinString ) when is_binary( BinString ) ->
-	escape_as_html_content( text_utils:binary_to_string( BinString ) );
+    escape_as_html_content( text_utils:binary_to_string( BinString ) );
 
 escape_as_html_content( String ) ->
-	% Flatten needed if having an IO list as input:
-	escape_as_html_content( text_utils:to_unicode_list( String ), _Acc=[] ).
+    % Flatten needed if having an IO list as input:
+    escape_as_html_content( text_utils:to_unicode_list( String ), _Acc=[] ).
 
 
 
@@ -633,35 +633,35 @@ escape_as_html_content( String ) ->
 %
 % (helper)
 escape_as_html_content( _String=[], Acc ) ->
-	lists:reverse( text_utils:to_unicode_list( Acc ) );
+    lists:reverse( text_utils:to_unicode_list( Acc ) );
 
 % Replacements are pre-reversed:
 escape_as_html_content( _String=[ $& | T ], Acc ) ->
-	escape_as_html_content( T, [ ";pma&" | Acc ] ) ;
+    escape_as_html_content( T, [ ";pma&" | Acc ] ) ;
 
 escape_as_html_content( _String=[ $< | T ], Acc ) ->
-	escape_as_html_content( T, [ ";tl&" | Acc ] ) ;
+    escape_as_html_content( T, [ ";tl&" | Acc ] ) ;
 
 % Not strictly necessary for HTML:
 escape_as_html_content( _String=[ $> | T ], Acc ) ->
-	escape_as_html_content( T, [ ";tg&" | Acc ] ) ;
+    escape_as_html_content( T, [ ";tg&" | Acc ] ) ;
 
 % These two clauses apply only inside of attribute values, yet are a general,
 % safer measure:
 %
 escape_as_html_content( _String=[ $" | T ], Acc ) ->
-	escape_as_html_content( T, [ ";touq&" | Acc ] ) ;
+    escape_as_html_content( T, [ ";touq&" | Acc ] ) ;
 
 % Not strictly necessary for HTML; even in XML, single quotes only need to be
 % escaped if they occur in an attribute value enclosed by single quotes.
 %
 escape_as_html_content( _String=[ $' | T ], Acc ) ->
-	%escape_as_html_content( T, [ ";93#&" | Acc ] ) ;
-	escape_as_html_content( T, [ ";sopa&" | Acc ] ) ;
+    %escape_as_html_content( T, [ ";93#&" | Acc ] ) ;
+    escape_as_html_content( T, [ ";sopa&" | Acc ] ) ;
 
 % All others:
 escape_as_html_content( _String=[ Other | T ], Acc ) ->
-	escape_as_html_content( T, [ Other | Acc ] ).
+    escape_as_html_content( T, [ Other | Acc ] ).
 
 
 
@@ -671,7 +671,7 @@ included safely as an HTML content.
 """.
 -spec escape_term_as_html_content( term() ) -> html_element().
 escape_term_as_html_content( Term ) ->
-	escape_as_html_content( text_utils:term_to_string( Term ) ).
+    escape_as_html_content( text_utils:term_to_string( Term ) ).
 
 
 
@@ -680,57 +680,57 @@ Returns the status class (if any) corresponding to the specified HTTP status
 code.
 """.
 -spec get_http_status_class( http_status_code() ) ->
-								option( http_status_class() ).
+                                option( http_status_class() ).
 get_http_status_class( StatusCode )
-							when StatusCode >= 100 andalso StatusCode < 200 ->
-	informational_response;
+                            when StatusCode >= 100 andalso StatusCode < 200 ->
+    informational_response;
 
 get_http_status_class( StatusCode )
-							when StatusCode >= 200 andalso StatusCode < 300 ->
-	successful;
+                            when StatusCode >= 200 andalso StatusCode < 300 ->
+    successful;
 
 get_http_status_class( StatusCode )
-							when StatusCode >= 300 andalso StatusCode < 400 ->
-	redirection;
+                            when StatusCode >= 300 andalso StatusCode < 400 ->
+    redirection;
 
 get_http_status_class( StatusCode )
-							when StatusCode >= 400 andalso StatusCode < 500 ->
-	client_error;
+                            when StatusCode >= 400 andalso StatusCode < 500 ->
+    client_error;
 
 get_http_status_class( StatusCode )
-							when StatusCode >= 500 andalso StatusCode < 600 ->
-	server_error;
+                            when StatusCode >= 500 andalso StatusCode < 600 ->
+    server_error;
 
 get_http_status_class( StatusCode ) when is_integer( StatusCode ) ->
-	undefined;
+    undefined;
 
 get_http_status_class( StatusCode ) ->
-	throw( { invalid_status_code, StatusCode } ).
+    throw( { invalid_status_code, StatusCode } ).
 
 
 
 -doc "Returns a textual description of the specified HTTP status class.".
 -spec http_status_class_to_string( option( http_status_class() ) ) -> ustring().
 http_status_class_to_string( informational_response ) ->
-	"informational response";
+    "informational response";
 
 http_status_class_to_string( successful ) ->
-	"action success";
+    "action success";
 
 http_status_class_to_string( redirection ) ->
-	"additional action needed";
+    "additional action needed";
 
 http_status_class_to_string( client_error ) ->
-	"client-side error";
+    "client-side error";
 
 http_status_class_to_string( server_error ) ->
-	"server-side error";
+    "server-side error";
 
 http_status_class_to_string( undefined ) ->
-	"unknown status class";
+    "unknown status class";
 
 http_status_class_to_string( Other ) ->
-	throw( { invalid_status_class, Other } ).
+    throw( { invalid_status_class, Other } ).
 
 
 
@@ -741,215 +741,215 @@ Source is [https://en.wikipedia.org/wiki/List_of_HTTP_status_codes].
 """.
 -spec interpret_http_status_code( http_status_code() ) -> ustring().
 interpret_http_status_code( StatusCode ) ->
-	text_utils:format( "~ts (code ~B: ~ts)", [
-		interpret_http_status_code_helper( StatusCode ), StatusCode,
-		http_status_class_to_string( get_http_status_class( StatusCode ) ) ] ).
+    text_utils:format( "~ts (code ~B: ~ts)", [
+        interpret_http_status_code_helper( StatusCode ), StatusCode,
+        http_status_class_to_string( get_http_status_class( StatusCode ) ) ] ).
 
 
 % (helper)
 %
 % informational_response class:
 interpret_http_status_code_helper( _StatusCode=100 ) ->
-	"continue";
+    "continue";
 
 interpret_http_status_code_helper( _StatusCode=101 ) ->
-	"switching protocols";
+    "switching protocols";
 
 interpret_http_status_code_helper( _StatusCode=102 ) ->
-	"processing WebDAV";
+    "processing WebDAV";
 
 interpret_http_status_code_helper( _StatusCode=103 ) ->
-	"early hints";
+    "early hints";
 
 
 % successful class:
 interpret_http_status_code_helper( _StatusCode=200 ) ->
-	"successful request";
+    "successful request";
 
 interpret_http_status_code_helper( _StatusCode=201 ) ->
-	"resource created";
+    "resource created";
 
 interpret_http_status_code_helper( _StatusCode=202 ) ->
-	"request accepted";
+    "request accepted";
 
 interpret_http_status_code_helper( _StatusCode=203 ) ->
-	"non-authoritative information";
+    "non-authoritative information";
 
 interpret_http_status_code_helper( _StatusCode=204) ->
-	"returning no content";
+    "returning no content";
 
 interpret_http_status_code_helper( _StatusCode=205 ) ->
-	"reset view requested";
+    "reset view requested";
 
 interpret_http_status_code_helper( _StatusCode=206 ) ->
-	"partial content delivered";
+    "partial content delivered";
 
 interpret_http_status_code_helper( _StatusCode=207 ) ->
-	"multi-status WebDAV returned";
+    "multi-status WebDAV returned";
 
 interpret_http_status_code_helper( _StatusCode=208 ) ->
-	"DAV members already reported";
+    "DAV members already reported";
 
 interpret_http_status_code_helper( _StatusCode=226 ) ->
-	"IM used";
+    "IM used";
 
 
 % redirection class:
 interpret_http_status_code_helper( _StatusCode=300 ) ->
-	"multiple options fo resource";
+    "multiple options fo resource";
 
 interpret_http_status_code_helper( _StatusCode=301 ) ->
-	"resource moved permanently";
+    "resource moved permanently";
 
 interpret_http_status_code_helper( _StatusCode=302 ) ->
-	"resource found";
+    "resource found";
 
 interpret_http_status_code_helper( _StatusCode=303 ) ->
-	"get from other URI";
+    "get from other URI";
 
 interpret_http_status_code_helper( _StatusCode=304 ) ->
-	"resource still the same";
+    "resource still the same";
 
 interpret_http_status_code_helper( _StatusCode=305 ) ->
-	"switch to proxy";
+    "switch to proxy";
 
 interpret_http_status_code_helper( _StatusCode=306 ) ->
-	"use proxy";
+    "use proxy";
 
 interpret_http_status_code_helper( _StatusCode=307 ) ->
-	"temporary redirection";
+    "temporary redirection";
 
 interpret_http_status_code_helper( _StatusCode=308 ) ->
-	"permanent redirection";
+    "permanent redirection";
 
 
 % client_error class:
 
 interpret_http_status_code_helper( _StatusCode=400 ) ->
-	"invalid request";
+    "invalid request";
 
 interpret_http_status_code_helper( _StatusCode=401 ) ->
-	"unauthorized";
+    "unauthorized";
 
 interpret_http_status_code_helper( _StatusCode=402 ) ->
-	"payment required";
+    "payment required";
 
 interpret_http_status_code_helper( _StatusCode=403 ) ->
-	"forbidden action";
+    "forbidden action";
 
 interpret_http_status_code_helper( _StatusCode=404 ) ->
-	"resource not found";
+    "resource not found";
 
 interpret_http_status_code_helper( _StatusCode=405 ) ->
-	"method not allowed";
+    "method not allowed";
 
 interpret_http_status_code_helper( _StatusCode=406 ) ->
-	"not acceptable";
+    "not acceptable";
 
 interpret_http_status_code_helper( _StatusCode=407 ) ->
-	"proxy authentication required";
+    "proxy authentication required";
 
 interpret_http_status_code_helper( _StatusCode=408 ) ->
-	"request timeout";
+    "request timeout";
 
 interpret_http_status_code_helper( _StatusCode=409 ) ->
-	"resource state conflict";
+    "resource state conflict";
 
 interpret_http_status_code_helper( _StatusCode=410 ) ->
-	"resource gone for good";
+    "resource gone for good";
 
 interpret_http_status_code_helper( _StatusCode=411 ) ->
-	"length required";
+    "length required";
 
 interpret_http_status_code_helper( _StatusCode=412 ) ->
-	"precondition failed";
+    "precondition failed";
 
 interpret_http_status_code_helper( _StatusCode=413 ) ->
-	"payload too large";
+    "payload too large";
 
 interpret_http_status_code_helper( _StatusCode=414 ) ->
-	"URI too long";
+    "URI too long";
 
 interpret_http_status_code_helper( _StatusCode=415 ) ->
-	"unsupported media type";
+    "unsupported media type";
 
 interpret_http_status_code_helper( _StatusCode=416 ) ->
-	"range not satisfiable";
+    "range not satisfiable";
 
 interpret_http_status_code_helper( _StatusCode=417 ) ->
-	"expectation failed";
+    "expectation failed";
 
 interpret_http_status_code_helper( _StatusCode=418 ) ->
-	"I'm a teapot";
+    "I'm a teapot";
 
 interpret_http_status_code_helper( _StatusCode=421 ) ->
-	"misdirected request";
+    "misdirected request";
 
 interpret_http_status_code_helper( _StatusCode=422 ) ->
-	"unprocessable entity";
+    "unprocessable entity";
 
 interpret_http_status_code_helper( _StatusCode=423 ) ->
-	"resource locked";
+    "resource locked";
 
 interpret_http_status_code_helper( _StatusCode=424 ) ->
-	"failed dependency";
+    "failed dependency";
 
 interpret_http_status_code_helper( _StatusCode=425 ) ->
-	"too early";
+    "too early";
 
 interpret_http_status_code_helper( _StatusCode=426 ) ->
-	"upgrade required";
+    "upgrade required";
 
 interpret_http_status_code_helper( _StatusCode=428 ) ->
-	"precondition required";
+    "precondition required";
 
 interpret_http_status_code_helper( _StatusCode=429 ) ->
-	"too many requests";
+    "too many requests";
 
 interpret_http_status_code_helper( _StatusCode=431 ) ->
-	"request header fields too large";
+    "request header fields too large";
 
 interpret_http_status_code_helper( _StatusCode=451 ) ->
-	"unavailable for legal reasons";
+    "unavailable for legal reasons";
 
 
 % server_error class:
 interpret_http_status_code_helper( _StatusCode=500 ) ->
-	"internal server error";
+    "internal server error";
 
 interpret_http_status_code_helper( _StatusCode=501 ) ->
-	"not implemented";
+    "not implemented";
 
 interpret_http_status_code_helper( _StatusCode=502 ) ->
-	"bad gateway";
+    "bad gateway";
 
 interpret_http_status_code_helper( _StatusCode=503 ) ->
-	"service unavailable";
+    "service unavailable";
 
 interpret_http_status_code_helper( _StatusCode=504 ) ->
-	"gateway timeout";
+    "gateway timeout";
 
 interpret_http_status_code_helper( _StatusCode=505 ) ->
-	"HTTP version not supported";
+    "HTTP version not supported";
 
 interpret_http_status_code_helper( _StatusCode=506 ) ->
-	"variant also negotiates";
+    "variant also negotiates";
 
 interpret_http_status_code_helper( _StatusCode=507 ) ->
-	"insufficient storage";
+    "insufficient storage";
 
 interpret_http_status_code_helper( _StatusCode=508 ) ->
-	"loop detected";
+    "loop detected";
 
 interpret_http_status_code_helper( _StatusCode=510 ) ->
-	"not extended";
+    "not extended";
 
 interpret_http_status_code_helper( _StatusCode=511 ) ->
-	"network authentication required";
+    "network authentication required";
 
 % Unexpected class:
 interpret_http_status_code_helper( _StatusCode ) ->
-	"unknown HTTP status class".
+    "unknown HTTP status class".
 
 
 
@@ -965,7 +965,7 @@ error.
 """.
 -spec start() -> void().
 start() ->
-	start( _Option=no_ssl ).
+    start( _Option=no_ssl ).
 
 
 
@@ -978,49 +978,49 @@ error.
 -spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
-	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] Starting httpc-based web support "
-			"with option ~p.", [ self(), Option ] ) ),
+    cond_utils:if_defined( myriad_debug_web_exchanges,
+        trace_bridge:debug_fmt( "[~w] Starting httpc-based web support "
+            "with option ~p.", [ self(), Option ] ) ),
 
-	% Starts the (built-in) HTTP client:
-	case inets:start( _DefaultInetsType=temporary ) of
+    % Starts the (built-in) HTTP client:
+    case inets:start( _DefaultInetsType=temporary ) of
 
-		ok ->
-			ok;
+        ok ->
+            ok;
 
-		% Module expected to be 'inets':
-		{ error, { already_started, _Module } } ->
-			%trace_bridge:info_fmt( "Starting web_utils reported that module "
-			%   "'~ts' was already started.", [ Module ] ),
-			ok;
+        % Module expected to be 'inets':
+        { error, { already_started, _Module } } ->
+            %trace_bridge:info_fmt( "Starting web_utils reported that module "
+            %   "'~ts' was already started.", [ Module ] ),
+            ok;
 
-		{ error, InetsReason } ->
-			trace_bridge:error_fmt( "Starting web_utils reported following "
-				"error: ~p.", [ InetsReason ] ),
-			throw( { start_failed, inets, InetsReason } )
+        { error, InetsReason } ->
+            trace_bridge:error_fmt( "Starting web_utils reported following "
+                "error: ~p.", [ InetsReason ] ),
+            throw( { start_failed, inets, InetsReason } )
 
-	end,
+    end,
 
-	% Starts the SSL support if requested:
-	case Option of
+    % Starts the SSL support if requested:
+    case Option of
 
-		no_ssl ->
-			ok;
+        no_ssl ->
+            ok;
 
-		ssl ->
-			case ssl:start( _DefaultSSLType=temporary ) of
+        ssl ->
+            case ssl:start( _DefaultSSLType=temporary ) of
 
-				ok ->
-					ok;
+                ok ->
+                    ok;
 
-				{ error, SSLReason } ->
-					trace_bridge:error_fmt( "Starting web_utils reported "
-						"following error for SSL: ~p.", [ SSLReason ] ),
-					throw( { start_failed, ssl, SSLReason } )
+                { error, SSLReason } ->
+                    trace_bridge:error_fmt( "Starting web_utils reported "
+                        "following error for SSL: ~p.", [ SSLReason ] ),
+                    throw( { start_failed, ssl, SSLReason } )
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -1036,23 +1036,23 @@ For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
 -spec request( method(), uri(), headers(), http_options(), option( bin_body() ),
-			   option( content_type() ) ) -> request_result().
+               option( content_type() ) ) -> request_result().
 request( _Method=get, Uri, Headers, HttpOptions, _MaybeBody=undefined,
-		 _MaybeContentType=undefined ) ->
-	get( Uri, Headers, HttpOptions );
+         _MaybeContentType=undefined ) ->
+    get( Uri, Headers, HttpOptions );
 
 request( _Method=get, _Uri, _Headers, _HttpOptions, MaybeBody,
-		 MaybeContentType ) ->
-	throw( { invalid_get_request, { body, MaybeBody },
-			 { content_type, MaybeContentType } } );
+         MaybeContentType ) ->
+    throw( { invalid_get_request, { body, MaybeBody },
+             { content_type, MaybeContentType } } );
 
 request( _Method=post, Uri, Headers, HttpOptions, MaybeBody,
-		 MaybeContentType ) ->
-	post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
+         MaybeContentType ) ->
+    post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
 
 % Not supported (yet): head | put | trace | options | delete | patch:
 request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
-	throw( { invalid_method, Method, Uri } ).
+    throw( { invalid_method, Method, Uri } ).
 
 
 
@@ -1070,53 +1070,53 @@ consider relying on Gun or Shotgun.
 -spec get( uri(), headers(), http_options() ) -> request_result().
 get( Uri, Headers, HttpOptions ) ->
 
-	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] GET request to URI "
-			"'~ts', with following headers:~n  ~p~nand "
-			"HTTP options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
+    cond_utils:if_defined( myriad_debug_web_exchanges,
+        trace_bridge:debug_fmt( "[~w] GET request to URI "
+            "'~ts', with following headers:~n  ~p~nand "
+            "HTTP options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
 
-	HeadersForHttpc = to_httpc_headers( Headers ),
+    HeadersForHttpc = to_httpc_headers( Headers ),
 
-	% Any content-type expected in headers, and no specific body for GET:
-	Req = { Uri, HeadersForHttpc },
+    % Any content-type expected in headers, and no specific body for GET:
+    Req = { Uri, HeadersForHttpc },
 
-	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+    HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
 
-	% Wanting the resulting body (as a binary rather than as a plain string),
-	% headers, and the entire status line:
-	%
-	Options = [ { full_result, true }, { body_format, binary } ],
+    % Wanting the resulting body (as a binary rather than as a plain string),
+    % headers, and the entire status line:
+    %
+    Options = [ { full_result, true }, { body_format, binary } ],
 
-	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc GET "
-			"request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
-			[ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+    cond_utils:if_defined( myriad_debug_web_exchanges,
+        trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc GET "
+            "request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
+            [ self(), Req, HttpOptionsForHttpc, Options ] ) ),
 
-	case httpc:request( _Method=get, Req, HttpOptionsForHttpc, Options ) of
+    case httpc:request( _Method=get, Req, HttpOptionsForHttpc, Options ) of
 
-		% For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
-		{ ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
-				ReqHeaders, ReqBody } } ->
+        % For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
+        { ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
+                ReqHeaders, ReqBody } } ->
 
-			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
-					"status code: ~B, reason: ~ts; headers are:~n  ~p"
-					"Returned body is ~p", [ self(), ReqHttpVersion,
-						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
-				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
+            cond_utils:if_defined( myriad_debug_web_exchanges,
+                trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
+                    "status code: ~B, reason: ~ts; headers are:~n  ~p"
+                    "Returned body is ~p", [ self(), ReqHttpVersion,
+                        ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
+                basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
 
-			MapHeaders = from_httpc_headers( ReqHeaders ),
+            MapHeaders = from_httpc_headers( ReqHeaders ),
 
-			{ ReqStatusCode, MapHeaders, ReqBody };
+            { ReqStatusCode, MapHeaders, ReqBody };
 
-		Err={ error, ErrorReason } ->
-			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:error_fmt( "[~w] GET failed: ~p ",
-										[ self(), ErrorReason ] ),
-			basic_utils:ignore_unused( ErrorReason ) ),
-			Err
+        Err={ error, ErrorReason } ->
+            cond_utils:if_defined( myriad_debug_web_exchanges,
+                trace_bridge:error_fmt( "[~w] GET failed: ~p ",
+                                        [ self(), ErrorReason ] ),
+            basic_utils:ignore_unused( ErrorReason ) ),
+            Err
 
-	end.
+    end.
 
 
 
@@ -1133,7 +1133,7 @@ consider relying on Gun or Shotgun.
 """.
 -spec post( uri(), headers(), http_options() ) -> request_result().
 post( Uri, Headers, HttpOptions ) ->
-	post( Uri, Headers, HttpOptions, _MaybeBody=undefined ).
+    post( Uri, Headers, HttpOptions, _MaybeBody=undefined ).
 
 
 
@@ -1153,9 +1153,9 @@ For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
 -spec post( uri(), headers(), http_options(), option( body() ) ) ->
-								request_result().
+                                request_result().
 post( Uri, Headers, HttpOptions, MaybeBody ) ->
-	post( Uri, Headers, HttpOptions, MaybeBody, _MaybeContentType=undefined ).
+    post( Uri, Headers, HttpOptions, MaybeBody, _MaybeContentType=undefined ).
 
 
 
@@ -1175,115 +1175,115 @@ For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
 -spec post( uri(), headers(), http_options(), option( body() ),
-			option( content_type() ) ) -> request_result().
+            option( content_type() ) ) -> request_result().
 post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
-	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] POST request to URI "
-			"'~ts', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
-			"Body: ~p~nContent-type: ~ts",
-			[ self(), Uri, Headers, HttpOptions, MaybeBody,
-			  MaybeContentType ] ) ),
+    cond_utils:if_defined( myriad_debug_web_exchanges,
+        trace_bridge:debug_fmt( "[~w] POST request to URI "
+            "'~ts', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
+            "Body: ~p~nContent-type: ~ts",
+            [ self(), Uri, Headers, HttpOptions, MaybeBody,
+              MaybeContentType ] ) ),
 
-	HeadersForHttpc = to_httpc_headers( Headers ),
+    HeadersForHttpc = to_httpc_headers( Headers ),
 
-	% Any content-type expected in headers:
-	Req = case MaybeBody of
+    % Any content-type expected in headers:
+    Req = case MaybeBody of
 
-		undefined ->
-			% Then no content-type applies:
-			{ Uri, HeadersForHttpc };
+        undefined ->
+            % Then no content-type applies:
+            { Uri, HeadersForHttpc };
 
-		Body ->
-			ContentType = case MaybeContentType of
+        Body ->
+            ContentType = case MaybeContentType of
 
-				undefined ->
-					?default_content_type;
+                undefined ->
+                    ?default_content_type;
 
-				_ ->
-					MaybeContentType
+                _ ->
+                    MaybeContentType
 
-			end,
-			{ Uri, HeadersForHttpc, ContentType, Body }
+            end,
+            { Uri, HeadersForHttpc, ContentType, Body }
 
-	end,
+    end,
 
-	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+    HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
 
-	% Wanting the resulting body (as a binary rather than as a plain string),
-	% headers, and the entire status line:
-	%
-	Options = [ { full_result, true }, { body_format, binary } ],
+    % Wanting the resulting body (as a binary rather than as a plain string),
+    % headers, and the entire status line:
+    %
+    Options = [ { full_result, true }, { body_format, binary } ],
 
-	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc POST "
-			"request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
-			[ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+    cond_utils:if_defined( myriad_debug_web_exchanges,
+        trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc POST "
+            "request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
+            [ self(), Req, HttpOptionsForHttpc, Options ] ) ),
 
-	case httpc:request( _Method=post, Req, HttpOptionsForHttpc, Options ) of
+    case httpc:request( _Method=post, Req, HttpOptionsForHttpc, Options ) of
 
-		% For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
-		{ ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
-				ReqHeaders, ReqBody } } ->
+        % For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
+        { ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
+                ReqHeaders, ReqBody } } ->
 
-			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
-					"status code: ~B, reason: ~ts; headers are:~n  ~p"
-					"Returned body is:~n ~p", [ self(), ReqHttpVersion,
-						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
-				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
+            cond_utils:if_defined( myriad_debug_web_exchanges,
+                trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
+                    "status code: ~B, reason: ~ts; headers are:~n  ~p"
+                    "Returned body is:~n ~p", [ self(), ReqHttpVersion,
+                        ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
+                basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
 
-			MapHeaders = from_httpc_headers( ReqHeaders ),
+            MapHeaders = from_httpc_headers( ReqHeaders ),
 
-			{ ReqStatusCode, MapHeaders, ReqBody };
+            { ReqStatusCode, MapHeaders, ReqBody };
 
-		Err={ error, ErrorReason } ->
-			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:error_fmt( "[~w] POST failed: ~p ",
-										[ self(), ErrorReason ] ),
-			basic_utils:ignore_unused( ErrorReason ) ),
-			Err
+        Err={ error, ErrorReason } ->
+            cond_utils:if_defined( myriad_debug_web_exchanges,
+                trace_bridge:error_fmt( "[~w] POST failed: ~p ",
+                                        [ self(), ErrorReason ] ),
+            basic_utils:ignore_unused( ErrorReason ) ),
+            Err
 
-	end.
+    end.
 
 
 
 -doc "Converts the specified headers into suitable ones for httpc.".
 -spec to_httpc_headers( headers() ) -> headers_httpc_style().
 to_httpc_headers( Headers ) when is_list( Headers ) ->
-	Headers;
+    Headers;
 
 to_httpc_headers( Headers ) when is_map( Headers ) ->
-	[ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
-			|| { K, V } <- maps:to_list( Headers ) ].
+    [ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
+            || { K, V } <- maps:to_list( Headers ) ].
 
 
 
 -doc "Converts the specified httpc headers into map-based ones.".
 -spec from_httpc_headers( headers_httpc_style() ) -> headers_as_maps().
 from_httpc_headers( Headers ) ->
-	maps:from_list( [ { text_utils:string_to_binary( K ),
-						text_utils:string_to_binary( V ) }
-								|| { K, V } <- Headers ] ).
+    maps:from_list( [ { text_utils:string_to_binary( K ),
+                        text_utils:string_to_binary( V ) }
+                                || { K, V } <- Headers ] ).
 
 
 
 -doc "Returns http options that are suitable for httpc.".
 -spec to_httpc_options( http_options() ) -> options_for_httpc().
 to_httpc_options( HttpOptions ) when is_list( HttpOptions ) ->
-	HttpOptions;
+    HttpOptions;
 
 to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
-	% We have to recursively transform maps into lists (e.g. for {ssl,Opts}):
-	[ { K, case is_map( V ) of
+    % We have to recursively transform maps into lists (e.g. for {ssl,Opts}):
+    [ { K, case is_map( V ) of
 
-				true ->
-					maps:to_list( V );
+                true ->
+                    maps:to_list( V );
 
-				false ->
-					V
+                false ->
+                    V
 
-		   end } || { K, V } <- maps:to_list( HttpOptionMap ) ].
+           end } || { K, V } <- maps:to_list( HttpOptionMap ) ].
 
 
 
@@ -1303,8 +1303,8 @@ Starts, if needed, the HTTP and SSL supports as a side effect.
 """.
 -spec download_file( url(), any_directory_path() ) -> file_path().
 download_file( Url, TargetDir ) ->
-	download_file( Url, TargetDir,
-				   _HttpOptions=[ { ssl, get_ssl_verify_options() } ] ).
+    download_file( Url, TargetDir,
+                   _HttpOptions=[ { ssl, get_ssl_verify_options() } ] ).
 
 
 
@@ -1326,62 +1326,62 @@ web_utils:download_file(_Url="https://foobar.org/baz.txt",
 Starts, if needed, the HTTP and SSL supports as a side effect.
 """.
 -spec download_file( url(), any_directory_path(), http_options() ) ->
-													file_path().
+                                                    file_path().
 download_file( Url, TargetDir, HttpOptions ) ->
 
-	% Using only built-in modules:
+    % Using only built-in modules:
 
-	#{ scheme := Scheme, path := UrlPath } = case uri_string:parse( Url ) of
+    #{ scheme := Scheme, path := UrlPath } = case uri_string:parse( Url ) of
 
-		{ error, AtomReason, ExtraInfo } ->
-			throw( { invalid_url, Url, AtomReason, ExtraInfo } );
+        { error, AtomReason, ExtraInfo } ->
+            throw( { invalid_url, Url, AtomReason, ExtraInfo } );
 
-		M ->
-			M
+        M ->
+            M
 
-	end,
+    end,
 
-	StartOpt = case Scheme of
+    StartOpt = case Scheme of
 
-		"http" ->
-			no_ssl;
+        "http" ->
+            no_ssl;
 
-		"https" ->
-			ssl;
+        "https" ->
+            ssl;
 
-		OtherScheme ->
-			throw( { unexpected_scheme, OtherScheme } )
+        OtherScheme ->
+            throw( { unexpected_scheme, OtherScheme } )
 
-	end,
+    end,
 
-	start( StartOpt ),
+    start( StartOpt ),
 
-	Filename = file_utils:get_last_path_element( UrlPath ),
+    Filename = file_utils:get_last_path_element( UrlPath ),
 
-	FilePath = file_utils:join( TargetDir, Filename ),
+    FilePath = file_utils:join( TargetDir, Filename ),
 
-	%trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
-	%                        [ FilePath, Url ] ),
+    %trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
+    %                        [ FilePath, Url ] ),
 
-	case httpc:request( _Method=get, _Req={ Url, _Headers=[] }, HttpOptions,
-						_Opts=[ { stream, FilePath } ] ) of
+    case httpc:request( _Method=get, _Req={ Url, _Headers=[] }, HttpOptions,
+                        _Opts=[ { stream, FilePath } ] ) of
 
-		{ ok, saved_to_file } ->
-			FilePath;
+        { ok, saved_to_file } ->
+            FilePath;
 
-		% For example {ok, { {"HTTP/1.1", 404, "Not Found" } } }
-		{ ok, { { _HTTTP, ErrorCode, Msg }, _RecHeaders, _Body } } ->
+        % For example {ok, { {"HTTP/1.1", 404, "Not Found" } } }
+        { ok, { { _HTTTP, ErrorCode, Msg }, _RecHeaders, _Body } } ->
 
-			%trace_bridge:error_fmt( "Downloading from '~ts' failed; "
-			%   "reason: ~ts, '~ts'.",
-			%   [ Url, interpret_http_status_code( ErrorCode ), Msg ] ),
+            %trace_bridge:error_fmt( "Downloading from '~ts' failed; "
+            %   "reason: ~ts, '~ts'.",
+            %   [ Url, interpret_http_status_code( ErrorCode ), Msg ] ),
 
-			throw( { download_failed, ErrorCode, Msg, Url } );
+            throw( { download_failed, ErrorCode, Msg, Url } );
 
-		{ error, Reason } ->
-			throw( { download_failed, Reason, Url } )
+        { error, Reason } ->
+            throw( { download_failed, Reason, Url } )
 
-	end.
+    end.
 
 
 
@@ -1389,21 +1389,21 @@ download_file( Url, TargetDir, HttpOptions ) ->
 -spec stop() -> basic_utils:base_status().
 stop() ->
 
-	% Maybe not launched, hence not pattern matched:
-	ssl:stop(),
+    % Maybe not launched, hence not pattern matched:
+    ssl:stop(),
 
-	case inets:stop() of
+    case inets:stop() of
 
-		ok ->
-			ok;
+        ok ->
+            ok;
 
-		% Anyway we prefer not crashing on shutdown:
-		Error ->
-			cond_utils:if_defined( myriad_debug_web_exchanges,
-				throw( { inets_stop_failed, Error } ),
-				Error )
+        % Anyway we prefer not crashing on shutdown:
+        Error ->
+            cond_utils:if_defined( myriad_debug_web_exchanges,
+                throw( { inets_stop_failed, Error } ),
+                Error )
 
-	end.
+    end.
 
 
 
@@ -1419,7 +1419,7 @@ See `get_ssl_verify_options/1` for more information.
 """.
 -spec get_ssl_verify_options() -> ssl_options().
 get_ssl_verify_options() ->
-	get_ssl_verify_options( enable ).
+    get_ssl_verify_options( enable ).
 
 
 
@@ -1449,18 +1449,18 @@ get_ssl_verify_options( _Switch=enable ) ->
   %   customize_hostname_check => [ { match_fun, MatchFun } ] };
 
   [ { verify, verify_peer },
-	{ cacertfile, "/etc/ssl/certs/ca-certificates.crt" },
-	{ depth, 3 },
-	{ customize_hostname_check, [ { match_fun, MatchFun } ] } ];
+    { cacertfile, "/etc/ssl/certs/ca-certificates.crt" },
+    { depth, 3 },
+    { customize_hostname_check, [ { match_fun, MatchFun } ] } ];
 
 
 get_ssl_verify_options( _Switch=disable ) ->
 
-	% Apparently httpc expects list_options(), not map_options():
+    % Apparently httpc expects list_options(), not map_options():
 
-	%#{ verify => verify_none }.
+    %#{ verify => verify_none }.
 
-	[ { verify, verify_none } ].
+    [ { verify, verify_none } ].
 
 
 
@@ -1468,19 +1468,19 @@ get_ssl_verify_options( _Switch=disable ) ->
 Returns a Microsoft Azure instance information based on the specified settings.
 """.
 -spec get_azure_instance_information( azure_instance_key(),
-						azure_instance_location() ) -> azure_instance_info().
+                        azure_instance_location() ) -> azure_instance_info().
 get_azure_instance_information( InstKey, InstLoc ) ->
-	#azure_instance_info{
-		instance_key=text_utils:ensure_binary( InstKey ),
-		instance_location=text_utils:ensure_binary( InstLoc ) }.
+    #azure_instance_info{
+        instance_key=text_utils:ensure_binary( InstKey ),
+        instance_location=text_utils:ensure_binary( InstLoc ) }.
 
 
 
 -doc "Returns a textual description of the specified cloud instance.".
 -spec cloud_instance_info_to_string( cloud_instance_info() ) -> ustring().
 cloud_instance_info_to_string( #azure_instance_info{
-									%instance_key=InstKey,
-									instance_location=InstLoc } ) ->
-	% No disclosing of the key here:
-	text_utils:format( "Microsoft Azure instance located in '~ts'",
+                                    %instance_key=InstKey,
+                                    instance_location=InstLoc } ) ->
+    % No disclosing of the key here:
+    text_utils:format( "Microsoft Azure instance located in '~ts'",
                        [ InstLoc ] ).

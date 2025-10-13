@@ -36,4 +36,4 @@ A simple target module in order to test how parse transforms can operate.
 
 
 f( A ) ->
-	io:format( "Hello ~p", [ A ] ).
+    io:format( "Hello ~p", [ A ] ).

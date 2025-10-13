@@ -42,6 +42,6 @@ See the linear_4D tested module.
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
-	test_facilities:stop().
+    test_facilities:stop().

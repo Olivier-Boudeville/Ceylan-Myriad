@@ -44,7 +44,7 @@
 % Hopefully these format strings are resolved at compile-time:
 
 -define( coord_float_format,
-		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
+         "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
 
 % Not fixed-width:
 %-define( coord_float_format, "~." ++ ?printout_precision ++ ". f" ).

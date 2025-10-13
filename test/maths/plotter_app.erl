@@ -39,47 +39,47 @@ To be run, possibly once modified, as: `make plotter_exec`.
 
 plot_function() ->
 
-	%FunToPlot = fun( P ) -> 1 - math:exp( -P/2 ) end,
+    %FunToPlot = fun( P ) -> 1 - math:exp( -P/2 ) end,
 
-	%FunToPlot = fun( P ) -> 1.0 / (1.0 + math:exp( 1/2 - P ) ) end,
+    %FunToPlot = fun( P ) -> 1.0 / (1.0 + math:exp( 1/2 - P ) ) end,
 
-	FunToPlot = fun( P ) -> 1.0 / (1.0 + math:exp( - P ) ) end,
+    FunToPlot = fun( P ) -> 1.0 / (1.0 + math:exp( - P ) ) end,
 
-	%Bounds = { 0.0, 5.0 },
-	%Bounds = { 0.0, 1.0 },
-	Bounds = { -100.0, 100.0 },
+    %Bounds = { 0.0, 5.0 },
+    %Bounds = { 0.0, 1.0 },
+    Bounds = { -100.0, 100.0 },
 
-	PlotName = text_utils:format( "Plotting of function on ~ts bounds.",
+    PlotName = text_utils:format( "Plotting of function on ~ts bounds.",
         [ math_utils:any_bounds_to_string( Bounds ) ] ),
 
-	PlotSettings = plot_utils:set_point_count( 500,
+    PlotSettings = plot_utils:set_point_count( 500,
         plot_utils:set_title( _Title=PlotName,
             plot_utils:get_default_plot_settings( PlotName ) ) ),
 
-	DoDisplay = not executable_utils:is_batch(),
+    DoDisplay = not executable_utils:is_batch(),
 
-	plot_utils:plot( FunToPlot, Bounds, PlotSettings, DoDisplay ).
+    plot_utils:plot( FunToPlot, Bounds, PlotSettings, DoDisplay ).
 
 
 
 -spec exec() -> no_return().
 exec() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
-	case executable_utils:get_maybe_gnuplot_path() of
+    case executable_utils:get_maybe_gnuplot_path() of
 
-		undefined ->
-			test_facilities:display(
-				"No gnuplot tool found, no plot generated." );
+        undefined ->
+            test_facilities:display(
+                "No gnuplot tool found, no plot generated." );
 
-		GnuplotPath ->
+        GnuplotPath ->
 
-			test_facilities:display( "Gnuplot available (as '~ts'), "
-				"proceeding with plotting.", [ GnuplotPath ] ),
+            test_facilities:display( "Gnuplot available (as '~ts'), "
+                "proceeding with plotting.", [ GnuplotPath ] ),
 
-			plot_function()
+            plot_function()
 
-	end,
+    end,
 
-	test_facilities:stop().
+    test_facilities:stop().

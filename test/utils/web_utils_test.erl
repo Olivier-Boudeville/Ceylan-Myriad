@@ -49,69 +49,69 @@ US-Web from an example thereof).
 """.
 test_local() ->
 
-	TargetPort = 8080,
-	TargetUrl = "index.html",
+    TargetPort = 8080,
+    TargetUrl = "index.html",
 
-	test_facilities:display( "As a test, fetching page '~ts' from a webserver "
-		"supposedly running on localhost, at TCP port #~B.",
-		[ TargetUrl, TargetPort ] ),
+    test_facilities:display( "As a test, fetching page '~ts' from a webserver "
+        "supposedly running on localhost, at TCP port #~B.",
+        [ TargetUrl, TargetPort ] ),
 
-	URI = text_utils:format( "http://localhost:~B/~ts",
-							 [ TargetPort, TargetUrl ] ),
+    URI = text_utils:format( "http://localhost:~B/~ts",
+                             [ TargetPort, TargetUrl ] ),
 
-	web_utils:start(),
+    web_utils:start(),
 
-	{ _StatusCode=200, _HeaderMap, Body } =
-		web_utils:get( URI, _Headers=[], _HttpOptions=[] ),
+    { _StatusCode=200, _HeaderMap, Body } =
+        web_utils:get( URI, _Headers=[], _HttpOptions=[] ),
 
-	trace_bridge:debug_fmt( "Body: '~ts'.", [ Body ] ),
+    trace_bridge:debug_fmt( "Body: '~ts'.", [ Body ] ),
 
-	"This is static website D. This is the one you should see if pointing to "
-	"the default virtual host corresponding to the local host. "
-	"This shows that the US-Web server is up and running.\n" = Body,
+    "This is static website D. This is the one you should see if pointing to "
+    "the default virtual host corresponding to the local host. "
+    "This shows that the US-Web server is up and running.\n" = Body,
 
-	web_utils:stop().
+    web_utils:stop().
 
 
 
 test_online() ->
 
-	%TargetUrl = "http://nonexisting.com/test/foo.html",
-	TargetUrl = "https://en.wikipedia.org/wiki/Main_Page",
+    %TargetUrl = "http://nonexisting.com/test/foo.html",
+    TargetUrl = "https://en.wikipedia.org/wiki/Main_Page",
 
-	FilePath = web_utils:download_file( TargetUrl, _TargetDir="/tmp" ),
+    FilePath = web_utils:download_file( TargetUrl, _TargetDir="/tmp" ),
 
-	test_facilities:display( "Reading from URL '~ts': wrote file '~ts'.",
-							 [ TargetUrl, FilePath ] ).
+    test_facilities:display( "Reading from URL '~ts': wrote file '~ts'.",
+                             [ TargetUrl, FilePath ] ).
 
 
 
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
-	ItemList = [ "hello <b>world</b>!", "Once upon a time...", "Goodbye!" ],
+    ItemList = [ "hello <b>world</b>!", "Once upon a time...", "Goodbye!" ],
 
-	test_facilities:display( "Generating an unordered list:~n~ts~n",
-							 [ web_utils:get_unordered_list( ItemList ) ] ),
+    test_facilities:display( "Generating an unordered list:~n~ts~n",
+                             [ web_utils:get_unordered_list( ItemList ) ] ),
 
-	TestString = "I'm a \"test\" string & I am more (>) proud of it than <<<.",
+    TestString = "I'm a \"test\" string & I am more (>) proud of it than <<<.",
 
-	EncodedString = "I&apos;m a &quot;test&quot; string &amp; I am more (&gt;) "
-		"proud of it than &lt;&lt;&lt;.",
+    EncodedString = "I&apos;m a &quot;test&quot; string &amp; I am more (&gt;) "
+        "proud of it than &lt;&lt;&lt;.",
 
-	% Check:
-	EncodedString = web_utils:escape_as_html_content( TestString ),
+    % Check:
+    EncodedString = web_utils:escape_as_html_content( TestString ),
 
-	test_facilities:display( "Escaping for HTML \"~ts\", getting: \"~ts\" "
-		"(outer quotes excluded in both cases).",
-		[ TestString, EncodedString ] ),
+    test_facilities:display( "Escaping for HTML \"~ts\", getting: \"~ts\" "
+        "(outer quotes excluded in both cases).",
+        [ TestString, EncodedString ] ),
 
-	% Disabled by default, not wanting a test to fail if no Internet access:
-	% test_online(),
+    % Disabled by default, not wanting a test to fail if no Internet access:
+    % test_online(),
 
-	% Disabled by default, no webserver expected to be running locally:
-	%test_local(),
+    % Disabled by default, no webserver expected to be running locally:
+    %test_local(),
 
-	test_facilities:stop().
+    test_facilities:stop().

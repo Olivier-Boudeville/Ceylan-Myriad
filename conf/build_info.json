@@ -8,8 +8,8 @@
       "dir": "..",
       "src_dirs": ["./src/apps/generate-password", "./src/apps/mbdr-system", "./src/apps/merge-tool", "./src/data-management", "./src/maths", "./src/meta", "./src/user-interface", "./src/user-interface/audio", "./src/user-interface/graphical", "./src/user-interface/graphical/opengl", "./src/user-interface/textual", "./src/utils"],
       "extra_src_dirs": ["test/data-management", "test/maths", "test/meta", "test/user-interface", "test/user-interface/audio", "test/user-interface/graphical", "test/user-interface/graphical/opengl", "test/user-interface/textual", "test/utils"],
-	  "include_dirs": [
-	  "include"
+      "include_dirs": [
+      "include"
       ],
       "macros": {
         "exec_target_is_production": "false",

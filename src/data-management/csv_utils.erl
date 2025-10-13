@@ -108,13 +108,13 @@ The result of the parsing of a CSV file, comprised of:
 - the number of fields each row has
 """.
 -type reading_outcome() :: { Rows :: content(), RowCount :: row_count(),
-							 FieldCount :: field_count() }.
+                             FieldCount :: field_count() }.
 
 
 -export_type([ separator/0, value/0, row/0, content/0,
-			   row_count/0, row_number/0,
-			   field_count/0,
-			   reading_outcome/0 ]).
+               row_count/0, row_number/0,
+               field_count/0,
+               reading_outcome/0 ]).
 
 
 
@@ -149,7 +149,7 @@ The result of the parsing of a CSV file, comprised of:
 % This work-around is still necessary (still true with Erlang 23.0):
 %-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 -define( read_options,
-		 [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
+         [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
 
 
 
@@ -221,40 +221,40 @@ The result of the parsing of a CSV file, comprised of:
 
     get_file_extension/0,
 
-	% For regular, homogeneous CSV files, supposing the separator known a
-	% priori, but not the number of fields to expect :
-	%
-	read_file/1, read_file/2,
+    % For regular, homogeneous CSV files, supposing the separator known a
+    % priori, but not the number of fields to expect :
+    %
+    read_file/1, read_file/2,
 
-	% For CSV files that shall be filtered before use (e.g. with some rows
-	% obeying different rules):
+    % For CSV files that shall be filtered before use (e.g. with some rows
+    % obeying different rules):
 
-	% If the separator and number of fields to expect are known a priori:
-	interpret_file/3,
+    % If the separator and number of fields to expect are known a priori:
+    interpret_file/3,
 
-	% If the separator is known a priori, but not the number of fields to
-	% expect:
-	%
-	interpret_file/2,
+    % If the separator is known a priori, but not the number of fields to
+    % expect:
+    %
+    interpret_file/2,
 
-	% If neither the separator nor the number of fields to expect is known a
-	% priori:
-	%
-	interpret_file/1,
+    % If neither the separator nor the number of fields to expect is known a
+    % priori:
+    %
+    interpret_file/1,
 
 
-	describe_non_matching_rows_in/1,
+    describe_non_matching_rows_in/1,
 
-	% For CSV files that shall be filtered before use (e.g. with some rows
-	% obeying different rules):
-	%
-	write_file/2, write_file/3,
+    % For CSV files that shall be filtered before use (e.g. with some rows
+    % obeying different rules):
+    %
+    write_file/2, write_file/3,
 
-	get_usual_separators/0,
+    get_usual_separators/0,
 
-	check_all_empty/1, are_all_empty/1,
+    check_all_empty/1, are_all_empty/1,
 
-	content_to_string/1 ]).
+    content_to_string/1 ]).
 
 
 % Local type:
@@ -287,7 +287,7 @@ an exception is raised), using the default separator.
 """.
 -spec read_file( any_file_path() ) -> reading_outcome().
 read_file( FilePath ) ->
-	read_file( FilePath, ?default_separator ).
+    read_file( FilePath, ?default_separator ).
 
 
 
@@ -299,16 +299,16 @@ an exception is raised), using the specified separator.
 -spec read_file( any_file_path(), separator() ) -> reading_outcome().
 read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
-	File = get_file_for_reading( FilePath ),
+    File = get_file_for_reading( FilePath ),
 
-	Res = { _Content, _RowCount, _FieldCount } = read_rows( File, Separator ),
+    Res = { _Content, _RowCount, _FieldCount } = read_rows( File, Separator ),
 
-	%trace_utils:debug_fmt( "Read content (~B rows, each having ~p fields): "
-	%   "~n ~p", [ RowCount, FieldCount, Content ] ),
+    %trace_utils:debug_fmt( "Read content (~B rows, each having ~p fields): "
+    %   "~n ~p", [ RowCount, FieldCount, Content ] ),
 
-	file_utils:close( File ),
+    file_utils:close( File ),
 
-	Res.
+    Res.
 
 
 
@@ -334,23 +334,23 @@ specified number of fields), based on the specified separator
 were either empty or containing a comment)
 """.
 -spec interpret_file( any_file_path(), separator(), field_count() ) ->
-		{ MixedContent :: mixed_content(), MatchingCount :: row_count(),
-		  UnmatchingCount :: row_count(), DropCount :: row_count() }.
+        { MixedContent :: mixed_content(), MatchingCount :: row_count(),
+          UnmatchingCount :: row_count(), DropCount :: row_count() }.
 interpret_file( FilePath, Separator, ExpectedFieldCount )
-												when is_integer( Separator ) ->
+                                                when is_integer( Separator ) ->
 
-	File = get_file_for_reading( FilePath ),
+    File = get_file_for_reading( FilePath ),
 
-	%{ MixedContent, MatchingCount, UnmatchingCount, DropCount } =
-	Res = interpret_rows( File, Separator, ExpectedFieldCount ),
+    %{ MixedContent, MatchingCount, UnmatchingCount, DropCount } =
+    Res = interpret_rows( File, Separator, ExpectedFieldCount ),
 
-	%trace_utils:debug_fmt( "Read mixed content (matching count: ~B, "
-	%   "unmatching count: ~B, drop count: ~B):~n ~p",
-	%   [ MatchingCount, UnmatchingCount, DropCount, MixedContent ] ),
+    %trace_utils:debug_fmt( "Read mixed content (matching count: ~B, "
+    %   "unmatching count: ~B, drop count: ~B):~n ~p",
+    %   [ MatchingCount, UnmatchingCount, DropCount, MixedContent ] ),
 
-	file_utils:close( File ),
+    file_utils:close( File ),
 
-	Res.
+    Res.
 
 
 
@@ -376,29 +376,29 @@ specified number of fields), based on the specified separator
 were either empty or containing a comment)
 """.
 -spec interpret_file( any_file_path(), separator() ) ->
-		{ FieldCount :: field_count(), MixedContent :: mixed_content(),
-		  MatchingCount :: row_count(), UnmatchingCount :: row_count(),
-		  DropCount :: row_count() }.
+        { FieldCount :: field_count(), MixedContent :: mixed_content(),
+          MatchingCount :: row_count(), UnmatchingCount :: row_count(),
+          DropCount :: row_count() }.
 interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 
-	File = get_file_for_reading( FilePath ),
+    File = get_file_for_reading( FilePath ),
 
-	{ FirstRow, FieldCount, GuessDropCount } =
-		guess_field_count( File, Separator, _InitialDropCount=0 ),
+    { FirstRow, FieldCount, GuessDropCount } =
+        guess_field_count( File, Separator, _InitialDropCount=0 ),
 
-	% Branch to the helper with a correct initial state:
-	{ MixedContent, MatchCount, UnmatchCount, DropCount } =
-		interpret_rows( _Device=File, Separator, FieldCount,
-			_MatchCount=1, _UnmatchCount=0, GuessDropCount, _RowCount=1,
-			_Acc=[ FirstRow ] ),
+    % Branch to the helper with a correct initial state:
+    { MixedContent, MatchCount, UnmatchCount, DropCount } =
+        interpret_rows( _Device=File, Separator, FieldCount,
+            _MatchCount=1, _UnmatchCount=0, GuessDropCount, _RowCount=1,
+            _Acc=[ FirstRow ] ),
 
-	%trace_utils:debug_fmt( "Read mixed content with detected field count ~B "
-	%   "(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
-	%   [ FieldCount, MatchCount, UnmatchCount, DropCount, MixedContent ] ),
+    %trace_utils:debug_fmt( "Read mixed content with detected field count ~B "
+    %   "(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
+    %   [ FieldCount, MatchCount, UnmatchCount, DropCount, MixedContent ] ),
 
-	file_utils:close( File ),
+    file_utils:close( File ),
 
-	{ FieldCount, MixedContent, MatchCount, UnmatchCount, DropCount }.
+    { FieldCount, MixedContent, MatchCount, UnmatchCount, DropCount }.
 
 
 
@@ -426,46 +426,46 @@ specified number of fields), based on the detected separator
 either empty or containing a comment)
 """.
 -spec interpret_file( any_file_path() ) ->
-		{ separator(), field_count(), mixed_content(), row_count(),
-		  row_count(), row_count() }.
+        { separator(), field_count(), mixed_content(), row_count(),
+          row_count(), row_count() }.
 interpret_file( FilePath ) ->
 
-	File = get_file_for_reading( FilePath ),
+    File = get_file_for_reading( FilePath ),
 
-	{ FirstRow, Separator, FieldCount, FirstDropCount } =
-		guess_separator_and_field_count( File, _InitialDropCount=0 ),
+    { FirstRow, Separator, FieldCount, FirstDropCount } =
+        guess_separator_and_field_count( File, _InitialDropCount=0 ),
 
-	cond_utils:if_defined( myriad_debug_csv_support,
-		trace_utils:debug_fmt( "First row: '~p', separator: '~ts', "
-			"field count: ~B, first drop count: ~B.",
-			[ FirstRow, [ Separator ], FieldCount, FirstDropCount ] ) ),
+    cond_utils:if_defined( myriad_debug_csv_support,
+        trace_utils:debug_fmt( "First row: '~p', separator: '~ts', "
+            "field count: ~B, first drop count: ~B.",
+            [ FirstRow, [ Separator ], FieldCount, FirstDropCount ] ) ),
 
-	% Branch to the helper with a correct initial state:
-	{ MixedContent, MatchCount, UnmatchCount, DropCount } =
-		interpret_rows( _Device=File, Separator, FieldCount,
-			_MatchCount=1, _UnmatchCount=0, FirstDropCount, _RowCount=1,
-			_Acc=[ FirstRow ] ),
+    % Branch to the helper with a correct initial state:
+    { MixedContent, MatchCount, UnmatchCount, DropCount } =
+        interpret_rows( _Device=File, Separator, FieldCount,
+            _MatchCount=1, _UnmatchCount=0, FirstDropCount, _RowCount=1,
+            _Acc=[ FirstRow ] ),
 
-	% Full version with content:
-	%cond_utils:if_defined( myriad_debug_csv_support,
-	%   trace_utils:debug_fmt( "Read mixed content with detected separator "
-	%       "'~ts' and field count ~B (matching count: ~B, unmatching "
-	%       "count: ~B, drop count: ~B):~n ~p",
-	%       [ [ Separator ], FieldCount, MatchCount, UnmatchCount, DropCount,
-	%         MixedContent ] ) ),
+    % Full version with content:
+    %cond_utils:if_defined( myriad_debug_csv_support,
+    %   trace_utils:debug_fmt( "Read mixed content with detected separator "
+    %       "'~ts' and field count ~B (matching count: ~B, unmatching "
+    %       "count: ~B, drop count: ~B):~n ~p",
+    %       [ [ Separator ], FieldCount, MatchCount, UnmatchCount, DropCount,
+    %         MixedContent ] ) ),
 
-	% Summary:
-	cond_utils:if_defined( myriad_debug_csv_support,
-		trace_utils:debug_fmt( "Read mixed content with detected separator "
-			"'~ts' and field count ~B (matching count: ~B, "
-			"unmatching count: ~B, drop count: ~B).",
-			[ [ Separator ], FieldCount, MatchCount, UnmatchCount,
-			  DropCount ] ) ),
+    % Summary:
+    cond_utils:if_defined( myriad_debug_csv_support,
+        trace_utils:debug_fmt( "Read mixed content with detected separator "
+            "'~ts' and field count ~B (matching count: ~B, "
+            "unmatching count: ~B, drop count: ~B).",
+            [ [ Separator ], FieldCount, MatchCount, UnmatchCount,
+              DropCount ] ) ),
 
-	file_utils:close( File ),
+    file_utils:close( File ),
 
-	{ Separator, FieldCount, MixedContent, MatchCount, UnmatchCount,
-	  DropCount }.
+    { Separator, FieldCount, MixedContent, MatchCount, UnmatchCount,
+      DropCount }.
 
 
 
@@ -475,65 +475,65 @@ interpret_file( FilePath ) ->
 
 -doc "Returns the context read from specified device/file.".
 -spec read_rows( file(), separator() ) ->
-						{ content(), row_count(), field_count() }.
+                        { content(), row_count(), field_count() }.
 read_rows( File, Separator ) ->
-	read_rows( _Device=File, Separator, _RowCount=0, _FieldCount=undefined,
-			   _Acc=[] ).
+    read_rows( _Device=File, Separator, _RowCount=0, _FieldCount=undefined,
+               _Acc=[] ).
 
 
 % (helper)
 read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
-	case io:get_line( Device, _Prompt="" ) of
+    case io:get_line( Device, _Prompt="" ) of
 
-		eof  ->
-			file_utils:close( Device ),
-			Content = lists:reverse( Acc ),
-			{ Content, RowCount, FieldCount };
+        eof  ->
+            file_utils:close( Device ),
+            Content = lists:reverse( Acc ),
+            { Content, RowCount, FieldCount };
 
-		{ error, Error } ->
-			throw( { read_error, Error } );
+        { error, Error } ->
+            throw( { read_error, Error } );
 
-		Line ->
+        Line ->
 
-			case parse_row( Line, Separator ) of
+            case parse_row( Line, Separator ) of
 
-				{ Values, ThisFieldCount } ->
+                { Values, ThisFieldCount } ->
 
-					%trace_utils:debug_fmt( "For line '~ts', "
-					%     "~B field(s) found.", [ Line, ThisFieldCount ] ),
+                    %trace_utils:debug_fmt( "For line '~ts', "
+                    %     "~B field(s) found.", [ Line, ThisFieldCount ] ),
 
-					NewFieldCount = case FieldCount of
+                    NewFieldCount = case FieldCount of
 
-						undefined ->
-							ThisFieldCount;
+                        undefined ->
+                            ThisFieldCount;
 
-						ThisFieldCount ->
-							ThisFieldCount;
+                        ThisFieldCount ->
+                            ThisFieldCount;
 
-						_OtherFieldCount ->
-							trace_utils:error_fmt(
-								"Non matching line (row #~B): '~ts'.",
-								[ RowCount, Line ] ),
+                        _OtherFieldCount ->
+                            trace_utils:error_fmt(
+                                "Non matching line (row #~B): '~ts'.",
+                                [ RowCount, Line ] ),
 
-							throw( { non_uniform_field_count,
-									 { FieldCount, ThisFieldCount } } )
+                            throw( { non_uniform_field_count,
+                                     { FieldCount, ThisFieldCount } } )
 
-					end,
+                    end,
 
-					%trace_utils:debug_fmt( "Read ~B fields: ~p.",
-					%                       [ ThisFieldCount, Values ] ),
+                    %trace_utils:debug_fmt( "Read ~B fields: ~p.",
+                    %                       [ ThisFieldCount, Values ] ),
 
-					read_rows( Device, Separator, RowCount+1, NewFieldCount,
-							   [ Values | Acc ] );
+                    read_rows( Device, Separator, RowCount+1, NewFieldCount,
+                               [ Values | Acc ] );
 
-				dropped ->
-					read_rows( Device, Separator, RowCount, FieldCount, Acc )
+                dropped ->
+                    read_rows( Device, Separator, RowCount, FieldCount, Acc )
 
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -542,30 +542,30 @@ Guesses the number of fields per row, and returns also the first read line so
 that the rest of the file can be read in the same movement.
 """.
 -spec guess_field_count( file(), separator(), row_count() ) ->
-								{ row(), field_count(), row_count() }.
+                                { row(), field_count(), row_count() }.
 guess_field_count( Device, Separator, DropCount ) ->
 
-	case io:get_line( Device, _Prompt="" ) of
+    case io:get_line( Device, _Prompt="" ) of
 
-		eof ->
-			% Nothing can be determined in this case:
-			throw( empty_csv_file );
+        eof ->
+            % Nothing can be determined in this case:
+            throw( empty_csv_file );
 
-		{ error, Error } ->
-			throw( { read_error, Error } );
+        { error, Error } ->
+            throw( { read_error, Error } );
 
-		Line ->
-			case parse_row( Line, Separator ) of
+        Line ->
+            case parse_row( Line, Separator ) of
 
-				dropped ->
-					guess_field_count( Device, Separator, DropCount+1 );
+                dropped ->
+                    guess_field_count( Device, Separator, DropCount+1 );
 
-				{ Values, FieldCount } ->
-					{ Values, FieldCount, DropCount }
+                { Values, FieldCount } ->
+                    { Values, FieldCount, DropCount }
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -574,93 +574,93 @@ Guesses the separator and number of fields per row, and returns also the first
 read line so that the rest of the file can be read in the same movement.
 """.
 -spec guess_separator_and_field_count( file(), row_count() ) ->
-						{ row(), separator(), field_count(), row_count() }.
+                        { row(), separator(), field_count(), row_count() }.
 guess_separator_and_field_count( Device, DropCount ) ->
 
-	case io:get_line( Device, _Prompt="" ) of
+    case io:get_line( Device, _Prompt="" ) of
 
-		eof ->
-			% Nothing can be determined in this case:
-			throw( empty_csv_file );
+        eof ->
+            % Nothing can be determined in this case:
+            throw( empty_csv_file );
 
-		{ error, Error } ->
-			throw( { read_error, Error } );
+        { error, Error } ->
+            throw( { read_error, Error } );
 
-		Line ->
-			%trace_utils:debug_fmt( "Read line '~ts'.", [ Line ] ),
-			case parse_row_no_separator( Line ) of
+        Line ->
+            %trace_utils:debug_fmt( "Read line '~ts'.", [ Line ] ),
+            case parse_row_no_separator( Line ) of
 
-				dropped ->
-					guess_separator_and_field_count( Device, DropCount+1 );
+                dropped ->
+                    guess_separator_and_field_count( Device, DropCount+1 );
 
-				{ Values, Separator, FieldCount } ->
-					{ Values, Separator, FieldCount, DropCount }
+                { Values, Separator, FieldCount } ->
+                    { Values, Separator, FieldCount, DropCount }
 
-			end
+            end
 
-	end.
+    end.
 
 
 
 -doc "Returns the context read from specified device/file.".
 -spec interpret_rows( file(), separator(), field_count() ) ->
-				{ mixed_content(), row_count(), row_count(), row_count() }.
+                { mixed_content(), row_count(), row_count(), row_count() }.
 interpret_rows( File, Separator, ExpectedFieldCount ) ->
-	interpret_rows( _Device=File, Separator, ExpectedFieldCount, _MatchCount=0,
-					_UnmatchCount=0, _DropCount=0, _RowNumber=1, _Acc=[] ).
+    interpret_rows( _Device=File, Separator, ExpectedFieldCount, _MatchCount=0,
+                    _UnmatchCount=0, _DropCount=0, _RowNumber=1, _Acc=[] ).
 
 
 % (helper)
 interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
-				DropCount, RowNumber, Acc ) ->
+                DropCount, RowNumber, Acc ) ->
 
-	case io:get_line( Device, _Prompt="" ) of
+    case io:get_line( Device, _Prompt="" ) of
 
-		eof ->
-			file_utils:close( Device ),
-			MixedContent = lists:reverse( Acc ),
-			{ MixedContent, MatchCount, UnmatchCount, DropCount };
+        eof ->
+            file_utils:close( Device ),
+            MixedContent = lists:reverse( Acc ),
+            { MixedContent, MatchCount, UnmatchCount, DropCount };
 
-		{ error, Error } ->
-			throw( { read_error, Error } );
+        { error, Error } ->
+            throw( { read_error, Error } );
 
-		Line ->
+        Line ->
 
-			%io:format( "Read line #~B: '~ts'.", [ RowCount, Line ] ),
+            %io:format( "Read line #~B: '~ts'.", [ RowCount, Line ] ),
 
-			case parse_row( Line, Separator ) of
+            case parse_row( Line, Separator ) of
 
-				% Matching:
-				{ Values, ExpectedFieldCount } ->
+                % Matching:
+                { Values, ExpectedFieldCount } ->
 
-					%trace_utils:debug_fmt( "Read matching row: ~p.",
-					%                       [ Values ] ),
+                    %trace_utils:debug_fmt( "Read matching row: ~p.",
+                    %                       [ Values ] ),
 
-					interpret_rows( Device, Separator, ExpectedFieldCount,
-						MatchCount+1, UnmatchCount, DropCount, RowNumber+1,
-						[ Values | Acc ] );
-
-
-				% Not matching:
-				{ Values, OtherFieldCount } ->
-
-					trace_utils:debug_fmt( "Read non-matching row #~B:~n~ts~n"
-						"(i.e. '~p', which has ~B fields)",
-						[ RowNumber, Line, Line, OtherFieldCount ] ),
-
-					interpret_rows( Device, Separator, ExpectedFieldCount,
-						MatchCount, UnmatchCount+1, DropCount, RowNumber+1,
-						[ { non_matching, RowNumber, Values } | Acc ] );
+                    interpret_rows( Device, Separator, ExpectedFieldCount,
+                        MatchCount+1, UnmatchCount, DropCount, RowNumber+1,
+                        [ Values | Acc ] );
 
 
-				dropped ->
-					interpret_rows( Device, Separator, ExpectedFieldCount,
-						MatchCount, UnmatchCount, DropCount+1, RowNumber+1,
-						Acc )
+                % Not matching:
+                { Values, OtherFieldCount } ->
 
-			end
+                    trace_utils:debug_fmt( "Read non-matching row #~B:~n~ts~n"
+                        "(i.e. '~p', which has ~B fields)",
+                        [ RowNumber, Line, Line, OtherFieldCount ] ),
 
-	end.
+                    interpret_rows( Device, Separator, ExpectedFieldCount,
+                        MatchCount, UnmatchCount+1, DropCount, RowNumber+1,
+                        [ { non_matching, RowNumber, Values } | Acc ] );
+
+
+                dropped ->
+                    interpret_rows( Device, Separator, ExpectedFieldCount,
+                        MatchCount, UnmatchCount, DropCount+1, RowNumber+1,
+                        Acc )
+
+            end
+
+    end.
 
 
 
@@ -669,36 +669,36 @@ Parses the specified line into a proper row, guessing the most likely separator
 (that is thus not known).
 """.
 -spec parse_row_no_separator( line() ) ->
-		'dropped' | { row(), separator(), field_count() }.
+        'dropped' | { row(), separator(), field_count() }.
 parse_row_no_separator( Line ) ->
 
-	% Useful also to remove the ending newline:
-	TrimmedLine = text_utils:trim_whitespaces( Line ),
+    % Useful also to remove the ending newline:
+    TrimmedLine = text_utils:trim_whitespaces( Line ),
 
-	case TrimmedLine of
+    case TrimmedLine of
 
-		[] ->
-			%trace_utils:debug( "Dropped blank line" ),
-			dropped;
+        [] ->
+            %trace_utils:debug( "Dropped blank line" ),
+            dropped;
 
 
-		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
-			%                       [ Line ] ),
-			dropped;
+        [ $# | _ ] ->
+            %trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
+            %                       [ Line ] ),
+            dropped;
 
-		_ ->
-			GuessedSep = guess_separator_from( TrimmedLine ),
+        _ ->
+            GuessedSep = guess_separator_from( TrimmedLine ),
 
-			%trace_utils:debug_fmt( "Guessed separator: '~ts'.",
-			%                       [ [GuessedSep] ] ),
+            %trace_utils:debug_fmt( "Guessed separator: '~ts'.",
+            %                       [ [GuessedSep] ] ),
 
-			Values = parse_line( TrimmedLine, GuessedSep ),
+            Values = parse_line( TrimmedLine, GuessedSep ),
 
-			FieldCount = length( Values ),
-			{ list_to_tuple( Values ), GuessedSep, FieldCount }
+            FieldCount = length( Values ),
+            { list_to_tuple( Values ), GuessedSep, FieldCount }
 
-	end.
+    end.
 
 
 
@@ -708,25 +708,25 @@ Parses the specified line into a proper row, based on the specified separator.
 -spec parse_row( line(), separator() ) -> 'dropped' | { row(), field_count() }.
 parse_row( Line, Separator ) ->
 
-	% Useful also to remove at least the ending newline:
-	case text_utils:trim_whitespaces( Line )  of
+    % Useful also to remove at least the ending newline:
+    case text_utils:trim_whitespaces( Line )  of
 
-		[] ->
-			%trace_utils:debug( "Dropped blank line" ),
-			dropped;
+        [] ->
+            %trace_utils:debug( "Dropped blank line" ),
+            dropped;
 
 
-		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
-			%                       [ Line ] ),
-			dropped;
+        [ $# | _ ] ->
+            %trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
+            %                       [ Line ] ),
+            dropped;
 
-		TrimmedLine ->
-			Values = parse_line( TrimmedLine, Separator ),
-			FieldCount = length( Values ),
-			{ list_to_tuple( Values ), FieldCount }
+        TrimmedLine ->
+            Values = parse_line( TrimmedLine, Separator ),
+            FieldCount = length( Values ),
+            { list_to_tuple( Values ), FieldCount }
 
-	end.
+    end.
 
 
 
@@ -737,25 +737,25 @@ presence of the separator is ignored.
 -spec parse_line( line(), separator() ) -> [ value() ].
 parse_line( Line, Separator ) ->
 
-	% Allows not to consider as unmatched the lines that happen to have, in a
-	% quote, the separator in use (which, in this case, shall be considered as
-	% any other character):
+    % Allows not to consider as unmatched the lines that happen to have, in a
+    % quote, the separator in use (which, in this case, shall be considered as
+    % any other character):
 
-	%trace_utils:debug_fmt( "A. Parsing line: '~ts'.~n", [ Line ] ),
+    %trace_utils:debug_fmt( "A. Parsing line: '~ts'.~n", [ Line ] ),
 
-	% First consider each quoted sequence as a single element:
-	ParseLine = text_utils:parse_quoted( Line, ?quoting_characters,
-										 ?escaping_characters ),
+    % First consider each quoted sequence as a single element:
+    ParseLine = text_utils:parse_quoted( Line, ?quoting_characters,
+                                         ?escaping_characters ),
 
-	%trace_utils:debug_fmt( "B. Parsed line elements:~n ~p.~n", [ ParseLine ] ),
+    %trace_utils:debug_fmt( "B. Parsed line elements:~n ~p.~n", [ ParseLine ] ),
 
-	% Now split with the separator, respecting quoted elements:
-	SplitStrs = text_utils:split_parsed( ParseLine, [ Separator ] ),
+    % Now split with the separator, respecting quoted elements:
+    SplitStrs = text_utils:split_parsed( ParseLine, [ Separator ] ),
 
-	%trace_utils:debug_fmt( "C. Split strings: ~ts",
-	%                       [ text_utils:strings_to_string( SplitStrs ) ] ),
+    %trace_utils:debug_fmt( "C. Split strings: ~ts",
+    %                       [ text_utils:strings_to_string( SplitStrs ) ] ),
 
-	SplitStrs.
+    SplitStrs.
 
 
 
@@ -765,74 +765,74 @@ unspecified field count) contains only empty values (empty strings).
 """.
 -spec check_all_empty( row() | [ value() ] ) -> void().
 check_all_empty( Row ) when is_tuple( Row ) ->
-	check_all_empty( tuple_to_list( Row ) );
+    check_all_empty( tuple_to_list( Row ) );
 
 check_all_empty( _List=[] ) ->
-	ok;
+    ok;
 
 check_all_empty( _List=[ "" | T ] ) ->
-	check_all_empty( T );
+    check_all_empty( T );
 
 check_all_empty( _List=[ H | _T ] ) ->
-	throw( { non_empty_value, H } ).
+    throw( { non_empty_value, H } ).
 
 
 
 -doc "Returns whether the specified list of values contains only empty ones.".
 -spec are_all_empty( row() | [ value() ] ) -> boolean().
 are_all_empty( Row ) when is_tuple( Row ) ->
-	are_all_empty( tuple_to_list( Row ) );
+    are_all_empty( tuple_to_list( Row ) );
 
 are_all_empty( [] ) ->
-	true;
+    true;
 
 are_all_empty( [ "" | T ] ) ->
-	are_all_empty( T );
+    are_all_empty( T );
 
 are_all_empty( [ _H | _T ] ) ->
-	false.
+    false.
 
 
 
 -doc "Returns the most usual separators used in CSV files.".
 -spec get_usual_separators() -> [ separator() ].
 get_usual_separators() ->
-	[ $,, $; ].
+    [ $,, $; ].
 
 
 
 -doc "Determines the separator used in the specified line.".
 -spec guess_separator_from( line() ) -> separator().
 guess_separator_from( Line ) ->
-	%trace_utils:debug_fmt( "Guessing separator used in '~ts'...", [ Line ] ),
-	SepPairs = gather_potential_separators( Line ),
-	select_most_likely_separator( SepPairs ).
+    %trace_utils:debug_fmt( "Guessing separator used in '~ts'...", [ Line ] ),
+    SepPairs = gather_potential_separators( Line ),
+    select_most_likely_separator( SepPairs ).
 
 
 gather_potential_separators( Line ) ->
-	evaluate_separators_on( _Seps=get_usual_separators(), Line, _SepAcc=[] ).
+    evaluate_separators_on( _Seps=get_usual_separators(), Line, _SepAcc=[] ).
 
 
 % (helper)
 evaluate_separators_on( _Seps=[], _Line, SepAcc ) ->
-	SepAcc;
+    SepAcc;
 
 evaluate_separators_on( _Seps=[ Sep | T ], Line, SepAcc ) ->
-	SubStrings = text_utils:split( Line, _Delimiter=Sep ),
-	NewSepAcc = [ { Sep, length( SubStrings ) - 1 } | SepAcc ],
-	evaluate_separators_on( T, Line, NewSepAcc ).
+    SubStrings = text_utils:split( Line, _Delimiter=Sep ),
+    NewSepAcc = [ { Sep, length( SubStrings ) - 1 } | SepAcc ],
+    evaluate_separators_on( T, Line, NewSepAcc ).
 
 
 % (helper)
 select_most_likely_separator( SepPairs ) ->
 
-	%trace_utils:debug_fmt( "Separator pairs: ~w.", [ SepPairs ] ),
+    %trace_utils:debug_fmt( "Separator pairs: ~w.", [ SepPairs ] ),
 
-	% Returns the separator having the higher number of occurrences:
-	{ Sep, _Count } = list_utils:get_last_element(
-		lists:keysort( _CountIndex=2, SepPairs ) ),
+    % Returns the separator having the higher number of occurrences:
+    { Sep, _Count } = list_utils:get_last_element(
+        lists:keysort( _CountIndex=2, SepPairs ) ),
 
-	Sep.
+    Sep.
 
 
 
@@ -848,7 +848,7 @@ In terms of file extension, we recommend the one returned by
 """.
 -spec write_file( content(), any_file_path() ) -> void().
 write_file( Content, TargetFilePath ) ->
-	write_file( Content, TargetFilePath, ?default_separator ).
+    write_file( Content, TargetFilePath, ?default_separator ).
 
 
 
@@ -866,44 +866,44 @@ In terms of file extension, we recommend the one returned by
 write_file( Content, TargetFilePath, Separator ) ->
 
    file_utils:exists( TargetFilePath ) andalso
-		throw( { already_existing_csv_file,
-				 text_utils:ensure_string( TargetFilePath ) } ),
+        throw( { already_existing_csv_file,
+                 text_utils:ensure_string( TargetFilePath ) } ),
 
-	WriteOpts = [ write, raw, delayed_write ],
+    WriteOpts = [ write, raw, delayed_write ],
 
-	File = file_utils:open( TargetFilePath, WriteOpts ),
+    File = file_utils:open( TargetFilePath, WriteOpts ),
 
-	% Add a space for readability:
-	FullSeparator = [ Separator, $ ],
+    % Add a space for readability:
+    FullSeparator = [ Separator, $ ],
 
-	% Specifically checking rows (in terms of datatypes, number of elements,
-	% etc.) has little interest, as supporting heterogeneous rows may be a
-	% feature; moreover the content data originates from the program and thus is
-	% probably already correct by design.
+    % Specifically checking rows (in terms of datatypes, number of elements,
+    % etc.) has little interest, as supporting heterogeneous rows may be a
+    % feature; moreover the content data originates from the program and thus is
+    % probably already correct by design.
 
-	write_rows( Content, FullSeparator, File ),
+    write_rows( Content, FullSeparator, File ),
 
-	file_utils:close( File ).
+    file_utils:close( File ).
 
 
 
 % (helper)
 write_rows( _Content=[], _Separator, _File ) ->
-	ok;
+    ok;
 
 write_rows( _Content=[ Row | T ], Separator, File ) ->
 
-	Elems = tuple_to_list( Row ),
+    Elems = tuple_to_list( Row ),
 
-	CtrlSeqs = lists:duplicate( length( Elems ), "~w" ),
+    CtrlSeqs = lists:duplicate( length( Elems ), "~w" ),
 
-	FormatString = text_utils:join( Separator, CtrlSeqs ),
+    FormatString = text_utils:join( Separator, CtrlSeqs ),
 
-	Line = text_utils:format( FormatString, Elems ),
+    Line = text_utils:format( FormatString, Elems ),
 
-	file_utils:write_ustring( File, "~ts~n", [ Line ] ),
+    file_utils:write_ustring( File, "~ts~n", [ Line ] ),
 
-	write_rows( T, Separator, File ).
+    write_rows( T, Separator, File ).
 
 
 
@@ -911,31 +911,31 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 -spec get_file_for_reading( any_file_path() ) -> file().
 get_file_for_reading( FilePath ) ->
 
-	%trace_utils:debug_fmt( "Opening '~ts' with options ~w.",
-	%                       [ FilePath, ?read_options ] ),
+    %trace_utils:debug_fmt( "Opening '~ts' with options ~w.",
+    %                       [ FilePath, ?read_options ] ),
 
-	file_utils:is_existing_file_or_link( FilePath ) orelse
-		throw( { csv_file_not_found, FilePath,
-				 file_utils:get_current_directory() } ),
+    file_utils:is_existing_file_or_link( FilePath ) orelse
+        throw( { csv_file_not_found, FilePath,
+                 file_utils:get_current_directory() } ),
 
-	File = file_utils:open( FilePath, ?read_options ),
+    File = file_utils:open( FilePath, ?read_options ),
 
-	% Refer to the note in file_utils:open/2 for explanation:
-	%
-	% (possibly still needed, yet a test case with 25.3 could work without it,
-	% if having {encoding, utf8} is the read options)
-	%
-	%system_utils:force_unicode_support(),
+    % Refer to the note in file_utils:open/2 for explanation:
+    %
+    % (possibly still needed, yet a test case with 25.3 could work without it,
+    % if having {encoding, utf8} is the read options)
+    %
+    %system_utils:force_unicode_support(),
 
-	File.
+    File.
 
 
 
 -doc "Returns a textual representation of the specified content.".
 -spec content_to_string( content() ) -> ustring().
 content_to_string( Content ) ->
-	text_utils:format( "content of ~B rows: ~ts", [ length( Content ),
-					   text_utils:terms_to_enumerated_string( Content ) ] ).
+    text_utils:format( "content of ~B rows: ~ts", [ length( Content ),
+                       text_utils:terms_to_enumerated_string( Content ) ] ).
 
 
 -doc """
@@ -944,27 +944,27 @@ returns the number of non-matching rows, an overall description thereof, and an
 ordered list of these rows.
 """.
 -spec describe_non_matching_rows_in( mixed_content() ) ->
-								{ row_count(), ustring(), [ row() ] }.
+                                { row_count(), ustring(), [ row() ] }.
 describe_non_matching_rows_in( MixedContent ) ->
-	% Preferring a single pass:
-	describe_non_matching_rows_in( MixedContent, _AccDesc=[], _AccRows=[] ).
+    % Preferring a single pass:
+    describe_non_matching_rows_in( MixedContent, _AccDesc=[], _AccRows=[] ).
 
 
 % (helper)
 describe_non_matching_rows_in( _MixedContent=[], AccDesc, AccRows ) ->
-	Count = length( AccRows ),
-	Desc = text_utils:strings_to_string( lists:reverse( AccDesc ) ),
-	Rows = lists:reverse( AccRows ),
-	{ Count, Desc, Rows };
+    Count = length( AccRows ),
+    Desc = text_utils:strings_to_string( lists:reverse( AccDesc ) ),
+    Rows = lists:reverse( AccRows ),
+    { Count, Desc, Rows };
 
 describe_non_matching_rows_in( _MixedContent=[
-		{ non_matching, RowNumber, Row } | T ], AccDesc, AccRows ) ->
+        { non_matching, RowNumber, Row } | T ], AccDesc, AccRows ) ->
 
-	NewAccDesc = [ text_utils:format( "row #~B had ~B field(s): ~p",
-		[ RowNumber, tuple_size( Row ), Row ] ) | AccDesc ],
+    NewAccDesc = [ text_utils:format( "row #~B had ~B field(s): ~p",
+        [ RowNumber, tuple_size( Row ), Row ] ) | AccDesc ],
 
-	describe_non_matching_rows_in( T, NewAccDesc, [ Row | AccRows ] );
+    describe_non_matching_rows_in( T, NewAccDesc, [ Row | AccRows ] );
 
 describe_non_matching_rows_in( _MixedContent=[ _NormalRow | T ], AccDesc,
-							   AccRows ) ->
-	describe_non_matching_rows_in( T, AccDesc, AccRows ).
+                               AccRows ) ->
+    describe_non_matching_rows_in( T, AccDesc, AccRows ).

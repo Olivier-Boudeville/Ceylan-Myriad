@@ -41,8 +41,8 @@ See also the `preferences` module for application preferences.
 
 
 -export([ start/1, stop/0, stop/1,
-		  get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
-		  display/1, display/2, fail/1, fail/2,
+          get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
+          display/1, display/2, fail/1, fail/2,
           finished/0, finished/2 ] ).
 
 
@@ -66,7 +66,7 @@ system-specific base paths.
 
 -doc "Needed by some standard functions in the `filename` module.".
 -type app_info_map() :: % Not exported yet: filename:basedir_opts().
-						any().
+                        any().
 
 
 
@@ -112,12 +112,12 @@ the mailbox of the case process).
 """.
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
-	erlang:process_flag( trap_exit, false ),
-	basic_utils:display( "~n~n--> Starting application ~ts.~n", [ Module ] );
+    erlang:process_flag( trap_exit, false ),
+    basic_utils:display( "~n~n--> Starting application ~ts.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
-	erlang:process_flag( trap_exit, false ),
-	basic_utils:display( "~n~n--> Starting application ~p.~n", [ Modules ] ).
+    erlang:process_flag( trap_exit, false ),
+    basic_utils:display( "~n~n--> Starting application ~p.~n", [ Modules ] ).
 
 
 
@@ -138,10 +138,10 @@ normal case.
 -spec stop( IsVerbose :: boolean() ) -> no_return().
 stop( IsVerbose ) ->
 
-	IsVerbose andalso
+    IsVerbose andalso
         basic_utils:display( "\n--> Successful termination of application.\n" ),
 
-	finished( IsVerbose, _BeQuick=false ).
+    finished( IsVerbose, _BeQuick=false ).
 
 
 
@@ -151,8 +151,8 @@ name.
 """.
 -spec get_app_info( string_like() ) -> app_info().
 get_app_info( AppName ) ->
-	get_app_info( AppName, _MaybeAppVersion=undefined,
-				  _MaybeAuthorDesc=undefined ).
+    get_app_info( AppName, _MaybeAppVersion=undefined,
+                  _MaybeAuthorDesc=undefined ).
 
 
 
@@ -162,7 +162,7 @@ name and version.
 """.
 -spec get_app_info( string_like(), any_version() ) -> app_info().
 get_app_info( AppName, AppVersion ) ->
-	get_app_info( AppName, AppVersion, _MaybeAuthorDesc=undefined ).
+    get_app_info( AppName, AppVersion, _MaybeAuthorDesc=undefined ).
 
 
 
@@ -171,103 +171,103 @@ Returns an application information corresponding to the specified application
 name, and possibly version and author description.
 """.
 -spec get_app_info( string_like(), option( any_version() ),
-					option( any_string() ) ) -> app_info().
+                    option( any_string() ) ) -> app_info().
 get_app_info( AppName, MaybeAppVersion, MaybeAuthorDesc ) ->
 
-	MaybeBinAuthorDesc = case MaybeAuthorDesc of
+    MaybeBinAuthorDesc = case MaybeAuthorDesc of
 
-		undefined ->
-			undefined;
+        undefined ->
+            undefined;
 
-		AuthorDesc ->
-			text_utils:ensure_binary( AuthorDesc )
+        AuthorDesc ->
+            text_utils:ensure_binary( AuthorDesc )
 
-	end,
+    end,
 
-	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
+    { OSFamily, OSName } = system_utils:get_operating_system_type(),
 
-	BinAppName = case is_atom( AppName ) of
+    BinAppName = case is_atom( AppName ) of
 
-		true ->
-			text_utils:atom_to_binary( AppName );
+        true ->
+            text_utils:atom_to_binary( AppName );
 
-		false ->
-			text_utils:ensure_binary( AppName )
+        false ->
+            text_utils:ensure_binary( AppName )
 
-	end,
+    end,
 
-	#app_info{ name=BinAppName,
-			   version=MaybeAppVersion,
-			   author=MaybeBinAuthorDesc,
-			   os_family=OSFamily,
-			   os_name=OSName }.
+    #app_info{ name=BinAppName,
+               version=MaybeAppVersion,
+               author=MaybeBinAuthorDesc,
+               os_family=OSFamily,
+               os_name=OSName }.
 
 
 
 -doc "Returns a map typically relevant for `filename:basedir/3`.".
 -spec get_app_info_map( app_info() ) -> app_info_map().
 get_app_info_map( #app_info{ name=BinAppName,
-							 version=MaybeAppVersion,
-							 author=MaybeBinAuthorDesc,
-							 os_family=OSFamily,
-							 os_name=OSName } ) ->
+                             version=MaybeAppVersion,
+                             author=MaybeBinAuthorDesc,
+                             os_family=OSFamily,
+                             os_name=OSName } ) ->
 
-	OSType = case { OSFamily, OSName } of
+    OSType = case { OSFamily, OSName } of
 
-		{ _, linux } ->
-			linux;
+        { _, linux } ->
+            linux;
 
-		{ unix, _ } ->
-			darwin;
+        { unix, _ } ->
+            darwin;
 
-		{ win32, _ } ->
-			windows;
+        { win32, _ } ->
+            windows;
 
-		_Other ->
-			trace_utils:error_fmt( "Unable to categorise this operating "
-				"system, whose family is '~ts' and name is '~ts'.",
-				[ OSFamily, OSName ] ),
-			throw( { unexpected_os, OSFamily, OSName } )
+        _Other ->
+            trace_utils:error_fmt( "Unable to categorise this operating "
+                "system, whose family is '~ts' and name is '~ts'.",
+                [ OSFamily, OSName ] ),
+            throw( { unexpected_os, OSFamily, OSName } )
 
-	end,
+    end,
 
-	BaseMap = #{ name => BinAppName, os => OSType },
+    BaseMap = #{ name => BinAppName, os => OSType },
 
-	VersionMap = case MaybeAppVersion of
+    VersionMap = case MaybeAppVersion of
 
-		undefined ->
-			BaseMap;
+        undefined ->
+            BaseMap;
 
-		AppVersion when is_tuple( AppVersion ) ->
-			BaseMap#{ version => text_utils:version_to_string( AppVersion ) };
+        AppVersion when is_tuple( AppVersion ) ->
+            BaseMap#{ version => text_utils:version_to_string( AppVersion ) };
 
-		% Version string then:
-		AppVersionStr when is_list( AppVersionStr ) ->
-			BaseMap#{ version => AppVersionStr }
+        % Version string then:
+        AppVersionStr when is_list( AppVersionStr ) ->
+            BaseMap#{ version => AppVersionStr }
 
-	end,
+    end,
 
-	case MaybeBinAuthorDesc of
+    case MaybeBinAuthorDesc of
 
-		undefined ->
-			VersionMap;
+        undefined ->
+            VersionMap;
 
-		BinAuthorDesc ->
-			VersionMap#{ author => BinAuthorDesc }
+        BinAuthorDesc ->
+            VersionMap#{ author => BinAuthorDesc }
 
-	end.
+    end.
 
 
 
 -doc "Displays an application message.".
 -spec display( ustring() ) -> void().
 display( Message ) ->
-	% Carriage return already added in basic_utils:display/1:
-	%
-	% (empty format string added to force elements in message such as '~n' to be
-	% transformed)
-	%
-	basic_utils:display( lists:flatten( Message ), _Values=[] ).
+    % Carriage return already added in basic_utils:display/1:
+    %
+    % (empty format string added to force elements in message such as '~n' to be
+    % transformed)
+    %
+    basic_utils:display( lists:flatten( Message ), _Values=[] ).
 
 
 
@@ -279,7 +279,7 @@ list of field values.
 """.
 -spec display( format_string(), format_values() ) -> void().
 display( FormatString, Values ) ->
-	basic_utils:display( FormatString, Values ).
+    basic_utils:display( FormatString, Values ).
 
 
 % Comment out to be able to use the interpreter after the app:
@@ -314,39 +314,39 @@ finished( _IsVerbose, _BeQuick=true ) ->
 % For a (longer) more synchronous termination:
 finished( IsVerbose, _BeQuick=false ) ->
 
-	IsVerbose andalso
+    IsVerbose andalso
         basic_utils:display( "(execution finished, interpreter halted)" ),
 
-	% Probably not that useful:
-	system_utils:await_output_completion(),
+    % Probably not that useful:
+    system_utils:await_output_completion(),
 
-	% This is a really magic waiting: without it, with systemd, an otherwise
-	% perfectly working ExecStop script would hang and finish in a later
-	% time-out (Type=forking; e.g. US-Main), whereas, with this sleep, stop
-	% works as expected and switfly; maybe there is a race condition in systemd
-	% itself:
-	%
-	timer:sleep( 1000 ),
+    % This is a really magic waiting: without it, with systemd, an otherwise
+    % perfectly working ExecStop script would hang and finish in a later
+    % time-out (Type=forking; e.g. US-Main), whereas, with this sleep, stop
+    % works as expected and switfly; maybe there is a race condition in systemd
+    % itself:
+    %
+    timer:sleep( 1000 ),
 
-	% Implies flushing as well:
-	basic_utils:stop_on_success(),
+    % Implies flushing as well:
+    basic_utils:stop_on_success(),
 
-	% Useless, but otherwise Dialyzer will complain that this function has no
-	% local return:
-	%
-	app_success.
+    % Useless, but otherwise Dialyzer will complain that this function has no
+    % local return:
+    %
+    app_success.
 
 -else. % exit_after_app
 
 
 finished( IsVerbose ) ->
 
-	IsVerbose andalso basic_utils:display(
+    IsVerbose andalso basic_utils:display(
         "(execution finished, interpreter still running)~n" ),
 
-	%system_utils:await_output_completion(),
+    %system_utils:await_output_completion(),
 
-	app_success.
+    app_success.
 
 -endif. % exit_after_app
 
@@ -360,23 +360,23 @@ For example `app_facilities:fail("server on strike")`.
 -spec fail( ustring() ) -> no_return().
 fail( Reason ) ->
 
-	% For some reason erlang:error is unable to interpret strings as strings,
-	% they are always output as unreadable lists.
+    % For some reason erlang:error is unable to interpret strings as strings,
+    % they are always output as unreadable lists.
 
-	basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
-						 [ Reason ] ),
+    basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
+                         [ Reason ] ),
 
-	% Never returns:
-	erlang:error( "Application failed" ),
+    % Never returns:
+    erlang:error( "Application failed" ),
 
-	% Hence probably not that useful:
-	system_utils:await_output_completion(),
+    % Hence probably not that useful:
+    system_utils:await_output_completion(),
 
-	basic_utils:stop_on_failure(),
+    basic_utils:stop_on_failure(),
 
-	% Useless, but otherwise Dialyzer will complain that this function has no
-	% local return:
-	app_failed.
+    % Useless, but otherwise Dialyzer will complain that this function has no
+    % local return:
+    app_failed.
 
 
 
@@ -391,24 +391,24 @@ For example `app_facilities:fail("server ~ts on strike", ["foobar.org"])`.
 -spec fail( format_string(), format_values() ) -> no_return().
 fail( FormatString, Values ) ->
 
-	% For some reason, erlang:error is unable to interpret strings as strings,
-	% they are always output as unreadable lists.
+    % For some reason, erlang:error is unable to interpret strings as strings,
+    % they are always output as unreadable lists.
 
-	ErrorMessage = io_lib:format( "~n!!!! Application failed, reason: ~ts.~n~n",
-								  [ io_lib:format( FormatString, Values ) ] ),
+    ErrorMessage = io_lib:format( "~n!!!! Application failed, reason: ~ts.~n~n",
+                                  [ io_lib:format( FormatString, Values ) ] ),
 
-	basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
-						 [ ErrorMessage ] ),
+    basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
+                         [ ErrorMessage ] ),
 
-	% Never returns:
-	erlang:error( "Application failed" ),
+    % Never returns:
+    erlang:error( "Application failed" ),
 
-	% Hence probably not that useful:
-	system_utils:await_output_completion(),
+    % Hence probably not that useful:
+    system_utils:await_output_completion(),
 
-	basic_utils:stop_on_failure(),
+    basic_utils:stop_on_failure(),
 
-	% Useless, but otherwise Dialyzer will complain that this function has no
-	% local return:
+    % Useless, but otherwise Dialyzer will complain that this function has no
+    % local return:
     %
-	app_failed.
+    app_failed.

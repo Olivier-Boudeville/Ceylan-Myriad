@@ -1,5 +1,3 @@
-
-
 --------------
 Getting Myriad
 --------------
@@ -39,7 +37,7 @@ The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_
 
 .. [#] Most probably that older versions of Erlang would be more than sufficient in order to build Myriad (possibly at the expense of minor changes in a few calls to standard modules having been deprecated since then). It is just that in general we prefer sticking to the latest stable versions of software such as Erlang, and advise you to do so.
 
-	   To determine programmatically the recommended version of Myriad-based code, just execute our `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_ script with its ``--version`` option (this is the sole source of reference, and it is used in our full software stack).
+       To determine programmatically the recommended version of Myriad-based code, just execute our `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_ script with its ``--version`` option (this is the sole source of reference, and it is used in our full software stack).
 
 
 There are various ways of obtaining it (from your distribution [#]_, from prebuilt packages, directly from the sources), one of which being the `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_ script that we devised.
@@ -168,7 +166,7 @@ For example, Myriad itself does not require any specific dependency, but project
 .. code:: erlang
 
   {deps, [{myriad, {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad",
-										{branch, "master"}}}]}.
+                                        {branch, "master"}}}]}.
 
 However, when having to build a dependency, rebar3 will not necessarily refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing ``rebar.lock`` file at the root of the current project (the underlying goal being to allow for more reproducible builds).
 
@@ -190,7 +188,7 @@ Its content could then be for example:
 
  [{<<"myriad">>,
   {git,"https://github.com/Olivier-Boudeville/Ceylan-Myriad.git",
-	   {ref,"f942c6bef06ee65fc14eb578366a055144cc3873"}},
+       {ref,"f942c6bef06ee65fc14eb578366a055144cc3873"}},
   0}].
 
 where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).
@@ -279,7 +277,7 @@ There are `various ways <https://www.rebar3.org/docs/getting-started>`_  of obta
 .. code:: bash
 
  $ cd ~/Software && git clone https://github.com/erlang/rebar3.git
-	&& cd rebar3 && ./bootstrap
+    && cd rebar3 && ./bootstrap
 
 Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (``rebar3 -v``) to check it afterwards, then issue ``rebar3 local upgrade``; however this would involve running rebar from ``.cache/rebar3/bin``, so instead we prefer using (typically from ``~/Software/rebar3``):
 
@@ -316,8 +314,8 @@ As a result, the OTP application support can be tested from the root of an (alre
 
  $ cd src/utils
  $ make myriad_otp_application_run
-		Running unitary test myriad_otp_application_run (third form) from
-		   myriad_otp_application_test
+        Running unitary test myriad_otp_application_run (third form) from
+           myriad_otp_application_test
 
  --> Testing module myriad_otp_application_test.
 
@@ -327,9 +325,9 @@ As a result, the OTP application support can be tested from the root of an (alre
  Stopping the Myriad application.
  Successful end of test of the Myriad application.
  =INFO REPORT==== 18-Jul-2019::22:37:24.779037 ===
-	application: myriad
-	exited: stopped
-	type: temporary
+    application: myriad
+    exited: stopped
+    type: temporary
 
  --> Successful end of test.
 
@@ -350,9 +348,9 @@ This support can be also tested manually, directly through the build tree used b
  "Hello world"
  3> application:stop(myriad).
  =INFO REPORT==== 18-Jul-2019::22:47:36.429804 ===
-	application: myriad
-	exited: stopped
-	type: temporary
+    application: myriad
+    exited: stopped
+    type: temporary
 
 
 When needing to include a Myriad header file (taking ``spawn_utils.hrl`` as an example) in one's code, OTP conventions mandate using::

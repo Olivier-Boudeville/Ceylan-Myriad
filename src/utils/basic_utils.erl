@@ -364,7 +364,7 @@ the caller if needed.
 Thus either `{ok, TSuccessValue}` or `{error, {TuploidTFailureValue,ErrorMsg}}`.
 """.
 -type diagnosed_fallible( TSuccess, TFailure ) ::
-	fallible( TSuccess, diagnosed_error_reason( TFailure ) ).
+    fallible( TSuccess, diagnosed_error_reason( TFailure ) ).
 
 
 -doc """
@@ -466,7 +466,7 @@ ReleaseVersion}`, or `{MajorVersion, Enhancements, BugFixes}`, or
 [https://semver.org/]).
 """.
 -type three_digit_version() ::
-	{ version_number(), version_number(), version_number() }.
+    { version_number(), version_number(), version_number() }.
 
 
 
@@ -475,12 +475,12 @@ Version as a quadruplet of integers, typically `{MajorVersion, MinorVersion,
 ReleaseVersion, BuildVersion}`.
 """.
 -type four_digit_version() :: { version_number(), version_number(),
-								version_number(), version_number() }.
+                                version_number(), version_number() }.
 
 
 -doc "Any version number.".
 -type any_version() :: two_digit_version() | three_digit_version()
-					 | four_digit_version().
+                     | four_digit_version().
 
 
 
@@ -613,36 +613,36 @@ eliminate afterwards).
 
 
 -export_type([ count/0, non_null_count/0, level/0,
-			   message/0, pid_or_port/0, atom_key/0,
-			   reason/0, exit_reason/0, error_reason/0, error_tag/0,
-			   error_diagnosis/0, error_bin_diagnosis/0,
-			   error_type/0, error_tuploid/0, error_message/0,
-			   diagnosed_error_reason/0, tagged_error/0,
-			   error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
-			   base_status/0, base_outcome/0,
+               message/0, pid_or_port/0, atom_key/0,
+               reason/0, exit_reason/0, error_reason/0, error_tag/0,
+               error_diagnosis/0, error_bin_diagnosis/0,
+               error_type/0, error_tuploid/0, error_message/0,
+               diagnosed_error_reason/0, tagged_error/0,
+               error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
+               base_status/0, base_outcome/0,
 
-			   coarse_fallible/1, fallible/0, fallible/1, fallible/2,
+               coarse_fallible/1, fallible/0, fallible/1, fallible/2,
                string_fallible/0, successful/0, successful/1, failing/0,
                failing/1,
 
                tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
                tagged_fallible/0, tagged_fallible/1, tagged_fallible/2,
 
-			   diagnosed_fallible/1, diagnosed_fallible/2,
+               diagnosed_fallible/1, diagnosed_fallible/2,
                diagnosed_tagged_fallible/1,
                error_report_output/0,
 
-			   external_data/0, unchecked_data/0, user_data/0,
-			   accumulator/0,
-			   version_number/0, version/0, two_digit_version/0, any_version/0,
-			   three_digit_version/0, four_digit_version/0,
-			   positive_index/0, zero_index/0,
-			   module_name/0, function_name/0, argument/0, any_option/0,
-			   command_spec/0, layer_name/0, record_name/0, field_name/0,
-			   activation_switch/0,
-			   comparison_result/0, execution_target/0, execution_context/0,
-			   exception_class/0, exception_term/0, status_code/0,
-			   fixme/0 ]).
+               external_data/0, unchecked_data/0, user_data/0,
+               accumulator/0,
+               version_number/0, version/0, two_digit_version/0, any_version/0,
+               three_digit_version/0, four_digit_version/0,
+               positive_index/0, zero_index/0,
+               module_name/0, function_name/0, argument/0, any_option/0,
+               command_spec/0, layer_name/0, record_name/0, field_name/0,
+               activation_switch/0,
+               comparison_result/0, execution_target/0, execution_context/0,
+               exception_class/0, exception_term/0, status_code/0,
+               fixme/0 ]).
 
 
 
@@ -654,69 +654,69 @@ eliminate afterwards).
 
 % Message-related functions.
 -export([ flush_pending_messages/0, flush_pending_messages/1,
-		  notify_pending_messages/0, check_no_pending_message/0,
+          notify_pending_messages/0, check_no_pending_message/0,
 
-		  wait_for/2, wait_for/4,
+          wait_for/2, wait_for/4,
 
-		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
+          wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
 
-		  wait_for_acks/4, wait_for_acks/5,
-		  wait_for_summable_acks/5,
-		  wait_for_many_acks/4, wait_for_many_acks/5,
-		  send_to_pid_set/2 ]).
+          wait_for_acks/4, wait_for_acks/5,
+          wait_for_summable_acks/5,
+          wait_for_many_acks/4, wait_for_many_acks/5,
+          send_to_pid_set/2 ]).
 
 
 % Run-related functions.
 %
 % Not in code_utils, as we want them in a bootstrapped module.
 -export([ run/1, run/2, run/3, exec/1, exec/2, exec/3,
-		  get_myriad_root_path/0 ]).
+          get_myriad_root_path/0 ]).
 
 
 % Version-related functions.
 -export([ get_myriad_version/0, get_myriad_version_string/0,
-		  % See also text_utils:version_to_string/1:
-		  parse_version/1,
-		  check_three_digit_version/1, check_any_version/1,
-		  compare_versions/2 ]).
+          % See also text_utils:version_to_string/1:
+          parse_version/1,
+          check_three_digit_version/1, check_any_version/1,
+          compare_versions/2 ]).
 
 
 % Miscellaneous functions.
 -export([ get_process_info/1, get_process_info/2,
-		  display_process_info/1,
-		  checkpoint/1,
+          display_process_info/1,
+          checkpoint/1,
 
-		  assert/1, assert_true/1, assert_false/1,
-		  assert_equal/2, assert_different/2,
+          assert/1, assert_true/1, assert_false/1,
+          assert_equal/2, assert_different/2,
 
-		  display/1, display/2, display_timed/2, display_timed/3,
-		  display_error/1, display_error/2,
+          display/1, display/2, display_timed/2, display_timed/3,
+          display_error/1, display_error/2,
           write_error_on_file/1, write_error_on_file/2,
 
-		  throw_diagnosed/1, throw_diagnosed/2,
-		  debug/1, debug/2,
+          throw_diagnosed/1, throw_diagnosed/2,
+          debug/1, debug/2,
 
-		  get_unix_process_specific_string/0,
-		  get_process_specific_value/0, get_process_specific_value/1,
-		  get_process_specific_value/2,
-		  get_process_size/1,
-		  is_alive/1, is_alive/2, is_alive/3,
-		  is_debug_mode_enabled/0, get_execution_target/0,
+          get_unix_process_specific_string/0,
+          get_process_specific_value/0, get_process_specific_value/1,
+          get_process_specific_value/2,
+          get_process_size/1,
+          is_alive/1, is_alive/2, is_alive/3,
+          is_debug_mode_enabled/0, get_execution_target/0,
           setup_execution_target/0, setup_execution_target/1,
-		  describe_term/1,
-		  create_uniform_tuple/2,
-		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
-		  stop_on_failure/1,
+          describe_term/1,
+          create_uniform_tuple/2,
+          stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
+          stop_on_failure/1,
 
-		  identity/1, if_else/3, repeat/2,
+          identity/1, if_else/3, repeat/2,
 
-		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
-		  check_defined/1, check_not_undefined/1, check_all_defined/1,
-		  set_option/2,
+          check_undefined/1, check_all_undefined/1, are_all_defined/1,
+          check_defined/1, check_not_undefined/1, check_all_defined/1,
+          set_option/2,
 
-		  ignore_unused/1,
-		  do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
-		  trigger_oom/0 ]).
+          ignore_unused/1,
+          do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
+          trigger_oom/0 ]).
 
 
 -compile( { inline, [ set_option/2 ] } ).
@@ -809,8 +809,8 @@ value.
 """.
 -spec create_uniform_tuple( Size :: count(), Value :: any() ) -> tuple().
 create_uniform_tuple( Size, Value ) ->
-	List = lists:duplicate( Size, Value ),
-	list_to_tuple( List ).
+    List = lists:duplicate( Size, Value ),
+    list_to_tuple( List ).
 
 
 
@@ -821,7 +821,7 @@ Also also to potentially override Erlang standard teardown procedure.
 """.
 -spec stop() -> no_return().
 stop() ->
-	stop( _Success=0 ).
+    stop( _Success=0 ).
 
 
 
@@ -833,22 +833,22 @@ Also allows to potentially override Erlang standard teardown procedure.
 -spec stop( status_code() ) -> no_return().
 stop( StatusCode ) ->
 
-	%trace_utils:debug( "Immediate stop." ),
+    %trace_utils:debug( "Immediate stop." ),
 
-	% Far less brutal than erlang:halt/{0,1}, yet awfully slow, and
-	% actually non-blocking:
-	%
-	%init:stop( StatusCode ),
+    % Far less brutal than erlang:halt/{0,1}, yet awfully slow, and
+    % actually non-blocking:
+    %
+    %init:stop( StatusCode ),
 
-	% So, finally preferred (as blocking and fast):
-	halt( StatusCode ),
+    % So, finally preferred (as blocking and fast):
+    halt( StatusCode ),
 
-	%trace_utils:debug( "Stopped." ),
+    %trace_utils:debug( "Stopped." ),
 
-	% To avoid that the calling process continues with the next instructions:
-	% (would happen with init:stop/1, but not halt/{0,1})
-	%
-	freeze().
+    % To avoid that the calling process continues with the next instructions:
+    % (would happen with init:stop/1, but not halt/{0,1})
+    %
+    freeze().
 
 
 
@@ -858,7 +858,7 @@ code (`0`).
 """.
 -spec stop_on_success() -> no_return().
 stop_on_success() ->
-	stop( _Success=0 ).
+    stop( _Success=0 ).
 
 
 
@@ -867,13 +867,13 @@ Stops smoothly the underlying VM, with a default error status code (`1`).
 """.
 -spec stop_on_failure() -> no_return().
 stop_on_failure() ->
-	stop_on_failure( _OurDefaultErrorCode=5 ).
+    stop_on_failure( _OurDefaultErrorCode=5 ).
 
 
 -doc "Stops smoothly the underlying VM, with the specified error status code.".
 -spec stop_on_failure( status_code() ) -> no_return().
 stop_on_failure( StatusCode ) ->
-	stop( StatusCode ).
+    stop( StatusCode ).
 
 
 
@@ -891,7 +891,7 @@ not disappear from stacktraces
 """.
 -spec identity( term() ) -> term().
 identity( Term ) ->
-	Term.
+    Term.
 
 
 
@@ -907,12 +907,12 @@ evaluation, both arguments will always be evaluated.
 """.
 % First argument not necessarily boolean(), just 'true' | T:
 -spec if_else( Condition :: term(),
-			   IfTrue :: term(), IfNotTrue :: term() ) -> term().
+               IfTrue :: term(), IfNotTrue :: term() ) -> term().
 if_else( _Condition=true, IfTrue, _IfNotTrue ) ->
-	IfTrue;
+    IfTrue;
 
 if_else( _Condition, _IfTrue, IfNotTrue ) ->
-	IfNotTrue.
+    IfNotTrue.
 
 
 % No if_defined/2 to be defined - just refer to set_option/2.
@@ -939,10 +939,10 @@ repeat( Fun, Count ) ->
 -doc "Checks that the specified term is `undefined`, and returns it.".
 -spec check_undefined( term() ) -> 'undefined'.
 check_undefined( undefined ) ->
-	undefined;
+    undefined;
 
 check_undefined( Term ) ->
-	throw( { not_undefined, Term } ).
+    throw( { not_undefined, Term } ).
 
 
 
@@ -952,17 +952,17 @@ that list.
 """.
 -spec check_all_undefined( term() ) -> [ term() ].
 check_all_undefined( List ) ->
-	[ check_undefined( Term ) || Term <- List ].
+    [ check_undefined( Term ) || Term <- List ].
 
 
 
 -doc "Checks that the specified term is not `undefined`; returns that term.".
 -spec check_not_undefined( term() ) -> term().
 check_not_undefined( undefined ) ->
-	throw( is_undefined );
+    throw( is_undefined );
 
 check_not_undefined( Term ) ->
-	Term.
+    Term.
 
 
 
@@ -972,7 +972,7 @@ returns that term.
 """.
 -spec check_defined( term() ) -> term().
 check_defined( Term ) ->
-	check_not_undefined( Term ).
+    check_not_undefined( Term ).
 
 
 
@@ -982,7 +982,7 @@ Checks that all elements of the specified list are "defined" (that is not
 """.
 -spec check_all_defined( [ term() ] ) -> [ term() ].
 check_all_defined( List ) ->
-	[ check_defined( Term ) || Term <- List ].
+    [ check_defined( Term ) || Term <- List ].
 
 
 
@@ -992,13 +992,13 @@ the `undefined` atom).
 """.
 -spec are_all_defined( [ term() ] ) -> boolean().
 are_all_defined( _Elems=[] ) ->
-	true;
+    true;
 
 are_all_defined( _Elems=[ undefined | _T ] ) ->
-	false;
+    false;
 
 are_all_defined( _Elems=[ _E | T ] ) ->
-	are_all_defined( T ).
+    are_all_defined( T ).
 
 
 
@@ -1021,10 +1021,10 @@ Not named `if_defined/2` to avoid being mixed up with build-time functions in
 """.
 -spec set_option( option( term() ), term() ) -> term().
 set_option( _OptionTerm=undefined, TDef ) ->
-	TDef;
+    TDef;
 
 set_option( T, _TDef ) ->
-	T.
+    T.
 
 
 
@@ -1039,10 +1039,10 @@ C]).`.
 """.
 -spec ignore_unused( any() ) -> void().
 ignore_unused( _Term ) ->
-	% Preferred silent:
-	ok.
-	%trace_utils:warning_fmt( "unused term (~p) ignored "
-	%   "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
+    % Preferred silent:
+    ok.
+    %trace_utils:warning_fmt( "unused term (~p) ignored "
+    %   "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
 
 
 
@@ -1053,7 +1053,7 @@ May be useful for experiments, for example in link with LCO (*Last Call
 Optimisation*).
 """.
 do_nothing() ->
-	ok.
+    ok.
 
 
 
@@ -1068,15 +1068,15 @@ See also: `enter_infinite_loop/0`.
 -spec freeze() -> no_return().
 freeze() ->
 
-	%trace_utils:debug( "Freezing..." ),
+    %trace_utils:debug( "Freezing..." ),
 
-	receive
+    receive
 
-		not_expected_to_be_received ->
-			trace_utils:error( "Process has been unexpectedly unfrozen." ),
-			freeze()
+        not_expected_to_be_received ->
+            trace_utils:error( "Process has been unexpectedly unfrozen." ),
+            freeze()
 
-	end.
+    end.
 
 
 
@@ -1088,15 +1088,15 @@ Useful for testing reliability, for example.
 -spec crash() -> void().
 crash() ->
 
-	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",
-							  [ self() ] ),
+    trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",
+                              [ self() ] ),
 
-	% Must outsmart the compiler; there should be simpler solutions:
-	A = system_utils:get_core_count(),
-	B = system_utils:get_core_count(),
+    % Must outsmart the compiler; there should be simpler solutions:
+    A = system_utils:get_core_count(),
+    B = system_utils:get_core_count(),
 
-	% Dividing thus by zero:
-	1 / ( A - B ).
+    % Dividing thus by zero:
+    1 / ( A - B ).
 
 
 
@@ -1108,15 +1108,15 @@ Useful for testing reliability, for example.
 -spec crash( term() ) -> any().
 crash( Term ) ->
 
-	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w: ~p ***",
-							  [ self(), Term ] ),
+    trace_bridge:warning_fmt( "*** Crashing on purpose process ~w: ~p ***",
+                              [ self(), Term ] ),
 
-	% Must outsmart the compiler; there should be simpler solutions:
-	A = system_utils:get_core_count(),
-	B = system_utils:get_core_count(),
+    % Must outsmart the compiler; there should be simpler solutions:
+    A = system_utils:get_core_count(),
+    B = system_utils:get_core_count(),
 
-	% Dividing thus by zero:
-	1 / ( A - B ).
+    % Dividing thus by zero:
+    1 / ( A - B ).
 
 
 
@@ -1129,12 +1129,12 @@ See also: `freeze/0`.
 """.
 enter_infinite_loop() ->
 
-	io:format( "~p in infinite loop...", [ self() ] ),
+    io:format( "~p in infinite loop...", [ self() ] ),
 
-	% Loops every minute:
-	timer:sleep( 60000 ),
+    % Loops every minute:
+    timer:sleep( 60000 ),
 
-	enter_infinite_loop().
+    enter_infinite_loop().
 
 
 
@@ -1145,13 +1145,13 @@ Useful for testing reliability, for example.
 """.
 trigger_oom() ->
 
-	io:format( "~p triggering OOM (out of memory) crash...", [ self() ] ),
+    io:format( "~p triggering OOM (out of memory) crash...", [ self() ] ),
 
-	% Expected: Crash dump was written to: erl_crash.dump
-	%  binary_alloc: Cannot allocate 1000000000031 bytes of memory (of type
-	% "binary").
+    % Expected: Crash dump was written to: erl_crash.dump
+    %  binary_alloc: Cannot allocate 1000000000031 bytes of memory (of type
+    % "binary").
 
-	<<1:8000000000000>>.
+    <<1:8000000000000>>.
 
 
 
@@ -1164,8 +1164,8 @@ trigger_oom() ->
 -doc "Speaks the specified message (using currently espeak).".
 -spec speak( ustring() ) -> void().
 speak( Message ) ->
-	system_utils:run_background_command(
-		"espeak -s 140 \"" ++ Message ++ "\"" ).
+    system_utils:run_background_command(
+        "espeak -s 140 \"" ++ Message ++ "\"" ).
 
 
 
@@ -1174,8 +1174,8 @@ Notifies the user of the specified message, with log output and synthetic voice.
 """.
 -spec notify_user( ustring() ) -> void().
 notify_user( Message ) ->
-	io:format( Message ),
-	speak( Message ).
+    io:format( Message ),
+    speak( Message ).
 
 
 
@@ -1188,10 +1188,10 @@ Example: `basic_utils:notify_user("Hello ~w", [Name]).`.
 -spec notify_user( format_string(), format_values() ) -> void().
 notify_user( Message, FormatList ) ->
 
-	ActualMessage = io_lib:format( Message, FormatList ),
+    ActualMessage = io_lib:format( Message, FormatList ),
 
-	io:format( ActualMessage ),
-	speak( ActualMessage ).
+    io:format( ActualMessage ),
+    speak( ActualMessage ).
 
 
 
@@ -1203,15 +1203,15 @@ notify_user( Message, FormatList ) ->
 -spec flush_pending_messages() -> void().
 flush_pending_messages() ->
 
-	receive
+    receive
 
-		_ ->
-			flush_pending_messages()
+        _ ->
+            flush_pending_messages()
 
-	after 0 ->
-		ok
+    after 0 ->
+        ok
 
-	end.
+    end.
 
 
 
@@ -1222,15 +1222,15 @@ match the specified one.
 -spec flush_pending_messages( any() ) -> void().
 flush_pending_messages( Message ) ->
 
-	receive
+    receive
 
-		Message ->
-			flush_pending_messages( Message )
+        Message ->
+            flush_pending_messages( Message )
 
-	after 0 ->
-		ok
+    after 0 ->
+        ok
 
-	end.
+    end.
 
 
 
@@ -1245,18 +1245,18 @@ Useful for tests.
 -spec notify_pending_messages() -> void().
 notify_pending_messages() ->
 
-	receive
+    receive
 
-		Message ->
-			trace_utils:warning_fmt( "Following message was pending: ~p.",
-									 [ Message ] ),
-			notify_pending_messages()
+        Message ->
+            trace_utils:warning_fmt( "Following message was pending: ~p.",
+                                     [ Message ] ),
+            notify_pending_messages()
 
-	after 0 ->
+    after 0 ->
 
-		ok
+        ok
 
-	end.
+    end.
 
 
 
@@ -1270,17 +1270,17 @@ Useful for tests.
 -spec check_no_pending_message() -> void().
 check_no_pending_message() ->
 
-	receive
+    receive
 
-		Message ->
-			trace_utils:error_fmt( "Following message was pending in the "
-				"mailbox of ~w:~n  ~p", [ self(), Message ] ),
-			throw( { pending_message_in_mailbox, Message, self() } )
+        Message ->
+            trace_utils:error_fmt( "Following message was pending in the "
+                "mailbox of ~w:~n  ~p", [ self(), Message ] ),
+            throw( { pending_message_in_mailbox, Message, self() } )
 
-	after 0 ->
-		ok
+    after 0 ->
+        ok
 
-	end.
+    end.
 
 
 
@@ -1290,21 +1290,21 @@ message to be received.
 """.
 -spec wait_for( term(), count() ) -> void().
 wait_for( _Message, _Count=0 ) ->
-	ok;
+    ok;
 
 wait_for( Message, Count ) ->
 
-	% Not available here: cond_utils:if_defined( myriad_debug_waited_operations,
+    % Not available here: cond_utils:if_defined( myriad_debug_waited_operations,
 
-	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
-	%                       [ Count, Message ] )
+    %trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
+    %                       [ Count, Message ] )
 
-	receive
+    receive
 
-		Message ->
-			wait_for( Message, Count-1 )
+        Message ->
+            wait_for( Message, Count-1 )
 
-	end.
+    end.
 
 
 
@@ -1318,27 +1318,27 @@ _Duration=2000, "Still waiting for ~B task(s) to complete")`.
 """.
 -spec wait_for( term(), count(), milliseconds(), format_string() ) -> void().
 wait_for( _Message, _Count=0, _TimeOutDuration, _TimeOutFormatString ) ->
-	ok;
+    ok;
 
 wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
-	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
-	%                       [ Count, Message ] ),
+    %trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
+    %                       [ Count, Message ] ),
 
-	receive
+    receive
 
-		Message ->
-			%trace_utils:debug_fmt( "Received message '~p'",
-			%                       [ Message ] ),
+        Message ->
+            %trace_utils:debug_fmt( "Received message '~p'",
+            %                       [ Message ] ),
 
-			wait_for( Message, Count-1 )
+            wait_for( Message, Count-1 )
 
-	after TimeOutDuration ->
+    after TimeOutDuration ->
 
-		io:format( TimeOutFormatString ++ " after ~ts",
-				   [ Count, time_utils:duration_to_string( TimeOutDuration ) ] )
+        io:format( TimeOutFormatString ++ " after ~ts",
+                   [ Count, time_utils:duration_to_string( TimeOutDuration ) ] )
 
-	end.
+    end.
 
 
 
@@ -1358,10 +1358,10 @@ See `wait_for_many_acks/{4,5}` if having a large number of senders that are
 waited for.
 """.
 -spec wait_for_acks_nothrow( [ pid() ], finite_time_out(), atom() ) ->
-											[ pid() ].
+                                            [ pid() ].
 wait_for_acks_nothrow( WaitedSenders, MaxMsDuration, AckReceiveAtom ) ->
-	wait_for_acks_nothrow( WaitedSenders, MaxMsDuration, ?default_period_ms,
-						   AckReceiveAtom ).
+    wait_for_acks_nothrow( WaitedSenders, MaxMsDuration, ?default_period_ms,
+                           AckReceiveAtom ).
 
 
 
@@ -1377,68 +1377,68 @@ See `wait_for_many_acks/{4,5}` if having a large number of senders that are
 waited for.
 """.
 -spec wait_for_acks_nothrow( [ pid() ], finite_time_out(), ms_period(),
-							 atom() ) -> [ pid() ].
+                             atom() ) -> [ pid() ].
 wait_for_acks_nothrow( WaitedSenders, MaxMsDuration, Period,
-					   AckReceiveAtom ) ->
+                       AckReceiveAtom ) ->
 
-	%trace_utils:debug_fmt( "Waiting (no-throw) for ~p (period: ~ts, "
-	%   "max duration: ~ts, ack atom: '~ts').",
-	%   [ WaitedSenders, time_utils:duration_to_string( Period ),
-	%     time_utils:duration_to_string( MaxMsDuration ),
-	%     AckReceiveAtom ] ),
+    %trace_utils:debug_fmt( "Waiting (no-throw) for ~p (period: ~ts, "
+    %   "max duration: ~ts, ack atom: '~ts').",
+    %   [ WaitedSenders, time_utils:duration_to_string( Period ),
+    %     time_utils:duration_to_string( MaxMsDuration ),
+    %     AckReceiveAtom ] ),
 
-	InitialTimestamp = time_utils:get_timestamp(),
+    InitialTimestamp = time_utils:get_timestamp(),
 
-	wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
-		MaxMsDuration, Period, AckReceiveAtom ).
+    wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
+        MaxMsDuration, Period, AckReceiveAtom ).
 
 
 
 % (helper)
 wait_for_acks_nothrow_helper( _WaitedSenders=[], _InitialTimestamp,
-		_MaxMsDuration, _Period, _AckReceiveAtom ) ->
-	[];
+        _MaxMsDuration, _Period, _AckReceiveAtom ) ->
+    [];
 
 wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
-							  MaxMsDuration, Period, AckReceiveAtom ) ->
+                              MaxMsDuration, Period, AckReceiveAtom ) ->
 
-	receive
+    receive
 
-		{ AckReceiveAtom, WaitedPid } ->
+        { AckReceiveAtom, WaitedPid } ->
 
-			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
+            NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
-			%trace_utils:debug_fmt( "(received ~p, still waiting for "
-			%   "instances ~p)", [ WaitedPid, NewWaited ] ),
+            %trace_utils:debug_fmt( "(received ~p, still waiting for "
+            %   "instances ~p)", [ WaitedPid, NewWaited ] ),
 
-			wait_for_acks_nothrow_helper( NewWaited, InitialTimestamp,
-				MaxMsDuration, Period, AckReceiveAtom )
+            wait_for_acks_nothrow_helper( NewWaited, InitialTimestamp,
+                MaxMsDuration, Period, AckReceiveAtom )
 
-	after Period ->
+    after Period ->
 
-			NewMsDuration =
-				1000 *time_utils:get_duration_since( InitialTimestamp ),
+            NewMsDuration =
+                1000 *time_utils:get_duration_since( InitialTimestamp ),
 
-			case ( MaxMsDuration =/= infinity ) andalso
-						( NewMsDuration > MaxMsDuration ) of
+            case ( MaxMsDuration =/= infinity ) andalso
+                        ( NewMsDuration > MaxMsDuration ) of
 
-				true ->
-					WaitedSenders;
+                true ->
+                    WaitedSenders;
 
-				false ->
-					% Still waiting then:
+                false ->
+                    % Still waiting then:
 
-					%trace_utils:debug_fmt(
-					%   "(still waiting for instances ~p)",
-					%   [ WaitedSenders ] ),
+                    %trace_utils:debug_fmt(
+                    %   "(still waiting for instances ~p)",
+                    %   [ WaitedSenders ] ),
 
-					wait_for_acks_nothrow_helper( WaitedSenders,
-						InitialTimestamp, MaxMsDuration, Period,
-						AckReceiveAtom )
+                    wait_for_acks_nothrow_helper( WaitedSenders,
+                        InitialTimestamp, MaxMsDuration, Period,
+                        AckReceiveAtom )
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -1454,8 +1454,8 @@ waited for.
 """.
 -spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxMsDuration, AckReceiveAtom, ThrowAtom ) ->
-	wait_for_acks( WaitedSenders, MaxMsDuration, ?default_period_ms,
-				   AckReceiveAtom, ThrowAtom ).
+    wait_for_acks( WaitedSenders, MaxMsDuration, ?default_period_ms,
+                   AckReceiveAtom, ThrowAtom ).
 
 
 
@@ -1469,28 +1469,28 @@ Throws a `{ThrowAtom, StillWaitedSenders}` exception on time-out.
 See `wait_for_many_acks/{4,5}` if having a large number of senders waited for.
 """.
 -spec wait_for_acks( [ pid() ], time_out(), ms_period(), atom(), atom() ) ->
-															void().
+                                                            void().
 wait_for_acks( WaitedSenders, MaxMsDuration, Period, AckReceiveAtom,
-			   ThrowAtom ) ->
+               ThrowAtom ) ->
 
-	%trace_utils:debug_fmt( "Waiting for ~p (period: ~ts, "
-	%   "max duration: ~ts, ack atom: '~ts', throw atom: '~ts').",
-	%   [ WaitedSenders, time_utils:duration_to_string( Period ),
-	%     time_utils:duration_to_string( MaxMsDuration ), AckReceiveAtom,
-	%     ThrowAtom ] ),
+    %trace_utils:debug_fmt( "Waiting for ~p (period: ~ts, "
+    %   "max duration: ~ts, ack atom: '~ts', throw atom: '~ts').",
+    %   [ WaitedSenders, time_utils:duration_to_string( Period ),
+    %     time_utils:duration_to_string( MaxMsDuration ), AckReceiveAtom,
+    %     ThrowAtom ] ),
 
-	InitialTimestamp = time_utils:get_timestamp(),
+    InitialTimestamp = time_utils:get_timestamp(),
 
-	case wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
-			MaxMsDuration, Period, AckReceiveAtom ) of
+    case wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
+            MaxMsDuration, Period, AckReceiveAtom ) of
 
-		[] ->
-			ok;
+        [] ->
+            ok;
 
-		StillWaitedSenders ->
-			throw( { ThrowAtom, StillWaitedSenders } )
+        StillWaitedSenders ->
+            throw( { ThrowAtom, StillWaitedSenders } )
 
-	end.
+    end.
 
 
 
@@ -1506,12 +1506,12 @@ Throws a `{ThrowAtom, StillWaitedSenders}` exception on time-out (if any, as the
 time-out can be disabled if set to `infinity`).
 """.
 -spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(),
-							  atom() ) -> number().
+                              atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
-						AckReceiveAtom, ThrowAtom ) ->
+                        AckReceiveAtom, ThrowAtom ) ->
 
-	wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
-							?default_period_ms, AckReceiveAtom, ThrowAtom ).
+    wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
+                            ?default_period_ms, AckReceiveAtom, ThrowAtom ).
 
 
 
@@ -1524,63 +1524,63 @@ and summing all ToAdd values with the specified initial one.
 Throws a `{ThrowAtom, StillWaitedSenders}` exception on time-out.
 """.
 -spec wait_for_summable_acks( [ pid() ], number(), time_out(),
-							  milliseconds(), atom(), atom() ) -> number().
+                              milliseconds(), atom(), atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
-						Period, AckReceiveAtom, ThrowAtom ) ->
+                        Period, AckReceiveAtom, ThrowAtom ) ->
 
-	InitialTimestamp = time_utils:get_timestamp(),
+    InitialTimestamp = time_utils:get_timestamp(),
 
-	wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
-		InitialTimestamp, MaxDurationInSeconds, Period, AckReceiveAtom,
-		ThrowAtom ).
+    wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
+        InitialTimestamp, MaxDurationInSeconds, Period, AckReceiveAtom,
+        ThrowAtom ).
 
 
 % (helper)
 wait_for_summable_acks_helper( _WaitedSenders=[], CurrentValue,
-		_InitialTimestamp, _MaxDurationInSeconds,  _Period, _AckReceiveAtom,
-		_ThrowAtom ) ->
-	CurrentValue;
+        _InitialTimestamp, _MaxDurationInSeconds,  _Period, _AckReceiveAtom,
+        _ThrowAtom ) ->
+    CurrentValue;
 
 wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
-			MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ) ->
+            MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ) ->
 
-	receive
+    receive
 
-		{ AckReceiveAtom, ToAdd, WaitedPid } ->
+        { AckReceiveAtom, ToAdd, WaitedPid } ->
 
-			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
+            NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
-			%trace_utils:debug_fmt( "(received ~p, still waiting for "
-			%   "instances ~p).", [ WaitedPid, NewWaited ] ),
+            %trace_utils:debug_fmt( "(received ~p, still waiting for "
+            %   "instances ~p).", [ WaitedPid, NewWaited ] ),
 
-			wait_for_summable_acks_helper( NewWaited, CurrentValue + ToAdd,
-				InitialTimestamp, MaxDurationInSeconds, Period,
-				AckReceiveAtom, ThrowAtom )
+            wait_for_summable_acks_helper( NewWaited, CurrentValue + ToAdd,
+                InitialTimestamp, MaxDurationInSeconds, Period,
+                AckReceiveAtom, ThrowAtom )
 
-	after Period ->
+    after Period ->
 
-			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
+            NewDuration = time_utils:get_duration_since( InitialTimestamp ),
 
-			case ( MaxDurationInSeconds =/= infinity ) andalso
-						( NewDuration > MaxDurationInSeconds ) of
+            case ( MaxDurationInSeconds =/= infinity ) andalso
+                        ( NewDuration > MaxDurationInSeconds ) of
 
-				true ->
-					throw( { ThrowAtom, WaitedSenders } );
+                true ->
+                    throw( { ThrowAtom, WaitedSenders } );
 
-				false ->
-					% Still waiting then:
+                false ->
+                    % Still waiting then:
 
-					%trace_utils:debug_fmt(
-					%   "(still waiting for instances ~p)",
-					%   [ WaitedSenders ] ),
+                    %trace_utils:debug_fmt(
+                    %   "(still waiting for instances ~p)",
+                    %   [ WaitedSenders ] ),
 
-					wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
-						InitialTimestamp, MaxDurationInSeconds, Period,
-						AckReceiveAtom, ThrowAtom )
+                    wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
+                        InitialTimestamp, MaxDurationInSeconds, Period,
+                        AckReceiveAtom, ThrowAtom )
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -1594,10 +1594,10 @@ Note: each sender shall be unique (as they will be gathered in a set, that does
 not keep duplicates).
 """.
 -spec wait_for_many_acks( set( pid() ), finite_time_out(), atom(), atom() ) ->
-											void().
+                                            void().
 wait_for_many_acks( WaitedSenders, MaxMsDuration, AckReceiveAtom, ThrowAtom ) ->
-	wait_for_many_acks( WaitedSenders, MaxMsDuration, ?default_period_ms,
-						AckReceiveAtom, ThrowAtom ).
+    wait_for_many_acks( WaitedSenders, MaxMsDuration, ?default_period_ms,
+                        AckReceiveAtom, ThrowAtom ).
 
 
 
@@ -1608,14 +1608,14 @@ acknowledgement message.
 Throws specified exception on time-out, checking at the specified period.
 """.
 -spec wait_for_many_acks( set( pid() ), finite_time_out(), ms_period(),
-						  atom(), atom() ) -> void().
+                          atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxMsDuration, Period, AckReceiveAtom,
-					ThrowAtom ) ->
+                    ThrowAtom ) ->
 
-	InitialTimestamp = time_utils:get_timestamp(),
+    InitialTimestamp = time_utils:get_timestamp(),
 
-	wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
-		MaxMsDuration, Period, AckReceiveAtom, ThrowAtom ).
+    wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
+        MaxMsDuration, Period, AckReceiveAtom, ThrowAtom ).
 
 
 % For this version we prefer a look-up optimised list to a plain one.
@@ -1623,38 +1623,38 @@ wait_for_many_acks( WaitedSenders, MaxMsDuration, Period, AckReceiveAtom,
 % (helper)
 %
 wait_for_many_acks_helper( WaitedSenders, InitialTimestamp, MaxMsDuration,
-						   Period, AckReceiveAtom, ThrowAtom ) ->
+                           Period, AckReceiveAtom, ThrowAtom ) ->
 
-	set_utils:is_empty( WaitedSenders ) orelse
-		receive
+    set_utils:is_empty( WaitedSenders ) orelse
+        receive
 
-			{ AckReceiveAtom, WaitedPid } ->
+            { AckReceiveAtom, WaitedPid } ->
 
-				NewWaited = set_utils:delete_existing( WaitedPid,
-													   WaitedSenders ),
+                NewWaited = set_utils:delete_existing( WaitedPid,
+                                                       WaitedSenders ),
 
-				wait_for_many_acks_helper( NewWaited, InitialTimestamp,
-					MaxMsDuration, Period, AckReceiveAtom, ThrowAtom )
+                wait_for_many_acks_helper( NewWaited, InitialTimestamp,
+                    MaxMsDuration, Period, AckReceiveAtom, ThrowAtom )
 
-		after Period ->
+        after Period ->
 
-				NewMsDuration =
-					1000 * time_utils:get_duration_since( InitialTimestamp ),
+                NewMsDuration =
+                    1000 * time_utils:get_duration_since( InitialTimestamp ),
 
-				case NewMsDuration > MaxMsDuration of
+                case NewMsDuration > MaxMsDuration of
 
-					true ->
-						throw( { ThrowAtom, WaitedSenders } );
+                    true ->
+                        throw( { ThrowAtom, WaitedSenders } );
 
-					false ->
-						% Still waiting then:
-						wait_for_many_acks_helper( WaitedSenders,
-							InitialTimestamp, MaxMsDuration, Period,
-							AckReceiveAtom, ThrowAtom )
+                    false ->
+                        % Still waiting then:
+                        wait_for_many_acks_helper( WaitedSenders,
+                            InitialTimestamp, MaxMsDuration, Period,
+                            AckReceiveAtom, ThrowAtom )
 
-				end
+                end
 
-		end.
+        end.
 
 
 
@@ -1665,27 +1665,27 @@ specified set, and returns the number of sent messages.
 -spec send_to_pid_set( term(), set( pid() ) ) -> count().
 send_to_pid_set( Message, PidSet ) ->
 
-	% Conceptually (not a basic list, though):
-	% [ Pid ! Message || Pid <- PidSet ]
+    % Conceptually (not a basic list, though):
+    % [ Pid ! Message || Pid <- PidSet ]
 
-	% With iterators, it is done slightly slower yet with less RAM rather than
-	% first using set_utils:to_list/1 then iterating on the resulting plain
-	% list:
-	%
-	Iterator = set_utils:iterator( PidSet ),
+    % With iterators, it is done slightly slower yet with less RAM rather than
+    % first using set_utils:to_list/1 then iterating on the resulting plain
+    % list:
+    %
+    Iterator = set_utils:iterator( PidSet ),
 
-	% Returns the count:
-	send_to_pid_set( Message, set_utils:next( Iterator ), _Count=0 ).
+    % Returns the count:
+    send_to_pid_set( Message, set_utils:next( Iterator ), _Count=0 ).
 
 
 
 % (helper)
 send_to_pid_set( _Message, none, Count ) ->
-	Count;
+    Count;
 
 send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
-	Pid ! Message,
-	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
+    Pid ! Message,
+    send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
 
 
 
@@ -1697,7 +1697,7 @@ with outputs, error management and stacktraces.
 """.
 -spec run( io_list_mod() ) -> void().
 run( ModIOList ) ->
-	run( ModIOList, _FunctionName=run ).
+    run( ModIOList, _FunctionName=run ).
 
 
 
@@ -1709,7 +1709,7 @@ with outputs, error management and stacktraces.
 """.
 -spec run( io_list_mod(), function_name() ) -> void().
 run( ModIOList, FunctionName ) ->
-	run( ModIOList, FunctionName, _Args=[] ).
+    run( ModIOList, FunctionName, _Args=[] ).
 
 
 
@@ -1723,119 +1723,119 @@ with outputs, error management and stacktraces.
 -spec run( io_list_mod(), function_name(), [ argument() ] ) -> void().
 run( ModIOList, FunctionName, Args ) ->
 
-	% Not sufficient, as input is ["my_module"], not "my_module":
-	%ModName = text_utils:string_to_atom( ModName ),
+    % Not sufficient, as input is ["my_module"], not "my_module":
+    %ModName = text_utils:string_to_atom( ModName ),
 
-	ModName = list_to_atom( lists:flatten( ModIOList ) ),
+    ModName = list_to_atom( lists:flatten( ModIOList ) ),
 
-	%trace_utils:debug_fmt( "Running ~ts:~ts with arguments ~p.",
-	%                       [ ModName, FunctionName, Args ] ),
+    %trace_utils:debug_fmt( "Running ~ts:~ts with arguments ~p.",
+    %                       [ ModName, FunctionName, Args ] ),
 
-	try
+    try
 
-		apply( ModName, FunctionName, Args )
+        apply( ModName, FunctionName, Args )
 
-	catch Class:Exception:Stacktrace ->
+    catch Class:Exception:Stacktrace ->
 
-		%trace_utils:debug_fmt( "For exception ~p of class ~p, "
-		%   "obtained stacktrace:~n ~p.", [ Exception, Class, Stacktrace ] ),
+        %trace_utils:debug_fmt( "For exception ~p of class ~p, "
+        %   "obtained stacktrace:~n ~p.", [ Exception, Class, Stacktrace ] ),
 
-		{ ExplainStr, ShowStacktrace } = case Exception of
+        { ExplainStr, ShowStacktrace } = case Exception of
 
-			undef ->
-				{ Mod, Fun, Third } = case hd( Stacktrace ) of
+            undef ->
+                { Mod, Fun, Third } = case hd( Stacktrace ) of
 
-					Triplet={ _M, _F, _A } ->
-						Triplet;
+                    Triplet={ _M, _F, _A } ->
+                        Triplet;
 
-					{ M, F, A, _FileLoc } ->
-						{ M, F, A }
+                    { M, F, A, _FileLoc } ->
+                        { M, F, A }
 
-				end,
+                end,
 
-				Arity = case Third of
+                Arity = case Third of
 
-					Ar when is_integer( Ar ) ->
-						Ar;
+                    Ar when is_integer( Ar ) ->
+                        Ar;
 
-					% 'Args' already used!
-					SomeArgs when is_list( SomeArgs ) ->
-						length( SomeArgs )
+                    % 'Args' already used!
+                    SomeArgs when is_list( SomeArgs ) ->
+                        length( SomeArgs )
 
-				end,
-				{ get_hint( code_utils:interpret_undef_exception( Mod, Fun,
-																  Arity ) )
+                end,
+                { get_hint( code_utils:interpret_undef_exception( Mod, Fun,
+                                                                  Arity ) )
                   ++ ".",
-				  true };
+                  true };
 
 
-			{ application_not_found, _AppName, AppFilename, _AbsBaseDir } ->
-				{ get_hint( "To generate 'ebin/~ts', "
-					"one may run 'make create-app-file' "
-					"from the root of the sources.", [ AppFilename ] ),
-				  false };
+            { application_not_found, _AppName, AppFilename, _AbsBaseDir } ->
+                { get_hint( "To generate 'ebin/~ts', "
+                    "one may run 'make create-app-file' "
+                    "from the root of the sources.", [ AppFilename ] ),
+                  false };
 
 
-			{ app_not_compiled, AppName, _AppBeam } ->
-				{ get_hint( "The application '~ts' is not available.",
-							[ AppName ] ), false };
+            { app_not_compiled, AppName, _AppBeam } ->
+                { get_hint( "The application '~ts' is not available.",
+                            [ AppName ] ), false };
 
-			% Not interpreted (yet?):
-			_ ->
-				{ _NoHint="", true }
+            % Not interpreted (yet?):
+            _ ->
+                { _NoHint="", true }
 
-		end,
+        end,
 
-		ShowStacktrace andalso
-			begin
-				case lists:reverse( Stacktrace ) of
+        ShowStacktrace andalso
+            begin
+                case lists:reverse( Stacktrace ) of
 
-					[ {init,do_boot,3,[]}, {init,start_em,1,[]},
-					  {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
-						manage_minimised_stacktrace( RevRest, Class, Exception,
-													 ExplainStr );
+                    [ {init,do_boot,3,[]}, {init,start_em,1,[]},
+                      {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
+                        manage_minimised_stacktrace( RevRest, Class, Exception,
+                                                     ExplainStr );
 
-					[ {init,start_em,1,[]}, {basic_utils,run,3, _RunFileLoc}
-										| RevRest ] ->
-						manage_minimised_stacktrace( RevRest, Class, Exception,
-													 ExplainStr );
+                    [ {init,start_em,1,[]}, {basic_utils,run,3, _RunFileLoc}
+                                        | RevRest ] ->
+                        manage_minimised_stacktrace( RevRest, Class, Exception,
+                                                     ExplainStr );
 
-					% Apparently, sometimes (e.g. for gui_splash_test with LCO
-					% disabled) the stacktrace does not even reference
-					% basic_utils:run/3!
-					%
-					Rev ->
-						manage_minimised_stacktrace( Rev, Class, Exception,
-													 ExplainStr )
+                    % Apparently, sometimes (e.g. for gui_splash_test with LCO
+                    % disabled) the stacktrace does not even reference
+                    % basic_utils:run/3!
+                    %
+                    Rev ->
+                        manage_minimised_stacktrace( Rev, Class, Exception,
+                                                     ExplainStr )
 
-				end
+                end
 
-			end,
+            end,
 
-		% As this is an error case:
-		init:stop( _Status=15 )
+        % As this is an error case:
+        init:stop( _Status=15 )
 
-	end.
+    end.
 
 
 
 % (helper)
 get_hint( HintStr ) ->
-	text_utils:format( "~nHint: ~ts~n", [ HintStr ] ).
+    text_utils:format( "~nHint: ~ts~n", [ HintStr ] ).
 
 get_hint( HintFormatStr, HintFormatValue ) ->
-	get_hint( text_utils:format( HintFormatStr, HintFormatValue ) ).
+    get_hint( text_utils:format( HintFormatStr, HintFormatValue ) ).
 
 
 % (helper)
 manage_minimised_stacktrace( RevRest, Class, Exception, ExplainStr ) ->
-	ShrunkStacktrace = lists:reverse( RevRest ),
+    ShrunkStacktrace = lists:reverse( RevRest ),
 
-	StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
+    StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
 
-	io:format( "~n#### Error: the program crashed with the following ~ts-class "
-		"exception:~n  ~p~n~ts~nLatest calls first: ~ts~n",
-		[ Class, Exception, ExplainStr, StackStr ] ).
+    io:format( "~n#### Error: the program crashed with the following ~ts-class "
+        "exception:~n  ~p~n~ts~nLatest calls first: ~ts~n",
+        [ Class, Exception, ExplainStr, StackStr ] ).
 
 
 
@@ -1852,7 +1852,7 @@ with outputs, error management and stacktraces.
 """.
 -spec exec( io_list_mod() ) -> void().
 exec( ModIOList ) ->
-	run( ModIOList, _FunctionName=exec ).
+    run( ModIOList, _FunctionName=exec ).
 
 
 
@@ -1864,7 +1864,7 @@ with outputs, error management and stacktraces.
 """.
 -spec exec( io_list_mod(), function_name() ) -> void().
 exec( ModIOList, FunctionName ) ->
-	exec( ModIOList, FunctionName, _Args=[] ).
+    exec( ModIOList, FunctionName, _Args=[] ).
 
 
 
@@ -1877,7 +1877,7 @@ with outputs, error management and stacktraces.
 """.
 -spec exec( io_list_mod(), function_name(), [ argument() ] ) -> void().
 exec( ModIOList, FunctionName, Args ) ->
-	run( ModIOList, FunctionName, Args ).
+    run( ModIOList, FunctionName, Args ).
 
 
 
@@ -1887,8 +1887,8 @@ in use.
 """.
 -spec get_myriad_root_path() -> directory_path().
 get_myriad_root_path() ->
-	CodePath = code_utils:get_code_path(),
-	script_utils:get_myriad_path_from( CodePath ).
+    CodePath = code_utils:get_code_path(),
+    script_utils:get_myriad_path_from( CodePath ).
 
 
 
@@ -1898,15 +1898,15 @@ get_myriad_root_path() ->
 -doc "Returns the version of the Myriad library being used.".
 -spec get_myriad_version() -> three_digit_version().
 get_myriad_version() ->
-	parse_version( get_myriad_version_string() ).
+    parse_version( get_myriad_version_string() ).
 
 
 
 -doc "Returns the version of the Myriad library being used, as a string.".
 -spec get_myriad_version_string() -> ustring().
 get_myriad_version_string() ->
-	% As defined (uniquely) in GNUmakevars.inc:
-	?myriad_version.
+    % As defined (uniquely) in GNUmakevars.inc:
+    ?myriad_version.
 
 
 
@@ -1919,41 +1919,41 @@ For example `"4.2.1"` should become `{4,2,1}`, and `"2.3"` should become
 -spec parse_version( ustring() ) -> any_version().
 parse_version( VersionString ) ->
 
-	% First transform "4.22.1" into ["4","22","1"]:
-	Elems = string:tokens( VersionString, "." ),
+    % First transform "4.22.1" into ["4","22","1"]:
+    Elems = string:tokens( VersionString, "." ),
 
-	% Then simply switch to {4,22,1}:
-	list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
+    % Then simply switch to {4,22,1}:
+    list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
 
 
 
 -doc "Checks that the specified term is a three-digit version, and returns it.".
 -spec check_three_digit_version( term() ) -> three_digit_version().
 check_three_digit_version( T={ A, B, C } ) when is_integer( A )
-				andalso is_integer( B ) andalso is_integer( C ) ->
-	T;
+                andalso is_integer( B ) andalso is_integer( C ) ->
+    T;
 
 check_three_digit_version( T ) ->
-	throw( { invalid_three_digit_version, T } ).
+    throw( { invalid_three_digit_version, T } ).
 
 
 
 -doc "Checks that the specified term is a any-version, and returns it.".
 -spec check_any_version( term() ) -> any_version().
 check_any_version( T ) when is_tuple( T ) ->
-	case lists:all( fun( E ) -> is_integer( E ) andalso E >= 0 end,
-					tuple_to_list( T ) ) of
+    case lists:all( fun( E ) -> is_integer( E ) andalso E >= 0 end,
+                    tuple_to_list( T ) ) of
 
-		true ->
-			T;
+        true ->
+            T;
 
-		false ->
-			throw( { invalid_any_version, T } )
+        false ->
+            throw( { invalid_any_version, T } )
 
-	end;
+    end;
 
 check_any_version( V ) ->
-	throw( { invalid_any_version, V } ).
+    throw( { invalid_any_version, V } ).
 
 
 
@@ -1965,26 +1965,26 @@ describe two version numbers (e.g. `{0,1,0}` and `{0,1,7}`) and returns either
 The two compared versions must have the same number of digits.
 """.
 -spec compare_versions( any_version(), any_version() ) ->
-								'equal' | 'first_bigger' | 'second_bigger'.
+                                'equal' | 'first_bigger' | 'second_bigger'.
 compare_versions( A, B ) when tuple_size( A ) =:= tuple_size( B ) ->
-	% As the default term order is already what we need:
-	case A > B of
+    % As the default term order is already what we need:
+    case A > B of
 
-		true ->
-			first_bigger;
+        true ->
+            first_bigger;
 
-		false ->
-			case A =:= B of
+        false ->
+            case A =:= B of
 
-				true ->
-					equal;
+                true ->
+                    equal;
 
-				false ->
-					second_bigger
+                false ->
+                    second_bigger
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -1999,34 +1999,34 @@ or not), provided that it is still alive (otherwise returns `undefined`).
 -spec get_process_info( pid() ) -> option( [ process_info_result_item() ] ).
 get_process_info( Pid ) ->
 
-	LocalNode = node(),
+    LocalNode = node(),
 
-	% erlang:process_info/1 throws badarg if the process is not local:
-	case node( Pid ) of
+    % erlang:process_info/1 throws badarg if the process is not local:
+    case node( Pid ) of
 
-		LocalNode ->
-			erlang:process_info( Pid );
+        LocalNode ->
+            erlang:process_info( Pid );
 
-		OtherNode ->
+        OtherNode ->
 
-			% The current module may not be on this node:
-			case rpc:call( OtherNode, _M=erlang, _F=process_info, _A=[ Pid ] )
+            % The current module may not be on this node:
+            case rpc:call( OtherNode, _M=erlang, _F=process_info, _A=[ Pid ] )
                     of
 
-				{ badrpc, Reason } ->
-					trace_utils:error_fmt( "No information found for "
-						"process ~w running on remote node ~p; reason: ~p.~n",
-						[ Pid, OtherNode, Reason ] ),
-					throw( { process_info_failed, Pid, Reason } );
+                { badrpc, Reason } ->
+                    trace_utils:error_fmt( "No information found for "
+                        "process ~w running on remote node ~p; reason: ~p.~n",
+                        [ Pid, OtherNode, Reason ] ),
+                    throw( { process_info_failed, Pid, Reason } );
 
-				% Either 'undefined' or proplist:
-				Res ->
-					Res
+                % Either 'undefined' or proplist:
+                Res ->
+                    Res
 
-			end
+            end
 
 
-	end.
+    end.
 
 
 
@@ -2035,38 +2035,38 @@ Returns the specified information regarding the specified process (which is
 local or not), provided that it is still alive (otherwise returns `undefined`).
 """.
 -spec get_process_info( pid(), process_info_result_item() ) ->
-								option( process_info_result_item() );
-					  ( pid(), [ process_info_result_item() ] ) ->
-								option( [ process_info_result_item() ] ).
+                                option( process_info_result_item() );
+                      ( pid(), [ process_info_result_item() ] ) ->
+                                option( [ process_info_result_item() ] ).
 get_process_info( Pid, ItemTerm ) ->
 
-	LocalNode = node(),
+    LocalNode = node(),
 
-	% erlang:process_info/1 throws badarg if the process is not local:
-	case node( Pid ) of
+    % erlang:process_info/1 throws badarg if the process is not local:
+    case node( Pid ) of
 
-		LocalNode ->
-			erlang:process_info( Pid, ItemTerm );
+        LocalNode ->
+            erlang:process_info( Pid, ItemTerm );
 
-		OtherNode ->
+        OtherNode ->
 
-			% The current module may not be on this node:
-			case rpc:call( OtherNode, _M=erlang, _F=process_info,
-						   _A=[ Pid, ItemTerm ] ) of
+            % The current module may not be on this node:
+            case rpc:call( OtherNode, _M=erlang, _F=process_info,
+                           _A=[ Pid, ItemTerm ] ) of
 
-				{ badrpc, Reason } ->
-					trace_utils:error_fmt( "No information found for "
-						"process ~w running on remote node ~p; reason: ~p.~n",
-						[ Pid, OtherNode, Reason ] ),
-					throw( { process_info_failed, Pid, Reason } );
+                { badrpc, Reason } ->
+                    trace_utils:error_fmt( "No information found for "
+                        "process ~w running on remote node ~p; reason: ~p.~n",
+                        [ Pid, OtherNode, Reason ] ),
+                    throw( { process_info_failed, Pid, Reason } );
 
-				% Either 'undefined' or proplist:
-				Res ->
-					Res
+                % Either 'undefined' or proplist:
+                Res ->
+                    Res
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -2075,61 +2075,61 @@ Displays information about the process(es) identified by the specified PID(s).
 """.
 -spec display_process_info( pid() | [ pid() ] ) -> void().
 display_process_info( PidList ) when is_list( PidList ) ->
-	[ display_process_info( Pid ) || Pid <- PidList ];
+    [ display_process_info( Pid ) || Pid <- PidList ];
 
 display_process_info( Pid ) when is_pid( Pid ) ->
 
-	LocalNode = node(),
+    LocalNode = node(),
 
-	% erlang:process_info/1 throws badarg if the process is not local:
-	case node( Pid ) of
+    % erlang:process_info/1 throws badarg if the process is not local:
+    case node( Pid ) of
 
 
-		LocalNode ->
-			case erlang:process_info( Pid ) of
+        LocalNode ->
+            case erlang:process_info( Pid ) of
 
-				undefined ->
-					io:format( "PID ~w refers to a (local) dead process~n",
-							   [ Pid ] );
+                undefined ->
+                    io:format( "PID ~w refers to a (local) dead process~n",
+                               [ Pid ] );
 
-				PropList ->
-					Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
+                PropList ->
+                    Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
                                     || { K, V } <- PropList ],
-					io:format( "PID ~w refers to a local live process, "
-						"whose information is: ~ts",
-						[ Pid, text_utils:strings_to_string( Strings ) ] )
+                    io:format( "PID ~w refers to a local live process, "
+                        "whose information is: ~ts",
+                        [ Pid, text_utils:strings_to_string( Strings ) ] )
 
-			end;
+            end;
 
 
-		OtherNode ->
+        OtherNode ->
 
-			% The current module may not be on this node:
-			case rpc:call( OtherNode, _M=erlang, _F=process_info, _A=[ Pid ] )
-			   of
+            % The current module may not be on this node:
+            case rpc:call( OtherNode, _M=erlang, _F=process_info, _A=[ Pid ] )
+               of
 
-				{ badrpc, Reason } ->
-					io:format( "No information found for process ~w "
-						"running on remote node ~p; reason: ~p.~n",
-						[ Pid, OtherNode, Reason ] );
+                { badrpc, Reason } ->
+                    io:format( "No information found for process ~w "
+                        "running on remote node ~p; reason: ~p.~n",
+                        [ Pid, OtherNode, Reason ] );
 
-				undefined ->
-					io:format( "PID ~w refers to a dead process on "
-							   "remote node ~ts.~n", [ Pid, OtherNode ] );
+                undefined ->
+                    io:format( "PID ~w refers to a dead process on "
+                               "remote node ~ts.~n", [ Pid, OtherNode ] );
 
-				PropList ->
+                PropList ->
 
-					Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
-											|| { K, V } <- PropList ],
+                    Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
+                                            || { K, V } <- PropList ],
 
-					io:format( "PID ~w refers to a live process on "
-						"remote node ~ts, whose information are: ~ts",
-						[ Pid, OtherNode,
-						  text_utils:strings_to_string( Strings ) ] )
+                    io:format( "PID ~w refers to a live process on "
+                        "remote node ~ts, whose information are: ~ts",
+                        [ Pid, OtherNode,
+                          text_utils:strings_to_string( Strings ) ] )
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -2140,7 +2140,7 @@ Useful for debugging purposes.
 """.
 -spec checkpoint( integer() ) -> void().
 checkpoint( Number ) ->
-	display( "----- CHECKPOINT #~B -----", [ Number ] ).
+    display( "----- CHECKPOINT #~B -----", [ Number ] ).
 
 
 
@@ -2157,11 +2157,11 @@ exception.
 """.
 -spec assert( term() ) -> void().
 assert( _Expr=true ) ->
-	ok;
+    ok;
 
 assert( Other ) ->
-	interpret_failed_assertion( "'~p' is not true", [ Other ] ),
-	throw( { assert_failed, Other } ).
+    interpret_failed_assertion( "'~p' is not true", [ Other ] ),
+    throw( { assert_failed, Other } ).
 
 
 
@@ -2177,11 +2177,11 @@ Defined for consistency with `assert_false/1`.
 """.
 -spec assert_true( term() ) -> void().
 assert_true( _Expr=true ) ->
-	ok;
+    ok;
 
 assert_true( Other ) ->
-	interpret_failed_assertion( "'~p' is not true", [ Other ] ),
-	throw( { assert_failed, Other } ).
+    interpret_failed_assertion( "'~p' is not true", [ Other ] ),
+    throw( { assert_failed, Other } ).
 
 
 
@@ -2191,11 +2191,11 @@ exception.
 """.
 -spec assert_false( term() ) -> void().
 assert_false( _Expr=false ) ->
-	ok;
+    ok;
 
 assert_false( Other ) ->
-	interpret_failed_assertion( "'~p' is not false", [ Other ] ),
-	throw( { assert_false_failed, Other } ).
+    interpret_failed_assertion( "'~p' is not false", [ Other ] ),
+    throw( { assert_false_failed, Other } ).
 
 
 
@@ -2207,11 +2207,11 @@ Sometimes searched as `check_equal/2`.
 """.
 -spec assert_equal( term(), term() ) -> void().
 assert_equal( Expr, Expr ) ->
-	ok;
+    ok;
 
 assert_equal( Expr1, Expr2 ) ->
-	interpret_failed_assertion( "'~p' is not equal to '~p'", [ Expr1, Expr2 ] ),
-	throw( { assert_equal_failed, Expr1, Expr2 } ).
+    interpret_failed_assertion( "'~p' is not equal to '~p'", [ Expr1, Expr2 ] ),
+    throw( { assert_equal_failed, Expr1, Expr2 } ).
 
 
 
@@ -2221,27 +2221,27 @@ throws an exception.
 """.
 -spec assert_different( term(), term() ) -> void().
 assert_different( Expr, Expr ) ->
-	interpret_failed_assertion( "both elements are equal to '~p'", [ Expr ] ),
-	throw( { assert_different_failed, Expr } );
+    interpret_failed_assertion( "both elements are equal to '~p'", [ Expr ] ),
+    throw( { assert_different_failed, Expr } );
 
 assert_different( _Expr1, _Expr2 ) ->
-	ok.
+    ok.
 
 
 % (helper)
 interpret_failed_assertion( FormatStr, FormatValues ) ->
-	Msg = text_utils:format( FormatStr, FormatValues ),
-	interpret_failed_assertion( Msg ).
+    Msg = text_utils:format( FormatStr, FormatValues ),
+    interpret_failed_assertion( Msg ).
 
 
 % (helper)
 interpret_failed_assertion( Msg ) ->
 
-	{ Mod, Func, Arity, [ { file, SrcFile }, { line, Line } ] } =
-		hd( code_utils:get_stacktrace( _SkipLastElemCount=2 ) ),
+    { Mod, Func, Arity, [ { file, SrcFile }, { line, Line } ] } =
+        hd( code_utils:get_stacktrace( _SkipLastElemCount=2 ) ),
 
-	trace_utils:error_fmt( "Assertion failed in ~ts:~ts/~B "
-		"(file ~ts, line ~B): ~ts.", [ Mod, Func, Arity, SrcFile, Line, Msg ] ).
+    trace_utils:error_fmt( "Assertion failed in ~ts:~ts/~B "
+        "(file ~ts, line ~B): ~ts.", [ Mod, Func, Arity, SrcFile, Line, Msg ] ).
 
 
 
@@ -2254,24 +2254,24 @@ is to crash just after.
 -spec display( ustring() ) -> void().
 display( Message ) ->
 
-	% Finally io:format has been preferred to erlang:display, as the latter one
-	% displays quotes around the strings.
-	%
-	% ~ts, not ~ts, as we want to properly output Unicode characters:
-	%
-	io:format( "~ts~n", [ Message ] ),
+    % Finally io:format has been preferred to erlang:display, as the latter one
+    % displays quotes around the strings.
+    %
+    % ~ts, not ~ts, as we want to properly output Unicode characters:
+    %
+    io:format( "~ts~n", [ Message ] ),
 
-	% Possibly to allow for a yield (100 being far too high):
-	timer:sleep( 10 ),
+    % Possibly to allow for a yield (100 being far too high):
+    timer:sleep( 10 ),
 
-	system_utils:await_output_completion().
+    system_utils:await_output_completion().
 
 
-	% May not go through group leader (like io:format), thus less likely to
-	% crash without displaying the message:
-	%
-	%erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
-	%erlang:display( Message ).
+    % May not go through group leader (like io:format), thus less likely to
+    % crash without displaying the message:
+    %
+    %erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
+    %erlang:display( Message ).
 
 
 
@@ -2284,12 +2284,12 @@ the virtual machine is to crash just after.
 -spec display( format_string(), format_values() ) -> void().
 display( Format, Values ) ->
 
-	%io:format( "Displaying format '~p' and values '~p'.~n",
-	%           [ Format, Values ] ),
+    %io:format( "Displaying format '~p' and values '~p'.~n",
+    %           [ Format, Values ] ),
 
-	Message = text_utils:format( Format, Values ),
+    Message = text_utils:format( Format, Values ),
 
-	display( Message ).
+    display( Message ).
 
 
 
@@ -2301,17 +2301,17 @@ output on the console even if the virtual machine is to crash just after.
 -spec display_timed( ustring(), time_out() ) -> void().
 display_timed( Message, TimeOut ) ->
 
-	% Finally io:format has been preferred to erlang:display, as the latter one
-	% displays quotes around the strings.
+    % Finally io:format has been preferred to erlang:display, as the latter one
+    % displays quotes around the strings.
 
-	io:format( "~ts~n", [ Message ] ),
-	system_utils:await_output_completion( TimeOut ).
+    io:format( "~ts~n", [ Message ] ),
+    system_utils:await_output_completion( TimeOut ).
 
-	% May not go through group leader (like io:format), thus less likely to
-	% crash without displaying the message:
-	%
-	%erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
-	%erlang:display( Message ).
+    % May not go through group leader (like io:format), thus less likely to
+    % crash without displaying the message:
+    %
+    %erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
+    %erlang:display( Message ).
 
 
 
@@ -2324,12 +2324,12 @@ virtual machine is to crash just after.
 -spec display_timed( format_string(), format_values(), time_out() ) -> void().
 display_timed( Format, Values, TimeOut ) ->
 
-	%trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
-	%                       [ Format, Values ] ),
+    %trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
+    %                       [ Format, Values ] ),
 
-	Message = text_utils:format( Format, Values ),
+    Message = text_utils:format( Format, Values ),
 
-	display_timed( Message, TimeOut ).
+    display_timed( Message, TimeOut ).
 
 
 
@@ -2341,17 +2341,17 @@ can be output on the console even if the virtual machine is to crash just after.
 -spec display_error( ustring() ) -> void().
 display_error( Message ) ->
 
-	% At least once, following call resulted in no output at all (standard_error
-	% not functional):
-	%
-	% Reintroduced for testing after 21.0:
-	%
-	io:format( standard_error, "~ts~n", [ Message ] ),
+    % At least once, following call resulted in no output at all (standard_error
+    % not functional):
+    %
+    % Reintroduced for testing after 21.0:
+    %
+    io:format( standard_error, "~ts~n", [ Message ] ),
 
-	% So:
-	%io:format( "~ts~n", [ Message ] ),
+    % So:
+    %io:format( "~ts~n", [ Message ] ),
 
-	system_utils:await_output_completion().
+    system_utils:await_output_completion().
 
 
 
@@ -2370,15 +2370,15 @@ case Expr of
    [...];
 
  { error, DiagnosedReason } ->
-	basic_utils:throw_diagnosed( DiagnosedReason )
+    basic_utils:throw_diagnosed( DiagnosedReason )
 
 end
 ```
 """.
 -spec throw_diagnosed( diagnosed_error_reason() ) -> no_return().
 throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg } ) ->
-	trace_bridge:error( ErrorMsg ),
-	throw( ErrorTuploid ).
+    trace_bridge:error( ErrorMsg ),
+    throw( ErrorTuploid ).
 
 
 
@@ -2398,16 +2398,16 @@ case Expr of
    [...];
 
  { error, DiagnosedReason } ->
-	basic_utils:throw_diagnosed( DiagnosedReason, Z )
+    basic_utils:throw_diagnosed( DiagnosedReason, Z )
 
 end
 ```
 """.
 -spec throw_diagnosed( diagnosed_error_reason(), term() ) -> no_return().
 throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg },
-				 ExtraErrorTerm ) ->
-	trace_bridge:error( ErrorMsg ),
-	throw( type_utils:augment_tuploid( ErrorTuploid, ExtraErrorTerm ) ).
+                 ExtraErrorTerm ) ->
+    trace_bridge:error( ErrorMsg ),
+    throw( type_utils:augment_tuploid( ErrorTuploid, ExtraErrorTerm ) ).
 
 
 
@@ -2419,8 +2419,8 @@ virtual machine is to crash just after.
 """.
 -spec display_error( format_string(), format_values() ) -> void().
 display_error( Format, Values ) ->
-	Message = text_utils:format( Format ++ "~n", Values ),
-	display_error( Message ).
+    Message = text_utils:format( Format ++ "~n", Values ),
+    display_error( Message ).
 
 
 -doc """
@@ -2474,9 +2474,9 @@ console even if the virtual machine is to crash just after.
 """.
 -spec debug( ustring() ) -> void().
 debug( Message ) ->
-	trace_utils:debug( Message ).
-	%system_utils:await_output_completion().
-	%erlang:display( "## Debug: " ++ Message ).
+    trace_utils:debug( Message ).
+    %system_utils:await_output_completion().
+    %erlang:display( "## Debug: " ++ Message ).
 
 
 
@@ -2488,7 +2488,7 @@ machine is to crash just after.
 """.
 -spec debug( format_string(), format_values() ) -> void().
 debug( Format, Values ) ->
-	debug( text_utils:format( Format, Values ) ).
+    debug( text_utils:format( Format, Values ) ).
 
 
 
@@ -2503,8 +2503,8 @@ For example `"myriad-596330--576460741437"` (negative monotonic time).
 """.
 -spec get_unix_process_specific_string() -> ustring().
 get_unix_process_specific_string() ->
-	text_utils:format( "myriad-~ts-~B",
-					   [ os:getpid(), time_utils:get_monotonic_time() ] ).
+    text_utils:format( "myriad-~ts-~B",
+                       [ os:getpid(), time_utils:get_monotonic_time() ] ).
 
 
 
@@ -2517,7 +2517,7 @@ Refer to `get_process_specific_value/1` for further details, and to
 """.
 -spec get_process_specific_value() -> pos_integer().
 get_process_specific_value() ->
-	get_process_specific_value( _Pid=self() ).
+    get_process_specific_value( _Pid=self() ).
 
 
 
@@ -2535,38 +2535,38 @@ reductions, etc. or generating a reference.
 -spec get_process_specific_value( pid() ) -> pos_integer().
 get_process_specific_value( Pid ) ->
 
-	% PID are akin to <X.Y.Z>.
+    % PID are akin to <X.Y.Z>.
 
-	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
+    PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
 
-	%io:format( "PID: ~w.~n", [ self() ] ) ,
-	% For example ["<0","33","0>"]:
-	[ [ $< | First ], Second, Third ] = string:tokens( PidAsText, "." ),
+    %io:format( "PID: ~w.~n", [ self() ] ) ,
+    % For example ["<0","33","0>"]:
+    [ [ $< | First ], Second, Third ] = string:tokens( PidAsText, "." ),
 
-	% We add 1 to x and z as they might be null:
-	{ F, [] } = string:to_integer( First ),
-	{ S, [] } = string:to_integer( Second ),
+    % We add 1 to x and z as they might be null:
+    { F, [] } = string:to_integer( First ),
+    { S, [] } = string:to_integer( Second ),
 
-	[ $> | ExtractedThird ] = lists:reverse( Third ),
+    [ $> | ExtractedThird ] = lists:reverse( Third ),
 
-	{ T, [] } = string:to_integer( ExtractedThird ),
+    { T, [] } = string:to_integer( ExtractedThird ),
 
-	X = F+1,
+    X = F+1,
 
-	% Key part of PID, never null:
-	Y = S,
+    % Key part of PID, never null:
+    Y = S,
 
-	Z = T+1,
+    Z = T+1,
 
-	% Hash part probably a bit overkill and, a lot more importantly, including a
-	% reference would break reproducibility - much undesirable here:
-	%
-	%Res = X*Y*Z + erlang:phash2( erlang:make_ref(), _MaxRange=1 bsl 32 ),
+    % Hash part probably a bit overkill and, a lot more importantly, including a
+    % reference would break reproducibility - much undesirable here:
+    %
+    %Res = X*Y*Z + erlang:phash2( erlang:make_ref(), _MaxRange=1 bsl 32 ),
 
-	Res = X*Y*Z,
+    Res = X*Y*Z,
 
-	%trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
-	Res.
+    %trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
+    Res.
 
 
 
@@ -2580,9 +2580,9 @@ the accesses over time. Reproducibility does not matter here.
 """.
 -spec get_process_specific_value( integer(), integer() ) -> integer().
 get_process_specific_value( Min, Max ) ->
-	Value = get_process_specific_value(),
-	{ H, M, S } = erlang:time(),
-	( ( ( H + M + S + 1 ) * Value ) rem ( Max - Min ) ) + Min.
+    Value = get_process_specific_value(),
+    { H, M, S } = erlang:time(),
+    ( ( ( H + M + S + 1 ) * Value ) rem ( Max - Min ) ) + Min.
 
 
 
@@ -2596,23 +2596,23 @@ information.
 -spec get_process_size( pid() ) -> byte_size().
 get_process_size( Pid ) ->
 
-	% 4 bytes is returned on a 32-bit architecture, and 8 is returned on a pure
-	% 64-bit architecture:
-	%
-	%WordSize = erlang:system_info( { wordsize, internal } ),
+    % 4 bytes is returned on a 32-bit architecture, and 8 is returned on a pure
+    % 64-bit architecture:
+    %
+    %WordSize = erlang:system_info( { wordsize, internal } ),
 
-	%ProcessPropList = erlang:process_info( Pid ),
+    %ProcessPropList = erlang:process_info( Pid ),
 
-	%trace_utils:debug_fmt( "Process info for ~w:~n~p",
-	%                       [ Pid, ProcessPropList ] ),
+    %trace_utils:debug_fmt( "Process info for ~w:~n~p",
+    %                       [ Pid, ProcessPropList ] ),
 
-	% Includes call stack, heap, and internal structures:
-	% (apparentlyalready in bytes, not words:
-	%
-	%WordSize * list_table:get_value( memory, ProcessPropList ).
-	%list_table:get_value( memory, ProcessPropList ).
-	{ memory, Size } = get_process_info( Pid, memory ),
-	Size.
+    % Includes call stack, heap, and internal structures:
+    % (apparentlyalready in bytes, not words:
+    %
+    %WordSize * list_table:get_value( memory, ProcessPropList ).
+    %list_table:get_value( memory, ProcessPropList ).
+    { memory, Size } = get_process_info( Pid, memory ),
+    Size.
 
 
 
@@ -2627,20 +2627,20 @@ Note:
  - generally not to be used, when relying on a good design
 """.
 -spec is_alive( pid() | ustring() | naming_utils:registration_name() ) ->
-											boolean().
+                                            boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
-	is_alive( TargetPid, node( TargetPid ) );
+    is_alive( TargetPid, node( TargetPid ) );
 
 is_alive( TargetPidString ) when is_list( TargetPidString ) ->
-	TargetPid = list_to_pid( TargetPidString ),
-	is_alive( TargetPid, node( TargetPid ) );
+    TargetPid = list_to_pid( TargetPidString ),
+    is_alive( TargetPid, node( TargetPid ) );
 
 is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
 
-	TargetPid = naming_utils:get_registered_pid_for( TargetPidName,
-		_RegistrationType=local_otherwise_global ),
+    TargetPid = naming_utils:get_registered_pid_for( TargetPidName,
+        _RegistrationType=local_otherwise_global ),
 
-	is_alive( TargetPid, node( TargetPid ) ).
+    is_alive( TargetPid, node( TargetPid ) ).
 
 
 
@@ -2654,7 +2654,7 @@ should be preferred.
 """.
 -spec is_alive( pid(), atom_node_name() ) -> boolean().
 is_alive( TargetPid, Node )  ->
-	is_alive( TargetPid, Node, _Verbose=true ).
+    is_alive( TargetPid, Node, _Verbose=true ).
 
 
 
@@ -2670,37 +2670,37 @@ should be preferred.
 """.
 -spec is_alive( pid(), atom_node_name(), boolean() ) -> boolean().
 is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
-	% erlang:is_process_alive/1 is more intended for debugging purposes...
+    % erlang:is_process_alive/1 is more intended for debugging purposes...
 
-	case node() of
+    case node() of
 
-		Node ->
-			% Would fail with 'badarg' if the process ran on another node:
-			erlang:is_process_alive( TargetPid );
+        Node ->
+            % Would fail with 'badarg' if the process ran on another node:
+            erlang:is_process_alive( TargetPid );
 
-		_OtherNode ->
+        _OtherNode ->
 
-			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
-			%   "on node ~p.", [ TargetPid, Node ] ),
+            %trace_utils:debug_fmt( "Testing liveliness of process ~p "
+            %   "on node ~p.", [ TargetPid, Node ] ),
 
-			case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
-						   _Args=[ TargetPid ] ) of
+            case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
+                           _Args=[ TargetPid ] ) of
 
-				Res when is_boolean( Res ) ->
-					Res;
+                Res when is_boolean( Res ) ->
+                    Res;
 
-				{ badrpc, nodedown } ->
-					Verbose andalso
-						trace_utils:warning_fmt( "Reporting that process "
-							"of PID ~w is not alive as its node ('~ts') "
-							"is reported as down.", [ TargetPid, Node ] );
+                { badrpc, nodedown } ->
+                    Verbose andalso
+                        trace_utils:warning_fmt( "Reporting that process "
+                            "of PID ~w is not alive as its node ('~ts') "
+                            "is reported as down.", [ TargetPid, Node ] );
 
-				Other ->
-					throw( { unexpected_liveliness_report, Other } )
+                Other ->
+                    throw( { unexpected_liveliness_report, Other } )
 
-			end
+            end
 
-	end.
+    end.
 
 
 
@@ -2718,13 +2718,13 @@ compilation of this module.
 
 -spec is_debug_mode_enabled() -> true.
 is_debug_mode_enabled() ->
-	true.
+    true.
 
 -else. % myriad_debug_mode
 
 -spec is_debug_mode_enabled() -> false.
 is_debug_mode_enabled() ->
-	false.
+    false.
 
 -endif. % myriad_debug_mode
 
@@ -2813,4 +2813,4 @@ Describes the specified term in a controlled manner (shortened if needed).
 """.
 -spec describe_term( term() ) -> ustring().
 describe_term( T ) ->
-	text_utils:ellipse_fmt( "~p", [ T ] ).
+    text_utils:ellipse_fmt( "~p", [ T ] ).

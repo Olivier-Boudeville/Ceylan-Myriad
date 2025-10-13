@@ -42,9 +42,9 @@ Test regarding the Myriad overall includes.
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
+    test_facilities:start( ?MODULE ),
 
-	% The actual test is at compilation-time:
-	test_facilities:display( "This include test succeeded."),
+    % The actual test is at compilation-time:
+    test_facilities:display( "This include test succeeded."),
 
-	test_facilities:stop().
+    test_facilities:stop().

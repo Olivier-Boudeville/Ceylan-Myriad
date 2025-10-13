@@ -49,7 +49,7 @@ languages](https://en.wikipedia.org/wiki/ISO_639-3).
 Note that a locale is a broader notion.
 """.
 -type human_language() :: 'english' | 'french' | 'spanish' | 'german'
-						| 'italian' | 'russian' | 'chinese' | 'japanese'.
+                        | 'italian' | 'russian' | 'chinese' | 'japanese'.
 
 
 
@@ -81,8 +81,8 @@ agent, otherwise directly a controller mbox).
 
 
 -export_type([ human_language/0, language/0,
-			   runtime_container_pid/0, python_interpreter_container_pid/0,
-			   java_vm_container_pid/0 ]).
+               runtime_container_pid/0, python_interpreter_container_pid/0,
+               java_vm_container_pid/0 ]).
 
 
 % For human languages:
@@ -229,7 +229,7 @@ programming languages.
 """.
 -spec get_supported_foreign_languages() -> [ language() ].
 get_supported_foreign_languages() ->
-	[ python, java ].
+    [ python, java ].
 
 
 
@@ -238,14 +238,14 @@ Returns a list of all supported programming languages (including Erlang).
 """.
 -spec get_supported_languages() -> [ language() ].
 get_supported_languages() ->
-	[ erlang | get_supported_foreign_languages() ].
+    [ erlang | get_supported_foreign_languages() ].
 
 
 
 -doc "Returns a textual description of the specified language.".
 -spec language_to_string( language() ) -> ustring().
 language_to_string( Language ) ->
-	language_to_string( Language, _IndentationLevel=0 ).
+    language_to_string( Language, _IndentationLevel=0 ).
 
 
 
@@ -253,27 +253,27 @@ language_to_string( Language ) ->
 Returns an indented textual description of the specified language.
 """.
 -spec language_to_string( language(), text_utils:indentation_level() ) ->
-											ustring().
+                                            ustring().
 language_to_string( erlang, _IndentationLevel ) ->
-	"Erlang";
+    "Erlang";
 
 language_to_string( python, _IndentationLevel ) ->
-	"Python";
+    "Python";
 
 language_to_string( java, _IndentationLevel ) ->
-	"Java";
+    "Java";
 
 language_to_string( Language, _IndentationLevel ) when is_atom( Language ) ->
-	throw( { unknown_language, Language } );
+    throw( { unknown_language, Language } );
 
 language_to_string( { Language, CodePath }, IndentationLevel )
-						when is_atom( Language ) andalso is_list( CodePath ) ->
-	text_utils:format( "~ts, with following code path: ~ts",
-		[ language_to_string( Language ),
-		  text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
+                        when is_atom( Language ) andalso is_list( CodePath ) ->
+    text_utils:format( "~ts, with following code path: ~ts",
+        [ language_to_string( Language ),
+          text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
 
 language_to_string( LanguageInvalidArg, _IndentationLevel ) ->
-	throw( { invalid_language_specification, LanguageInvalidArg } ).
+    throw( { invalid_language_specification, LanguageInvalidArg } ).
 
 
 
@@ -282,34 +282,34 @@ Returns the BEAM locations of all the dependencies related to the specified
 language bindings.
 """.
 -spec get_additional_beam_directories_for( [ language() ] ) ->
-												[ possibly_resolvable_path() ].
+                                                [ possibly_resolvable_path() ].
 get_additional_beam_directories_for( Languages ) ->
-	get_additional_beam_directories_for( Languages, _Acc=[] ).
+    get_additional_beam_directories_for( Languages, _Acc=[] ).
 
 
 % (helper)
 get_additional_beam_directories_for( _Languages=[], Acc ) ->
-	lists:reverse( Acc );
+    lists:reverse( Acc );
 
 
 get_additional_beam_directories_for( _Languages=[ erlang | T ], Acc ) ->
-	% Erlang natively supported "as is":
-	get_additional_beam_directories_for( T, Acc );
+    % Erlang natively supported "as is":
+    get_additional_beam_directories_for( T, Acc );
 
 
 get_additional_beam_directories_for( _Languages=[ python | T ], Acc ) ->
 
-	% Finds the BEAM directories of the Python-specific dependencies :
-	NewBeamDirs = python_utils:get_beam_directories_for_binding(),
+    % Finds the BEAM directories of the Python-specific dependencies :
+    NewBeamDirs = python_utils:get_beam_directories_for_binding(),
 
-	% Adds them to list of dependencies and goes for the next language:
-	get_additional_beam_directories_for( T, NewBeamDirs ++ Acc );
+    % Adds them to list of dependencies and goes for the next language:
+    get_additional_beam_directories_for( T, NewBeamDirs ++ Acc );
 
 
 get_additional_beam_directories_for( _Languages=[ java | T ], Acc ) ->
 
-	% Finds the BEAM directories of the Java-specific dependencies :
-	NewBeamDirs = java_utils:get_beam_directories_for_binding(),
+    % Finds the BEAM directories of the Java-specific dependencies :
+    NewBeamDirs = java_utils:get_beam_directories_for_binding(),
 
-	% Adds them to list of dependencies and goes for the next language:
-	get_additional_beam_directories_for( T, NewBeamDirs ++ Acc ).
+    % Adds them to list of dependencies and goes for the next language:
+    get_additional_beam_directories_for( T, NewBeamDirs ++ Acc ).

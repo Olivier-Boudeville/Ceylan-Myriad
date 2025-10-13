@@ -54,26 +54,26 @@
 %
 -record( event_context, {
 
-	% The (lower-level, backend-specific) identifier of the event source
-	% (generally not useful, as the top-level gui_object() and any
-	% gui_id:name_id() shall be enough):
-	%
-	id :: gui_id:backend_id(),
+    % The (lower-level, backend-specific) identifier of the event source
+    % (generally not useful, as the top-level gui_object() and any
+    % gui_id:name_id() shall be enough):
+    %
+    id :: gui_id:backend_id(),
 
 
-	% Usually of no use, as such user data is a means of preserving a state,
-	% whereas the user event loop is often a better solution to do so:
-	%
-	user_data = [] :: gui:user_data(),
+    % Usually of no use, as such user data is a means of preserving a state,
+    % whereas the user event loop is often a better solution to do so:
+    %
+    user_data = [] :: gui:user_data(),
 
 
-	% The full (verbatim), lower-level (backend) event (if any) resulting in our
-	% event.
-	%
-	% (useful for example when deciding to propagate it upward in the widget
-	% hierarchy)
-	%
-	backend_event = undefined :: option( gui:backend_event() ) } ).
+    % The full (verbatim), lower-level (backend) event (if any) resulting in our
+    % event.
+    %
+    % (useful for example when deciding to propagate it upward in the widget
+    % hierarchy)
+    %
+    backend_event = undefined :: option( gui:backend_event() ) } ).
 
 
 -endif. % myriad_gui_base_hrl_guard

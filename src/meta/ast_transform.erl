@@ -102,12 +102,12 @@ qbased on context.
 -type local_type_replacement() ::
     type_replacement()
   | fun( ( type_name(), type_arity(), transformation_state() ) ->
-						{ type_replacement(), transformation_state() } ).
+                        { type_replacement(), transformation_state() } ).
 
 
 -doc "Table defining replacements of local types.".
 -type local_type_transform_table() ::
-	?table:?table( local_type_id_match(), local_type_replacement() ).
+    ?table:?table( local_type_id_match(), local_type_replacement() ).
 
 
 
@@ -115,7 +115,7 @@ qbased on context.
 
 -doc "To match a remote type.".
 -type remote_type_id_match() ::
-	{ module_name_match(), type_name_match(), type_arity_match() }.
+    { module_name_match(), type_name_match(), type_arity_match() }.
 
 
 
@@ -127,12 +127,12 @@ on context.
 -type remote_type_replacement() ::
     type_replacement()
   | fun( ( module_name(), type_name(), type_arity(), transformation_state() ) ->
-						{ type_replacement(), transformation_state() } ).
+                        { type_replacement(), transformation_state() } ).
 
 
 -doc "Table defining replacements of remote types.".
 -type remote_type_transform_table() ::
-	?table:?table( remote_type_id_match(), remote_type_replacement() ).
+    ?table:?table( remote_type_id_match(), remote_type_replacement() ).
 
 
 
@@ -175,13 +175,13 @@ based on context.
 -type local_call_replacement() ::
     call_replacement()
   | fun( ( function_name(), arity(), transformation_state() ) ->
-							{ call_replacement(), transformation_state() } ) .
+                            { call_replacement(), transformation_state() } ) .
 
 
 
 -doc "Table defining replacements of local calls.".
 -type local_call_transform_table() ::
-	?table:?table( local_call_match(), local_call_replacement() ).
+    ?table:?table( local_call_match(), local_call_replacement() ).
 
 
 
@@ -190,7 +190,7 @@ based on context.
 
 -doc "To match a remote call.".
 -type remote_call_match() :: { module_name_match(), function_name_match(),
-							   function_arity_match() }.
+                               function_arity_match() }.
 
 
 -doc """
@@ -201,13 +201,13 @@ based on context.
 -type remote_call_replacement() ::
     call_replacement()
   | fun( ( module_name(), function_name(), arity(), transformation_state() ) ->
-							{ call_replacement(), transformation_state() } ).
+                            { call_replacement(), transformation_state() } ).
 
 
 
 -doc "Table defining replacements of remote calls.".
 -type remote_call_transform_table() ::
-	?table:?table( remote_call_match(), remote_call_replacement() ).
+    ?table:?table( remote_call_match(), remote_call_replacement() ).
 
 
 
@@ -221,20 +221,20 @@ Note that not all triggers are supported, but that adding any lacking one is not
 especially difficult.
 """.
 -type transform_trigger() ::
-	ast_expression:expression_kind() | 'clause' | 'body'.
+    ast_expression:expression_kind() | 'clause' | 'body'.
 
 
 
 -doc "User-supplied function to define how AST clauses shall be transformed.".
 -type clause_transform_function() ::
-	fun( ( ast_clause(), ast_transforms() ) ->
-					{ ast_clause(), ast_transforms() } ).
+    fun( ( ast_clause(), ast_transforms() ) ->
+                    { ast_clause(), ast_transforms() } ).
 
 
 
 -doc "User-supplied function to define how AST bodies shall be transformed.".
 -type body_transform_function() :: fun( ( ast_body(), ast_transforms() ) ->
-											{ ast_body(), ast_transforms() } ).
+                                            { ast_body(), ast_transforms() } ).
 
 
 
@@ -252,8 +252,8 @@ User-supplied function to define how expressions shall be replaced.
 
 -doc "All the kinds of functions able to transform at least a part of an AST.".
 -type ast_transform_function() :: clause_transform_function()
-								| body_transform_function()
-								| expression_replacement_function().
+                                | body_transform_function()
+                                | expression_replacement_function().
 
 
 
@@ -266,7 +266,7 @@ turn recursive transformation calls (e.g. to
 `ast_expression:transform_expressions/2`) by themselves.
 """.
 -type ast_transform_table() ::
-	?table:?table( transform_trigger(), ast_transform_function() ).
+    ?table:?table( transform_trigger(), ast_transform_function() ).
 
 
 
@@ -295,10 +295,10 @@ clause).
 
 % For type replacements:
 -export_type([ type_name_match/0, type_arity_match/0, type_replacement/0,
-			   local_type_id_match/0, local_type_replacement/0,
-			   local_type_transform_table/0,
-			   remote_type_id_match/0, remote_type_replacement/0,
-			   remote_type_transform_table/0 ]).
+               local_type_id_match/0, local_type_replacement/0,
+               local_type_transform_table/0,
+               remote_type_id_match/0, remote_type_replacement/0,
+               remote_type_transform_table/0 ]).
 
 % For clause replacements:
 -export_type([ clause_transform_function/0 ]).
@@ -310,17 +310,17 @@ clause).
 
 % For call replacements:
 -export_type([ function_name_match/0, function_arity_match/0,
-			   call_replacement/0,
-			   local_call_match/0, local_call_replacement/0,
-			   local_call_transform_table/0,
-			   remote_call_match/0, remote_call_replacement/0,
-			   remote_call_transform_table/0 ]).
+               call_replacement/0,
+               local_call_match/0, local_call_replacement/0,
+               local_call_transform_table/0,
+               remote_call_match/0, remote_call_replacement/0,
+               remote_call_transform_table/0 ]).
 
 
 % For expression replacements:
 -export_type([ expression_replacement_function/0,
-			   ast_transform_function/0,
-			   ast_transform_table/0 ]).
+               ast_transform_function/0,
+               ast_transform_table/0 ]).
 
 -export_type([ transformation_state/0, transform_formatter/0 ]).
 
@@ -352,8 +352,8 @@ context (e.g. in a guard, in an expression, etc.).
 
 
 -export([ get_local_type_transform_table/1, get_remote_type_transform_table/1,
-		  get_local_call_transform_table/1, get_remote_call_transform_table/1,
-		  ast_transforms_to_string/1, default_formatter/2 ]).
+          get_local_call_transform_table/1, get_remote_call_transform_table/1,
+          ast_transforms_to_string/1, default_formatter/2 ]).
 
 
 
@@ -397,10 +397,10 @@ For example:
 
  % First clause will never match due to arity:
  { { '_', 3 }, fun( other_void, 0 ) ->
-					other_utils;
-				  ( _, '_' ) ->
-					{foo_utils,some_type}
-			   end }]
+                    other_utils;
+                  ( _, '_' ) ->
+                    {foo_utils,some_type}
+               end }]
 ```
 will return a description of the transformation of:
  - `void()` into `type_utils:void()`, as the same type name is implied there; it
@@ -413,45 +413,45 @@ will return a description of the transformation of:
  - any type depending on three others by `foo_utils:some_type/3`
 """.
 -spec get_local_type_transform_table(
-		[ { local_type_id_match(), type_replacement() } ] ) ->
-				local_type_transform_table().
+        [ { local_type_id_match(), type_replacement() } ] ) ->
+                local_type_transform_table().
 get_local_type_transform_table( Replacements ) ->
-	EmptyTable = ?table:new(),
-	get_local_type_repl_helper( Replacements, EmptyTable ).
+    EmptyTable = ?table:new(),
+    get_local_type_repl_helper( Replacements, EmptyTable ).
 
 
 % (helper)
 get_local_type_repl_helper( _Replacements=[], Table ) ->
-	Table;
+    Table;
 
 % Replacement can be either {TargetModule, TargetType} or TargetModule:
 get_local_type_repl_helper( _Replacements=[
-		{ Src={ _SourceTypeMatch, _ArityMatch },
-		  Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+        { Src={ _SourceTypeMatch, _ArityMatch },
+          Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_local_type_repl_helper( T, NewTable );
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_local_type_repl_helper( T, NewTable );
 
 % Same target type here:
 get_local_type_repl_helper( _Replacements=[
-		{ Src={ SourceTypeMatch, _ArityMatch }, TargetModule } | T ], Table )
-								when is_atom( TargetModule ) ->
+        { Src={ SourceTypeMatch, _ArityMatch }, TargetModule } | T ], Table )
+                                when is_atom( TargetModule ) ->
 
-	Replacement = { TargetModule, SourceTypeMatch },
+    Replacement = { TargetModule, SourceTypeMatch },
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_local_type_repl_helper( T, NewTable );
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_local_type_repl_helper( T, NewTable );
 
 
 get_local_type_repl_helper(_Replacements=[
-		{ Src={ _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ], Table )
-						when is_function( ReplaceFun ) ->
+        { Src={ _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ], Table )
+                        when is_function( ReplaceFun ) ->
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
-	get_local_type_repl_helper( T, NewTable ).
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
+    get_local_type_repl_helper( T, NewTable ).
 
 
 
@@ -461,13 +461,13 @@ Returns a table describing remote type replacements.
 For example:
 ```
 [{{ a_module, void, 0 }, basic_utils },
-	  { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
-	  % First clause will never match due to arity:
-	  { { '_', '_', 3 }, fun( other_void, 0 ) ->
-								   other_utils;
-							( _, '_' ) ->
-								  {foo_utils,some_type}
-					end}]
+      { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+      % First clause will never match due to arity:
+      { { '_', '_', 3 }, fun( other_void, 0 ) ->
+                                   other_utils;
+                            ( _, '_' ) ->
+                                  {foo_utils,some_type}
+                    end}]
 ```
 will return a description of the transformation of:
  - `a_module:void()` into `type_utils:void()`, as the same type name is implied
@@ -478,46 +478,46 @@ will return a description of the transformation of:
  `foo_utils:some_type/3`
 """.
 -spec get_remote_type_transform_table(
-		[ { remote_type_id_match(), type_replacement() } ] ) ->
-				remote_type_transform_table().
+        [ { remote_type_id_match(), type_replacement() } ] ) ->
+                remote_type_transform_table().
 get_remote_type_transform_table( Replacements ) ->
-	EmptyTable = ?table:new(),
-	get_remote_type_repl_helper( Replacements, EmptyTable ).
+    EmptyTable = ?table:new(),
+    get_remote_type_repl_helper( Replacements, EmptyTable ).
 
 
 
 % (helper)
 get_remote_type_repl_helper( _Replacements=[], Table ) ->
-	Table;
+    Table;
 
 % Replacement can be either { TargetModule, TargetType } or TargetModule:
 get_remote_type_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch },
-			Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+    { Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch },
+            Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_remote_type_repl_helper( T, NewTable );
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_remote_type_repl_helper( T, NewTable );
 
 % Same target type here:
 get_remote_type_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, SourceTypeMatch, _ArityMatch }, TargetModule } | T ],
-							 Table ) when is_atom( TargetModule ) ->
+    { Src={ _ModuleMatch, SourceTypeMatch, _ArityMatch }, TargetModule } | T ],
+                             Table ) when is_atom( TargetModule ) ->
 
-	Replacement = { TargetModule, SourceTypeMatch },
+    Replacement = { TargetModule, SourceTypeMatch },
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_remote_type_repl_helper( T, NewTable );
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_remote_type_repl_helper( T, NewTable );
 
 
 get_remote_type_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ],
-							Table ) when is_function( ReplaceFun ) ->
+    { Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ],
+                            Table ) when is_function( ReplaceFun ) ->
 
-	% Up to one transformation per source type:
-	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
-	get_remote_type_repl_helper( T, NewTable ).
+    % Up to one transformation per source type:
+    NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
+    get_remote_type_repl_helper( T, NewTable ).
 
 
 
@@ -532,13 +532,13 @@ Returns a table describing local call replacements.
 For example:
 ```
 [{{ halt, 0 }, basic_utils },
-	  { { setAttributes, 1 }, { some_utils, set_attr } },
-	  % First clause will never match due to arity:
-	  { { '_', 3 }, fun( my_fun, 0 ) ->
-								  other_utils;
-					   ( _, '_' ) ->
-								  {foo_utils,some_fun}
-					end}]
+      { { setAttributes, 1 }, { some_utils, set_attr } },
+      % First clause will never match due to arity:
+      { { '_', 3 }, fun( my_fun, 0 ) ->
+                                  other_utils;
+                       ( _, '_' ) ->
+                                  {foo_utils,some_fun}
+                    end}]
 ```
 will return a description of the transformation of:
 
@@ -552,48 +552,48 @@ will return a description of the transformation of:
  - any call to a function of arity 3 by `foo_utils:some_fun/3`
 """.
 -spec get_local_call_transform_table(
-		[ { local_call_match(), call_replacement() } ] ) ->
-				local_call_transform_table().
+        [ { local_call_match(), call_replacement() } ] ) ->
+                local_call_transform_table().
 get_local_call_transform_table( Replacements ) ->
-	EmptyTable = ?table:new(),
-	get_local_call_repl_helper( Replacements, EmptyTable ).
+    EmptyTable = ?table:new(),
+    get_local_call_repl_helper( Replacements, EmptyTable ).
 
 
 
 % (helper)
 get_local_call_repl_helper( _Replacements=[], Table ) ->
-	Table;
+    Table;
 
 % Replacement can be either {TargetModule, TargetFunctionName} or
 % TargetModule:
 %
 get_local_call_repl_helper( _Replacements=[
-		{ Src={ _SourceFunctionNameMatch, _ArityMatch },
-		  Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
+        { Src={ _SourceFunctionNameMatch, _ArityMatch },
+          Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
 
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_local_call_repl_helper( T, NewTable );
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_local_call_repl_helper( T, NewTable );
 
 % Same target function name here:
 get_local_call_repl_helper( _Replacements=[
-		{ Src={ SourceFunctionNameMatch, _ArityMatch }, TargetModule } | T ],
-							Table ) when is_atom( TargetModule ) ->
+        { Src={ SourceFunctionNameMatch, _ArityMatch }, TargetModule } | T ],
+                            Table ) when is_atom( TargetModule ) ->
 
-	Replacement = { TargetModule, SourceFunctionNameMatch },
+    Replacement = { TargetModule, SourceFunctionNameMatch },
 
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_local_call_repl_helper( T, NewTable );
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_local_call_repl_helper( T, NewTable );
 
 
 get_local_call_repl_helper( _Replacements=[
-		{ Src={ _SourceFunctionNameMatch, _ArityMatch }, ReplaceFun } | T ],
-							Table ) when is_function( ReplaceFun ) ->
+        { Src={ _SourceFunctionNameMatch, _ArityMatch }, ReplaceFun } | T ],
+                            Table ) when is_function( ReplaceFun ) ->
 
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
-	get_local_call_repl_helper( T, NewTable ).
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
+    get_local_call_repl_helper( T, NewTable ).
 
 
 
@@ -603,13 +603,13 @@ Returns a table describing remote call replacements.
 For example:
 ```
 [ { { a_module, void, 0 }, basic_utils },
-	  { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
-	  % First clause will never match due to arity:
-	  { { '_', '_', 3 }, fun( other_void, 0 ) ->
-								   other_utils;
-							( _, '_' ) ->
-								  {foo_utils,some_type}
-					end}]
+      { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+      % First clause will never match due to arity:
+      { { '_', '_', 3 }, fun( other_void, 0 ) ->
+                                   other_utils;
+                            ( _, '_' ) ->
+                                  {foo_utils,some_type}
+                    end}]
 ```
 will return a description of the transformation of:
  - `a_module:void()` into `type_utils:void()`, as the same type name is implied
@@ -620,45 +620,45 @@ will return a description of the transformation of:
  `foo_utils:some_type/3`
 """.
 -spec get_remote_call_transform_table(
-		[ { remote_call_match(), call_replacement() } ] ) ->
-				remote_call_transform_table().
+        [ { remote_call_match(), call_replacement() } ] ) ->
+                remote_call_transform_table().
 get_remote_call_transform_table( Replacements ) ->
-	EmptyTable = ?table:new(),
-	get_remote_call_repl_helper( Replacements, EmptyTable ).
+    EmptyTable = ?table:new(),
+    get_remote_call_repl_helper( Replacements, EmptyTable ).
 
 
 % (helper)
 get_remote_call_repl_helper( _Replacements=[], Table ) ->
-	Table;
+    Table;
 
 % Replacement can be either {TargetModule, TargetFunctionName} or TargetModule:
 get_remote_call_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
-			Replacement={ _TargetModule, _TargetFunctionName } } | T ],
-							 Table ) ->
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_remote_call_repl_helper( T, NewTable );
+    { Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+            Replacement={ _TargetModule, _TargetFunctionName } } | T ],
+                             Table ) ->
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_remote_call_repl_helper( T, NewTable );
 
 % Same target function name here:
 get_remote_call_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, SourceFunctionNameMatch, _ArityMatch },
-	  TargetModule } | T ], Table ) when is_atom( TargetModule ) ->
+    { Src={ _ModuleMatch, SourceFunctionNameMatch, _ArityMatch },
+      TargetModule } | T ], Table ) when is_atom( TargetModule ) ->
 
-	Replacement = { TargetModule, SourceFunctionNameMatch },
+    Replacement = { TargetModule, SourceFunctionNameMatch },
 
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
-	get_remote_call_repl_helper( T, NewTable );
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, Replacement, Table ),
+    get_remote_call_repl_helper( T, NewTable );
 
 
 get_remote_call_repl_helper( _Replacements=[
-	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
-	  ReplaceFun } | T ], Table ) when is_function( ReplaceFun ) ->
+    { Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+      ReplaceFun } | T ], Table ) when is_function( ReplaceFun ) ->
 
-	% Up to one transformation per source function:
-	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
-	get_remote_call_repl_helper( T, NewTable ).
+    % Up to one transformation per source function:
+    NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
+    get_remote_call_repl_helper( T, NewTable ).
 
 
 
@@ -672,106 +672,106 @@ get_remote_call_repl_helper( _Replacements=[
 -doc "Returns a textual description of the specified AST transforms.".
 -spec ast_transforms_to_string( ast_transforms() ) -> ustring().
 ast_transforms_to_string( #ast_transforms{
-		local_types=MaybeLocalTypeTable,
-		remote_types=MaybeRemoteTypeTable,
-		local_calls=MaybeLocalCallTable,
-		remote_calls=MaybeRemoteCallTable,
-		transformed_module_name=ModuleName,
-		transformed_function_identifier=MaybeFunId,
-		transform_table=MaybeTransformTable,
-		transformation_state=TransfoState } ) ->
+        local_types=MaybeLocalTypeTable,
+        remote_types=MaybeRemoteTypeTable,
+        local_calls=MaybeLocalCallTable,
+        remote_calls=MaybeRemoteCallTable,
+        transformed_module_name=ModuleName,
+        transformed_function_identifier=MaybeFunId,
+        transform_table=MaybeTransformTable,
+        transformation_state=TransfoState } ) ->
 
-	Bullet = "  - ",
+    Bullet = "  - ",
 
-	LocalTypeStr = case MaybeLocalTypeTable of
+    LocalTypeStr = case MaybeLocalTypeTable of
 
-		undefined ->
-			"no transformation regarding local types";
+        undefined ->
+            "no transformation regarding local types";
 
-		_ ->
-			text_utils:format( "local types transformed based on ~ts",
-				[ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
+        _ ->
+            text_utils:format( "local types transformed based on ~ts",
+                [ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
 
-	end,
+    end,
 
-	RemoteTypeStr = case MaybeRemoteTypeTable of
+    RemoteTypeStr = case MaybeRemoteTypeTable of
 
-		undefined ->
-			"no transformation regarding remote types";
+        undefined ->
+            "no transformation regarding remote types";
 
-		_ ->
-			text_utils:format( "remote types transformed based on ~ts",
-				[ ?table:to_string( MaybeRemoteTypeTable, Bullet ) ] )
+        _ ->
+            text_utils:format( "remote types transformed based on ~ts",
+                [ ?table:to_string( MaybeRemoteTypeTable, Bullet ) ] )
 
-	end,
+    end,
 
-	LocalCallStr = case MaybeLocalCallTable of
+    LocalCallStr = case MaybeLocalCallTable of
 
-		undefined ->
-			"no transformation regarding local calls";
+        undefined ->
+            "no transformation regarding local calls";
 
-		_ ->
-			text_utils:format( "local calls transformed based on ~ts",
-				[ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
+        _ ->
+            text_utils:format( "local calls transformed based on ~ts",
+                [ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
 
-	end,
+    end,
 
-	RemoteCallStr = case MaybeRemoteCallTable of
+    RemoteCallStr = case MaybeRemoteCallTable of
 
-		undefined ->
-			"no transformation regarding remote calls";
+        undefined ->
+            "no transformation regarding remote calls";
 
-		_ ->
-			text_utils:format( "remote calls transformed based on ~ts",
-				[ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
+        _ ->
+            text_utils:format( "remote calls transformed based on ~ts",
+                [ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
 
-	end,
+    end,
 
-	ModuleString = case ModuleName of
+    ModuleString = case ModuleName of
 
-		undefined ->
-			"no target module specified";
+        undefined ->
+            "no target module specified";
 
-		_ ->
-			text_utils:format( "being applied to module '~ts'", [ ModuleName ] )
+        _ ->
+            text_utils:format( "being applied to module '~ts'", [ ModuleName ] )
 
-	end,
+    end,
 
-	FunIdString = case MaybeFunId of
+    FunIdString = case MaybeFunId of
 
-		undefined ->
-			"no transformed function specified";
+        undefined ->
+            "no transformed function specified";
 
-		{ FunName, Arity } ->
-			text_utils:format( "applied to function ~ts/~B",
-							   [ FunName, Arity ] )
+        { FunName, Arity } ->
+            text_utils:format( "applied to function ~ts/~B",
+                               [ FunName, Arity ] )
 
-	end,
+    end,
 
-	TransfoTableStr = case MaybeTransformTable of
+    TransfoTableStr = case MaybeTransformTable of
 
-		undefined ->
-			"no AST transformation defined";
+        undefined ->
+            "no AST transformation defined";
 
-		TransfoTable ->
-			text_utils:format( "AST transformations defined, for following "
-				"~B triggers: ~w; transformation state is:~n  ~p",
-				[ ?table:size( TransfoTable ), ?table:keys( TransfoTable ),
-				  TransfoState ] )
+        TransfoTable ->
+            text_utils:format( "AST transformations defined, for following "
+                "~B triggers: ~w; transformation state is:~n  ~p",
+                [ ?table:size( TransfoTable ), ?table:keys( TransfoTable ),
+                  TransfoState ] )
 
-	end,
+    end,
 
-	TableString = text_utils:strings_to_string( [ LocalTypeStr, RemoteTypeStr,
-		LocalCallStr, RemoteCallStr, ModuleString, FunIdString,
-		TransfoTableStr ] ),
+    TableString = text_utils:strings_to_string( [ LocalTypeStr, RemoteTypeStr,
+        LocalCallStr, RemoteCallStr, ModuleString, FunIdString,
+        TransfoTableStr ] ),
 
-	text_utils:format( "AST transformations: ~ts", [ TableString ] ).
+    text_utils:format( "AST transformations: ~ts", [ TableString ] ).
 
 
 
 -doc "The default `transform_formatter()` to be used.".
 -spec default_formatter( format_string(), format_values() ) ->
-								option( ustring() ).
+                                option( ustring() ).
 default_formatter( _FormatString, _FormatValue ) ->
-	%text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
-	undefined.
+    %text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
+    undefined.

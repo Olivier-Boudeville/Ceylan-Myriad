@@ -362,23 +362,23 @@ MyriadGUI-translated version of a native wx type, that is of the
 wx_native_object_type(); for example 'window', instead of 'wxWindow'.
 """.
 -type wx_object_type() :: 'object'
-						| 'event_handler'
-						| 'window'
-						| 'control'
-						| 'button'
-						| 'toggle_button'
-						| 'bitmap_button'
-						| 'panel'
-						| 'gl_canvas'
-						| 'status_bar'
-						| 'top_level_window'
-						| 'dialog'
-						| 'frame'
-						| 'sizer'
-						| 'bitmap'
-						| 'menu'
-						| 'toolbar'
-						| 'memory_device_context'.
+                        | 'event_handler'
+                        | 'window'
+                        | 'control'
+                        | 'button'
+                        | 'toggle_button'
+                        | 'bitmap_button'
+                        | 'panel'
+                        | 'gl_canvas'
+                        | 'status_bar'
+                        | 'top_level_window'
+                        | 'dialog'
+                        | 'frame'
+                        | 'sizer'
+                        | 'bitmap'
+                        | 'menu'
+                        | 'toolbar'
+                        | 'memory_device_context'.
 
 
 -doc "The additional widget types introduced by Myriad.".
@@ -473,31 +473,31 @@ for further information regarding event propagation.
 """.
 -type event_subscription_opt() ::
 
-	{ 'id', id() }
+    { 'id', id() }
 
   | { 'last_id', id() }
 
-	% Processes the event, but does not propagate it upward in the widget
-	% hierarchy afterwards (which is the default for most event types).
-	%
-	% See trap_event/1 and https://howtos.esperide.org/Erlang.html#using-wx for
-	% a clarification of the use of this option.
-	%
-	% Opposite of 'propagate_event'.
-	%
+    % Processes the event, but does not propagate it upward in the widget
+    % hierarchy afterwards (which is the default for most event types).
+    %
+    % See trap_event/1 and https://howtos.esperide.org/Erlang.html#using-wx for
+    % a clarification of the use of this option.
+    %
+    % Opposite of 'propagate_event'.
+    %
   | 'trap_event'
 
-	% Processes the event and propagates it upward in the widget hierarchy
-	% afterwards (some event types by default trap events).
-	%
-	% See propagate_event/1 and https://howtos.esperide.org/Erlang.html#using-wx
-	% for a clarification of the use of this option.
-	%
-	% Opposite of 'trap_event'.
-	%
+    % Processes the event and propagates it upward in the widget hierarchy
+    % afterwards (some event types by default trap events).
+    %
+    % See propagate_event/1 and https://howtos.esperide.org/Erlang.html#using-wx
+    % for a clarification of the use of this option.
+    %
+    % Opposite of 'trap_event'.
+    %
   | 'propagate_event'
 
-	% Triggers handle_sync_event/3; see the wx_object behaviour:
+    % Triggers handle_sync_event/3; see the wx_object behaviour:
   | 'callback'
 
   | { 'callback', event_callback() }
@@ -532,30 +532,30 @@ See convert_debug_level/1.
 
 
 -export_type([ service/0,
-			   gui_env_pid/0, gui_env_info/0, gui_env_designator/0,
-			   backend_identifier/0, backend_information/0,
+               gui_env_pid/0, gui_env_info/0, gui_env_designator/0,
+               backend_identifier/0, backend_information/0,
 
-			   length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
-			   any_length/0, any_width/0, any_height/0,
-			   coordinate/0, point/0, position/0, size/0, sizing/0,
-			   orientation/0, direction/0,
-			   row_count/0, column_count/0,
-			   fps/0, id/0,
+               length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
+               any_length/0, any_width/0, any_height/0,
+               coordinate/0, point/0, position/0, size/0, sizing/0,
+               orientation/0, direction/0,
+               row_count/0, column_count/0,
+               fps/0, id/0,
 
-			   model_pid/0, view_pid/0, controller_pid/0,
-			   object_type/0, wx_object_type/0,
-			   myriad_object_type/0,
-			   title/0, label/0, event_callback/0, user_data/0,
-			   gui_object/0, wx_server/0,
-			   widget/0, parent/0 ]).
+               model_pid/0, view_pid/0, controller_pid/0,
+               object_type/0, wx_object_type/0,
+               myriad_object_type/0,
+               title/0, label/0, event_callback/0, user_data/0,
+               gui_object/0, wx_server/0,
+               widget/0, parent/0 ]).
 
 
 -export_type([ loop_pid/0,
-			   construction_parameters/0, backend_event/0,
-			   event_subscription_options/0,
-			   event_subscription_opt/0,
-			   debug_level_opt/0, debug_level/0, error_message/0,
-			   wx_object/0 ]).
+               construction_parameters/0, backend_event/0,
+               event_subscription_options/0,
+               event_subscription_opt/0,
+               debug_level_opt/0, debug_level/0, error_message/0,
+               wx_object/0 ]).
 
 
 % To avoid unused warnings:
@@ -570,79 +570,79 @@ See convert_debug_level/1.
 %
 -define( gui_env_entries, [
 
-	% GUI-level entries:
+    % GUI-level entries:
 
-	% The family of the current operating system, typically to adapt to OS
-	% GUI specificities:
-	%
-	{ 'os_family', os_family() },
+    % The family of the current operating system, typically to adapt to OS
+    % GUI specificities:
+    %
+    { 'os_family', os_family() },
 
-	% A more precise name of the current operating system, for finer control:
-	{ 'os_name', os_name() },
-
-
-	% The PID of the allocator of unique backend identifiers:
-	%
-	% (now corresponds directly to the MyriadGUI gui_event main event-loop
-	% process, which acts as a simplified gui_id identifier allocator; see the
-	% loop_pid entry)
-	%
-	{ 'id_allocator_pid', id_allocator_pid() },
-
-	% The main, top-level window (if any; generally a frame) of the application:
-	{ 'top_level_window', option( top_level_window() ) },
-
-	% PID of the MyriadGUI main event loop:
-	{ 'loop_pid', loop_pid() },
-
-	% The event types that are trapped by default:
-	{ 'trap_set', trap_set() },
-
-	% Any backend-specific top-level server used for the GUI (here wx):
-	{ 'backend_server', wx_object() },
-
-	% Any backend-specific, opaque environment term used for the GUI (here wx):
-	{ 'backend_env', wx_environment() },
+    % A more precise name of the current operating system, for finer control:
+    { 'os_name', os_name() },
 
 
-	% OpenGL-related entries:
+    % The PID of the allocator of unique backend identifiers:
+    %
+    % (now corresponds directly to the MyriadGUI gui_event main event-loop
+    % process, which acts as a simplified gui_id identifier allocator; see the
+    % loop_pid entry)
+    %
+    { 'id_allocator_pid', id_allocator_pid() },
 
-	% The current OpenGL canvas (if any):
-	{ 'gl_canvas', option( gl_canvas() ) },
+    % The main, top-level window (if any; generally a frame) of the application:
+    { 'top_level_window', option( top_level_window() ) },
 
-	% The current OpenGL context (if any):
-	{ 'gl_context', option( gl_context() ) },
+    % PID of the MyriadGUI main event loop:
+    { 'loop_pid', loop_pid() },
 
+    % The event types that are trapped by default:
+    { 'trap_set', trap_set() },
 
-	% Mouse-related entries:
+    % Any backend-specific top-level server used for the GUI (here wx):
+    { 'backend_server', wx_object() },
 
-	% A table keeping track of the various mouse cursors available:
-	{ 'cursor_table', gui_mouse:cursor_table() },
-
-	% The current type of cursor (if any):
-	{ 'current_cursor_type', option( gui_mouse:cursor_type() ) },
-
-	% The stack (as a list) of the windows that grabbed the mouse cursor:
-	{ 'grab_stack', [ window() ] },
-
-	% Tells whether we are in key-released event-handling mode:
-	{ 'key_released', boolean() },
-
-	% The coordinates (if any) at which the mouse cursor shall warp:
-	{ 'warp_coordinates', option( point() ) },
+    % Any backend-specific, opaque environment term used for the GUI (here wx):
+    { 'backend_env', wx_environment() },
 
 
-	% Window manager related entries:
+    % OpenGL-related entries:
 
-	% The currently active window (if any), i.e. the one handling current
-	% events:
-	%
-	{ 'active_window', option( window_name() ) },
+    % The current OpenGL canvas (if any):
+    { 'gl_canvas', option( gl_canvas() ) },
 
-	% The window (if any) currently having the focus (implicitly or because
-	% having grabbed the mouse):
-	%
-	{ 'focused_window', option( window_name() ) } ] ).
+    % The current OpenGL context (if any):
+    { 'gl_context', option( gl_context() ) },
+
+
+    % Mouse-related entries:
+
+    % A table keeping track of the various mouse cursors available:
+    { 'cursor_table', gui_mouse:cursor_table() },
+
+    % The current type of cursor (if any):
+    { 'current_cursor_type', option( gui_mouse:cursor_type() ) },
+
+    % The stack (as a list) of the windows that grabbed the mouse cursor:
+    { 'grab_stack', [ window() ] },
+
+    % Tells whether we are in key-released event-handling mode:
+    { 'key_released', boolean() },
+
+    % The coordinates (if any) at which the mouse cursor shall warp:
+    { 'warp_coordinates', option( point() ) },
+
+
+    % Window manager related entries:
+
+    % The currently active window (if any), i.e. the one handling current
+    % events:
+    %
+    { 'active_window', option( window_name() ) },
+
+    % The window (if any) currently having the focus (implicitly or because
+    % having grabbed the mouse):
+    %
+    { 'focused_window', option( window_name() ) } ] ).
 % These keys, associated to values of the associated types, are used (and
 % reserved) by MyriadGUI in order to record application-level information, made
 % available to its processes through its environment server.
@@ -668,14 +668,14 @@ See convert_debug_level/1.
 
 -doc "Identifier of a graphical backend.".
 -type backend_identifier() :: 'gs' % Now obsolete
-							| 'wx' % Based on WxWidgets
-							| atom().
+                            | 'wx' % Based on WxWidgets
+                            | atom().
 
 
 
 -doc "Information regarding a graphical backend.".
 -type backend_information() ::
-	{ backend_identifier(), basic_utils:any_version() }.
+    { backend_identifier(), basic_utils:any_version() }.
 
 
 % Current backend is wx (based on WxWidgets).
@@ -703,7 +703,7 @@ See convert_debug_level/1.
 
 % Basic GUI operations.
 -export([ is_available/0, get_backend_information/0,
-		  start/0, start/1, set_debug_level/1, stop/0 ]).
+          start/0, start/1, set_debug_level/1, stop/0 ]).
 
 
 % Extra overall operations.
@@ -712,9 +712,9 @@ See convert_debug_level/1.
 
 % Event-related operations.
 -export([ subscribe_to_events/1, subscribe_to_events/2,
-		  unsubscribe_from_events/1, unsubscribe_from_events/2,
-		  register_event_callback/3, register_event_callback/4,
-		  trap_event/1, propagate_event/1 ]).
+          unsubscribe_from_events/1, unsubscribe_from_events/2,
+          register_event_callback/3, register_event_callback/4,
+          trap_event/1, propagate_event/1 ]).
 
 
 
@@ -762,15 +762,15 @@ See convert_debug_level/1.
 
 % Miscellaneous:
 -export([ get_backend_environment/0, set_backend_environment/1,
-		  get_main_loop_pid/0, get_main_loop_pid/1,
-		  get_id_allocator_pid/0, get_id_allocator_pid/1 ]).
+          get_main_loop_pid/0, get_main_loop_pid/1,
+          get_id_allocator_pid/0, get_id_allocator_pid/1 ]).
 
 
 
 % Internal, silencing exports:
 -export([ create_gui_environment/1, create_gui_environment/2,
-		  destruct_gui_environment/0, destruct_gui_environment/1,
-		  event_interception_callback/2 ]).
+          destruct_gui_environment/0, destruct_gui_environment/1,
+          event_interception_callback/2 ]).
 
 
 % API for module generation:
@@ -778,7 +778,7 @@ See convert_debug_level/1.
 
 % As possibly used much by the gui_* modules:
 -compile({ inline, [ get_environment_server/0, get_main_loop_pid/0,
-					 get_id_allocator_pid/0, get_id_allocator_pid/1 ]}).
+                     get_id_allocator_pid/0, get_id_allocator_pid/1 ]}).
 
 
 % For related, public defines:
@@ -886,15 +886,15 @@ See convert_debug_level/1.
 -doc "Tells whether this user-interface backend is available.".
 -spec is_available() -> boolean().
 is_available() ->
-	% As simple as:
-	system_utils:has_graphical_output().
+    % As simple as:
+    system_utils:has_graphical_output().
 
 
 
 -doc "Returns information regarding the graphical backend in use.".
 -spec get_backend_information() -> backend_information().
 get_backend_information() ->
-	{ wx, gui_wx_backend:get_wx_version() }.
+    { wx, gui_wx_backend:get_wx_version() }.
 
 
 
@@ -907,7 +907,7 @@ canvas afterwards (see gui_opengl:create_canvas{1,2}).
 """.
 -spec start() -> gui_env_info().
 start() ->
-	start( [ mouse ] ).
+    start( [ mouse ] ).
 
 
 
@@ -922,23 +922,23 @@ canvas afterwards (see gui_opengl:create_canvas{1,2}).
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
 
-	%trace_utils:debug_fmt( "Starting MyriadGUI with services ~w.",
-	%                       [ Services ] ),
+    %trace_utils:debug_fmt( "Starting MyriadGUI with services ~w.",
+    %                       [ Services ] ),
 
-	% Now the identifier allocator is directly integrated in the MyriadGUI
-	% (gui_event) main loop, rather than being a separate process requiring
-	% extra message exchanges):
-	%
-	%IdAllocPid = ?myriad_spawn_link( fun gui_id:embody_as_id_allocator/0 ),
+    % Now the identifier allocator is directly integrated in the MyriadGUI
+    % (gui_event) main loop, rather than being a separate process requiring
+    % extra message exchanges):
+    %
+    %IdAllocPid = ?myriad_spawn_link( fun gui_id:embody_as_id_allocator/0 ),
 
-	% Starting the MyriadGUI environment:
-	%create_gui_environment( Services, IdAllocPid );
-	create_gui_environment( Services );
+    % Starting the MyriadGUI environment:
+    %create_gui_environment( Services, IdAllocPid );
+    create_gui_environment( Services );
 
 start( DebugLevel ) ->
-	EnvInfo = start(),
-	set_debug_level( DebugLevel ),
-	EnvInfo.
+    EnvInfo = start(),
+    set_debug_level( DebugLevel ),
+    EnvInfo.
 
 
 
@@ -951,11 +951,11 @@ Some services must be specifically declared here, as they require initialisation
 """.
 -spec create_gui_environment( [ service() ] ) -> gui_env_info().
 create_gui_environment( Services ) ->
-	% Now, at least currently, the MyriadGUI main loop process directly hosts
-	% the identifier allocation table (to avoid more messages having to be
-	% exchanged between the two); so no standalone id allocator is wanted here:
-	%
-	create_gui_environment( Services, _MaybeIdAllocPid=undefined ).
+    % Now, at least currently, the MyriadGUI main loop process directly hosts
+    % the identifier allocation table (to avoid more messages having to be
+    % exchanged between the two); so no standalone id allocator is wanted here:
+    %
+    create_gui_environment( Services, _MaybeIdAllocPid=undefined ).
 
 
 
@@ -967,119 +967,119 @@ Some services must be specifically declared here, as they require initialisation
 (e.g. for the loading of mouse cursors).
 """.
 -spec create_gui_environment( [ service() ], option( id_allocator_pid() ) ) ->
-											gui_env_info().
+                                            gui_env_info().
 create_gui_environment( Services, MaybeIdAllocPid ) ->
 
-	cond_utils:if_defined( myriad_debug_user_interface,
-		trace_utils:info_fmt( "Starting GUI, with following services: ~p",
-							  [ Services ] ) ),
+    cond_utils:if_defined( myriad_debug_user_interface,
+        trace_utils:info_fmt( "Starting GUI, with following services: ~p",
+                              [ Services ] ) ),
 
-	GUIEnvRegName = ?gui_env_reg_name,
+    GUIEnvRegName = ?gui_env_reg_name,
 
-	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
+    { OSFamily, OSName } = system_utils:get_operating_system_type(),
 
-	% Initialises the wx backend (no option relevant here):
-	%
-	% May, at least under some circumstances, issue the following trace:
-	% "[notice][erlang_logger] wx: GTK: State 0 for context 0x7f065424ed90
-	% doesn't match state 128 set via gtk_style_context_set_state ()" (possibly
-	% a wx bug; most probably harmless; seen only if the lower log levels
-	% are enabled)
+    % Initialises the wx backend (no option relevant here):
+    %
+    % May, at least under some circumstances, issue the following trace:
+    % "[notice][erlang_logger] wx: GTK: State 0 for context 0x7f065424ed90
+    % doesn't match state 128 set via gtk_style_context_set_state ()" (possibly
+    % a wx bug; most probably harmless; seen only if the lower log levels
+    % are enabled)
 
-	WxServer = wx:new(),
-	%WxServer = wx:new( [ { debug, [ verbose, trace ] } ] ),
+    WxServer = wx:new(),
+    %WxServer = wx:new( [ { debug, [ verbose, trace ] } ] ),
 
-	% The wx environment will be exported to the internal main loop process, so
-	% that both the user code (i.e. the current process) and that loop can make
-	% use of wx:
-	%
-	WxEnv = get_backend_environment(),
+    % The wx environment will be exported to the internal main loop process, so
+    % that both the user code (i.e. the current process) and that loop can make
+    % use of wx:
+    %
+    WxEnv = get_backend_environment(),
 
-	% Needed both directly in the main event loop and in the GUI environment
-	% (e.g. for when creating a plain canvas with no specific context):
-	%
-	TrapSet = gui_event:get_trapped_event_types( Services ),
+    % Needed both directly in the main event loop and in the GUI environment
+    % (e.g. for when creating a plain canvas with no specific context):
+    %
+    TrapSet = gui_event:get_trapped_event_types( Services ),
 
-	% The event table must be initialised in the spawned process, so that
-	% connect/N can use the right actual, first-level subscriber PID/name, which
-	% is the internal main loop in charge of the message routing and conversion:
+    % The event table must be initialised in the spawned process, so that
+    % connect/N can use the right actual, first-level subscriber PID/name, which
+    % is the internal main loop in charge of the message routing and conversion:
 
-	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
-								  [ WxServer, WxEnv, TrapSet ] ),
+    LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
+                                  [ WxServer, WxEnv, TrapSet ] ),
 
-	IdAllocPid = case MaybeIdAllocPid of
+    IdAllocPid = case MaybeIdAllocPid of
 
-		undefined ->
-			% Then the main loop acts as a simplified id allocator:
-			LoopPid;
+        undefined ->
+            % Then the main loop acts as a simplified id allocator:
+            LoopPid;
 
-		IdAllcPid ->
-			IdAllcPid
+        IdAllcPid ->
+            IdAllcPid
 
-	end,
+    end,
 
-	% Caches in the calling process and initialises some GUI-related entries
-	% (refer to the gui_env_entries define):
-	%
-	GUIEnvPid = environment:start_link_cached( GUIEnvRegName, [
+    % Caches in the calling process and initialises some GUI-related entries
+    % (refer to the gui_env_entries define):
+    %
+    GUIEnvPid = environment:start_link_cached( GUIEnvRegName, [
 
-		{ os_family, OSFamily },
-		{ os_name, OSName },
+        { os_family, OSFamily },
+        { os_name, OSName },
 
-		{ id_allocator_pid, IdAllocPid },
+        { id_allocator_pid, IdAllocPid },
 
-		{ top_level_window, undefined },
+        { top_level_window, undefined },
 
-		{ loop_pid, LoopPid },
-		{ trap_set, TrapSet },
+        { loop_pid, LoopPid },
+        { trap_set, TrapSet },
 
-		{ backend_server, WxServer },
-		{ backend_env, WxEnv },
+        { backend_server, WxServer },
+        { backend_env, WxEnv },
 
-		{ gl_canvas, undefined },
-		{ gl_context, undefined } ] ),
+        { gl_canvas, undefined },
+        { gl_context, undefined } ] ),
 
 
-	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
-		"Main loop running on GUI process ~w (created from user process ~w), "
-		"using environment server ~w.", [ LoopPid, self(), GUIEnvPid ] ) ),
+    cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
+        "Main loop running on GUI process ~w (created from user process ~w), "
+        "using environment server ~w.", [ LoopPid, self(), GUIEnvPid ] ) ),
 
-	NonMouseServices =
-			case list_utils:extract_element_if_existing( mouse, Services ) of
+    NonMouseServices =
+            case list_utils:extract_element_if_existing( mouse, Services ) of
 
-		false ->
-			Services;
+        false ->
+            Services;
 
-		MouseShrunkSvces ->
-			gui_mouse:register_in_environment( GUIEnvPid ),
-			MouseShrunkSvces
+        MouseShrunkSvces ->
+            gui_mouse:register_in_environment( GUIEnvPid ),
+            MouseShrunkSvces
 
-	end,
+    end,
 
-	NonMouseServices =:= [] orelse
-		throw( { unknown_services, NonMouseServices } ),
+    NonMouseServices =:= [] orelse
+        throw( { unknown_services, NonMouseServices } ),
 
-	{ GUIEnvRegName, GUIEnvPid }.
+    { GUIEnvRegName, GUIEnvPid }.
 
 
 
 -doc "Destructs the MyriadGUI environment server.".
 -spec destruct_gui_environment() -> void().
 destruct_gui_environment() ->
-	destruct_gui_environment( get_environment_server() ).
+    destruct_gui_environment( get_environment_server() ).
 
 
 
 -doc "Destructs the specified environment server.".
 -spec destruct_gui_environment( gui_env_pid() ) -> void().
 destruct_gui_environment( GUIEnvPid ) ->
-	LoopPid = environment:get( loop_pid, GUIEnvPid ),
-	LoopPid ! terminate_gui_loop,
-	gui_mouse:unregister_from_environment( GUIEnvPid ),
-	GUIEnvPid ! stop,
+    LoopPid = environment:get( loop_pid, GUIEnvPid ),
+    LoopPid ! terminate_gui_loop,
+    gui_mouse:unregister_from_environment( GUIEnvPid ),
+    GUIEnvPid ! stop,
 
-	% No wx_server needed:
-	ok = wx:destroy().
+    % No wx_server needed:
+    ok = wx:destroy().
 
 
 
@@ -1088,25 +1088,25 @@ Returns the PID of the supposedly already-running MyriadGUI environment server.
 """.
 -spec get_environment_server() -> gui_env_pid().
 get_environment_server() ->
-	environment:get_server( ?gui_env_reg_name ).
+    environment:get_server( ?gui_env_reg_name ).
 
 
 
 -doc "Returns the root path of the MyriadGUI sources.".
 -spec get_base_path() -> directory_path().
 get_base_path() ->
-	file_utils:join( [ basic_utils:get_myriad_root_path(), "src",
-					   "user-interface", "graphical" ] ).
+    file_utils:join( [ basic_utils:get_myriad_root_path(), "src",
+                       "user-interface", "graphical" ] ).
 
 
 
 -doc "Sets the debug level(s) of the GUI.".
 -spec set_debug_level( debug_level() ) -> void().
 set_debug_level( DebugLevels ) when is_list( DebugLevels ) ->
-	wx:debug( [ gui_wx_backend:to_wx_debug_level( L ) || L <- DebugLevels ] );
+    wx:debug( [ gui_wx_backend:to_wx_debug_level( L ) || L <- DebugLevels ] );
 
 set_debug_level( DebugLevel ) ->
-	set_debug_level( [ DebugLevel ] ).
+    set_debug_level( [ DebugLevel ] ).
 
 
 
@@ -1163,7 +1163,7 @@ by the subscriber (typically for a 20x20 size), then a onShown event.
 """.
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) ->
-	subscribe_to_events( SubscribedEvents, _SubscriberDesignator=self() ).
+    subscribe_to_events( SubscribedEvents, _SubscriberDesignator=self() ).
 
 
 
@@ -1176,40 +1176,40 @@ occur, like:
 Refer to subscribe_to_events/1 for further information.
 """.
 -spec subscribe_to_events( event_subscription_spec(), event_subscriber() ) ->
-											void().
+                                            void().
 subscribe_to_events( SubscribedEvents, SubscriberDesignator )
-										when is_list( SubscribedEvents ) ->
+                                        when is_list( SubscribedEvents ) ->
 
-	LoopPid = get_main_loop_pid(),
+    LoopPid = get_main_loop_pid(),
 
-	% This is, in logical terms, a oneway (received in
-	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
-	% be synchronous), otherwise a race condition exists (e.g. the user
-	% subscribes to 'onShown' for the main frame, and just after executes
-	% 'gui:show(MainFrame)'. If subscribing is non-blocking, then the main frame
-	% may (with great probability due to the MyriadGUI process-in-the-middle),
-	% be shown before being connected to the main loop, and thus it will not
-	% notify the GUI main loop it is shown...
+    % This is, in logical terms, a oneway (received in
+    % gui_event:process_event_message/2), yet it must be a request (i.e. it must
+    % be synchronous), otherwise a race condition exists (e.g. the user
+    % subscribes to 'onShown' for the main frame, and just after executes
+    % 'gui:show(MainFrame)'. If subscribing is non-blocking, then the main frame
+    % may (with great probability due to the MyriadGUI process-in-the-middle),
+    % be shown before being connected to the main loop, and thus it will not
+    % notify the GUI main loop it is shown...
 
-	LoopPid ! { subscribeToEvents, [ SubscribedEvents, SubscriberDesignator ],
-				self() },
+    LoopPid ! { subscribeToEvents, [ SubscribedEvents, SubscriberDesignator ],
+                self() },
 
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:info_fmt( "User process ~w subscribing process ~w to ~w "
-			"regarding following events:~n~p.",
-			[ self(), SubscriberDesignator, LoopPid, SubscribedEvents ] ) ),
+    cond_utils:if_defined( myriad_debug_gui_events,
+        trace_utils:info_fmt( "User process ~w subscribing process ~w to ~w "
+            "regarding following events:~n~p.",
+            [ self(), SubscriberDesignator, LoopPid, SubscribedEvents ] ) ),
 
-	% Thus synchronous:
-	receive
+    % Thus synchronous:
+    receive
 
-		onEventSubscriptionProcessed ->
-			ok
+        onEventSubscriptionProcessed ->
+            ok
 
-	end;
+    end;
 
 subscribe_to_events( SubscribedEvent, SubscriberDesignator )
-								when is_tuple( SubscribedEvent ) ->
-	subscribe_to_events( [ SubscribedEvent ], SubscriberDesignator ).
+                                when is_tuple( SubscribedEvent ) ->
+    subscribe_to_events( [ SubscribedEvent ], SubscriberDesignator ).
 
 
 
@@ -1219,7 +1219,7 @@ Unsubscribes the current, calling process from the specified kind of events
 """.
 -spec unsubscribe_from_events( event_unsubscription_spec() ) -> void().
 unsubscribe_from_events( UnsubscribedEvents ) ->
-	unsubscribe_from_events( UnsubscribedEvents, _SubscriberDesignator=self() ).
+    unsubscribe_from_events( UnsubscribedEvents, _SubscriberDesignator=self() ).
 
 
 
@@ -1228,36 +1228,36 @@ Subscribes the specified process from the specified kind of events (event type
 and emitter), like {onWindowClosed, MyFrame}.
 """.
 -spec unsubscribe_from_events( event_unsubscription_spec(),
-							   event_subscriber() ) -> void().
+                               event_subscriber() ) -> void().
 unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
-								when is_list( UnsubscribedEvents ) ->
+                                when is_list( UnsubscribedEvents ) ->
 
-	LoopPid = get_main_loop_pid(),
+    LoopPid = get_main_loop_pid(),
 
-	% This is, in logical terms, a oneway (received in
-	% gui_event:process_event_message/2), yet it must be a request as well
-	% (refer to subscribe_to_events/2 for an explanation)
+    % This is, in logical terms, a oneway (received in
+    % gui_event:process_event_message/2), yet it must be a request as well
+    % (refer to subscribe_to_events/2 for an explanation)
 
-	LoopPid !
-		{ unsubscribeFromEvents, [ UnsubscribedEvents, SubscribedDesignator ],
-		  self() },
+    LoopPid !
+        { unsubscribeFromEvents, [ UnsubscribedEvents, SubscribedDesignator ],
+          self() },
 
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:info_fmt( "User process ~w unsubscribing process ~w to ~w "
-			"regarding following events:~n~p.",
-			[ self(), SubscribedDesignator, LoopPid, UnsubscribedEvents ] ) ),
+    cond_utils:if_defined( myriad_debug_gui_events,
+        trace_utils:info_fmt( "User process ~w unsubscribing process ~w to ~w "
+            "regarding following events:~n~p.",
+            [ self(), SubscribedDesignator, LoopPid, UnsubscribedEvents ] ) ),
 
-	% Thus synchronous:
-	receive
+    % Thus synchronous:
+    receive
 
-		onEventUnsubscriptionProcessed ->
-			ok
+        onEventUnsubscriptionProcessed ->
+            ok
 
-	end;
+    end;
 
 unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
-									when is_tuple( UnsubscribedEvents ) ->
-	unsubscribe_from_events( [ UnsubscribedEvents ], SubscribedDesignator ).
+                                    when is_tuple( UnsubscribedEvents ) ->
+    unsubscribe_from_events( [ UnsubscribedEvents ], SubscribedDesignator ).
 
 
 
@@ -1267,11 +1267,11 @@ type(s) are generated by the specified (source) object, a transient process is
 spawned and executes the specified event callback function, before terminating.
 """.
 -spec register_event_callback( gui_object(), maybe_list( event_type() ),
-							   event_callback() ) -> void().
+                               event_callback() ) -> void().
 register_event_callback( SourceGUIObject, MaybeListEventType,
-						 EventCallbackFun ) ->
-	register_event_callback( SourceGUIObject, MaybeListEventType,
-							 EventCallbackFun, _MaybeUserData=undefined ).
+                         EventCallbackFun ) ->
+    register_event_callback( SourceGUIObject, MaybeListEventType,
+                             EventCallbackFun, _MaybeUserData=undefined ).
 
 
 
@@ -1281,52 +1281,52 @@ type(s) are generated by the specified (source) object, a transient process is
 spawned and executes the specified event callback function, before terminating.
 """.
 -spec register_event_callback( gui_object(), maybe_list( event_type() ),
-					event_callback(), option( user_data() ) ) -> void().
+                    event_callback(), option( user_data() ) ) -> void().
 register_event_callback( SourceGUIObject, EventType, EventCallbackFun,
-						 MaybeUserData ) when is_atom( EventType ) ->
-	register_event_callback( SourceGUIObject, [ EventType ], EventCallbackFun,
-							 MaybeUserData );
+                         MaybeUserData ) when is_atom( EventType ) ->
+    register_event_callback( SourceGUIObject, [ EventType ], EventCallbackFun,
+                             MaybeUserData );
 
 register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
-						 MaybeUserData ) ->
+                         MaybeUserData ) ->
 
-	%trace_utils:debug_fmt( "Registering event callback for ~w: events of "
-	%   "types ~w will trigger ~w with user data ~w.",
-	%   [ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
+    %trace_utils:debug_fmt( "Registering event callback for ~w: events of "
+    %   "types ~w will trigger ~w with user data ~w.",
+    %   [ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
 
-	WxUserData = case MaybeUserData of
+    WxUserData = case MaybeUserData of
 
-		undefined ->
-			% wx default:
-			[];
+        undefined ->
+            % wx default:
+            [];
 
-		UserData ->
-			UserData
+        UserData ->
+            UserData
 
-	end,
+    end,
 
-	% Recording for later use, when a corresponding event is fired:
-	CallbackData = { EventCallbackFun, WxUserData },
+    % Recording for later use, when a corresponding event is fired:
+    CallbackData = { EventCallbackFun, WxUserData },
 
-	% As we will have to convert back the received wx event into a MyriadGUI
-	% one:
+    % As we will have to convert back the received wx event into a MyriadGUI
+    % one:
 
-	WxCallback = fun event_interception_callback/2,
+    WxCallback = fun event_interception_callback/2,
 
-	% No other option found interesting ('skip' would be ignored here):
-	WxOptions = [ { callback, WxCallback }, { userData, CallbackData } ],
+    % No other option found interesting ('skip' would be ignored here):
+    WxOptions = [ { callback, WxCallback }, { userData, CallbackData } ],
 
-	[ begin
+    [ begin
 
-		WxEventType = gui_event:to_wx_event_type( ET ),
+        WxEventType = gui_event:to_wx_event_type( ET ),
 
-		%trace_utils:debug_fmt( "Callback-connecting object ~w "
-		%   "for event type ~w with options ~w.",
-		%   [ SourceGUIObject, WxEventType, WxOptions ] ),
+        %trace_utils:debug_fmt( "Callback-connecting object ~w "
+        %   "for event type ~w with options ~w.",
+        %   [ SourceGUIObject, WxEventType, WxOptions ] ),
 
-		wxEvtHandler:connect( SourceGUIObject, WxEventType, WxOptions )
+        wxEvtHandler:connect( SourceGUIObject, WxEventType, WxOptions )
 
-	  end || ET <- EventTypes ].
+      end || ET <- EventTypes ].
 
 
 
@@ -1334,19 +1334,19 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 % MyriadGUI one before calling the user-specified callback with it.
 %
 -spec event_interception_callback( gui_event:wx_event(), wxEvent:wxEvent() ) ->
-						void().
+                        void().
 event_interception_callback( WxEventRecord=#wx{
-			userData={ EventCallbackFun, ActualUserData } },
-							 WxEventObject ) ->
+            userData={ EventCallbackFun, ActualUserData } },
+                             WxEventObject ) ->
 
-	% For example WxEventObject={wx_ref, 92, wxPaintEvent, []}:
-	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
-	%                       [ WxEventObject ] ),
+    % For example WxEventObject={wx_ref, 92, wxPaintEvent, []}:
+    %trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
+    %                       [ WxEventObject ] ),
 
-	MyriadGUIEvent = gui_event:wx_to_myriad_event(
-		WxEventRecord#wx{ userData=ActualUserData } ),
+    MyriadGUIEvent = gui_event:wx_to_myriad_event(
+        WxEventRecord#wx{ userData=ActualUserData } ),
 
-	EventCallbackFun( MyriadGUIEvent, WxEventObject ).
+    EventCallbackFun( MyriadGUIEvent, WxEventObject ).
 
 
 
@@ -1379,7 +1379,7 @@ event).
 """.
 -spec trap_event( gui_event_object() ) -> void().
 trap_event( GUIEventObject ) ->
-	gui_event:trap_event( GUIEventObject ).
+    gui_event:trap_event( GUIEventObject ).
 
 
 
@@ -1407,14 +1407,14 @@ information.
 """.
 -spec propagate_event( gui_event_object() ) -> void().
 propagate_event( GUIEventObject ) ->
-	gui_event:propagate_event( GUIEventObject ).
+    gui_event:propagate_event( GUIEventObject ).
 
 
 
 -doc "Stops the GUI subsystem.".
 -spec stop() -> void().
 stop() ->
-	destruct_gui_environment().
+    destruct_gui_environment().
 
 
 
@@ -1430,7 +1430,7 @@ Example: Result = gui:batch(fun() -> do_init(Config) end).
 """.
 -spec batch( function() ) -> term().
 batch( GUIFun ) ->
-	wx:batch( GUIFun ).
+    wx:batch( GUIFun ).
 
 
 
@@ -1444,13 +1444,13 @@ throws an exception.
 """.
 -spec check_orientation( term() ) -> orientation().
 check_orientation( vertical ) ->
-	vertical;
+    vertical;
 
 check_orientation( horizontal ) ->
-	horizontal;
+    horizontal;
 
 check_orientation( Other ) ->
-	throw( { invalid_orientation, Other } ).
+    throw( { invalid_orientation, Other } ).
 
 
 
@@ -1466,32 +1466,32 @@ Requests the creation of the specified instance (that will be done from the
 MyriadGUI main loop), and returns the corresponding GUI object reference.
 """.
 -spec execute_instance_creation( myriad_object_type(),
-		construction_parameters() ) -> myriad_object_ref().
+        construction_parameters() ) -> myriad_object_ref().
 execute_instance_creation( ObjectType, ConstructionParams ) ->
 
-	cond_utils:if_defined( myriad_debug_gui_instances,
-		trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
-			"based on the following construction parameters:~n~w.",
-			[ ObjectType, ConstructionParams ] ) ),
+    cond_utils:if_defined( myriad_debug_gui_instances,
+        trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
+            "based on the following construction parameters:~n~w.",
+            [ ObjectType, ConstructionParams ] ) ),
 
-	LoopPid = get_main_loop_pid(),
+    LoopPid = get_main_loop_pid(),
 
-	% See gui_event:
-	LoopPid ! { createInstance, [ ObjectType, ConstructionParams ], self() },
+    % See gui_event:
+    LoopPid ! { createInstance, [ ObjectType, ConstructionParams ], self() },
 
-	receive
+    receive
 
-		% Match on the object type:
-		{ instance_created, ObjectType, ObjectRef } ->
+        % Match on the object type:
+        { instance_created, ObjectType, ObjectRef } ->
 
-			cond_utils:if_defined( myriad_debug_gui_instances,
-				trace_utils:debug_fmt(
-					"'~ts' instance created, now referenced as ~w.",
-					[ ObjectType, ObjectRef ] ) ),
+            cond_utils:if_defined( myriad_debug_gui_instances,
+                trace_utils:debug_fmt(
+                    "'~ts' instance created, now referenced as ~w.",
+                    [ ObjectType, ObjectRef ] ) ),
 
-			ObjectRef
+            ObjectRef
 
-	end.
+    end.
 
 
 
@@ -1502,14 +1502,14 @@ MyriadGUI main loop).
 At least currently, does not return anything and remains asynchronous.
 """.
 -spec execute_instance_destruction( myriad_object_type(),
-									myriad_instance_id() ) -> void().
+                                    myriad_instance_id() ) -> void().
 execute_instance_destruction( ObjectType, InstanceId ) ->
 
-	cond_utils:if_defined( myriad_debug_gui_instances,
-		trace_utils:debug_fmt( "Requesting the destruction of "
-			"the #~B ~ts instance.", [ InstanceId, ObjectType ] ) ),
+    cond_utils:if_defined( myriad_debug_gui_instances,
+        trace_utils:debug_fmt( "Requesting the destruction of "
+            "the #~B ~ts instance.", [ InstanceId, ObjectType ] ) ),
 
-	get_main_loop_pid() ! { destructInstance, [ ObjectType, InstanceId ] }.
+    get_main_loop_pid() ! { destructInstance, [ ObjectType, InstanceId ] }.
 
 
 
@@ -1526,7 +1526,7 @@ behaviours, so that its instances are user-defined gen_server ones; refer to the
 """.
 -spec set_as_controller( gui_object() ) -> gui_object().
 set_as_controller( Object ) ->
-	set_controller( Object, _ControllerPid=self() ).
+    set_controller( Object, _ControllerPid=self() ).
 
 
 
@@ -1541,35 +1541,35 @@ behaviours, so that its instances are user-defined gen_server ones; refer to the
 -spec set_controller( gui_object(), pid() ) -> gui_object().
 set_controller( Object, ControllerPid ) ->
 
-	% Typically takes {wx_ref, Id, WxObjectType, _State=[]}, and returns:
-	% {wx_ref, Id, WxObjectTypewxFrame, ControllerPid}.
+    % Typically takes {wx_ref, Id, WxObjectType, _State=[]}, and returns:
+    % {wx_ref, Id, WxObjectTypewxFrame, ControllerPid}.
 
-	wx_object:set_pid( Object, ControllerPid ).
+    wx_object:set_pid( Object, ControllerPid ).
 
 
 
 -doc "Returns a textual representation of the specified GUI object.".
 -spec object_to_string( gui_object() ) -> ustring().
 object_to_string( #myriad_object_ref{ object_type=ObjectType,
-									  myriad_instance_id=InstanceId } ) ->
-	text_utils:format( "~ts-~B", [ ObjectType, InstanceId ] );
+                                      myriad_instance_id=InstanceId } ) ->
+    text_utils:format( "~ts-~B", [ ObjectType, InstanceId ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
-	% For example {wx_ref,35,wxFrame,[]}
-	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
-	text_utils:format( "~ts-~B", [ ObjectType, InstanceRef ] );
+    % For example {wx_ref,35,wxFrame,[]}
+    ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
+    text_utils:format( "~ts-~B", [ ObjectType, InstanceRef ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
-	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
-	text_utils:format( "~ts-~B whose state is ~p",
-					   [ ObjectType, InstanceRef, State ] ).
+    ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
+    text_utils:format( "~ts-~B whose state is ~p",
+                       [ ObjectType, InstanceRef, State ] ).
 
 
 
 -doc "Returns a textual representation of the specified GUI object key.".
 -spec object_key_to_string( gui_object_key() ) -> ustring().
 object_key_to_string( { AnyObjectType, AnyInstanceId } ) ->
-	text_utils:format( "~ts-~B", [ AnyObjectType, AnyInstanceId ] ).
+    text_utils:format( "~ts-~B", [ AnyObjectType, AnyInstanceId ] ).
 
 
 
@@ -1584,21 +1584,21 @@ transmit it to any other process in order to enable it to use that backend.
 -spec get_backend_environment() -> backend_environment().
 get_backend_environment() ->
 
-	%cond_utils:if_defined( myriad_debug_gui_environments,
-	%  trace_utils:debug_fmt( "[~w] Getting wx backend environment.",
-	%                         [ self() ] ) ),
+    %cond_utils:if_defined( myriad_debug_gui_environments,
+    %  trace_utils:debug_fmt( "[~w] Getting wx backend environment.",
+    %                         [ self() ] ) ),
 
-	%trace_utils:debug_fmt( "Stacktrace: ~ts",
-	%                       [ code_utils:interpret_stacktrace() ] ),
+    %trace_utils:debug_fmt( "Stacktrace: ~ts",
+    %                       [ code_utils:interpret_stacktrace() ] ),
 
-	% Just a lookup in the local process dictionary:
-	WxEnv = wx:get_env(),
+    % Just a lookup in the local process dictionary:
+    WxEnv = wx:get_env(),
 
-	cond_utils:if_defined( myriad_debug_gui_environments,
-		trace_utils:debug_fmt( "[~w] Got wx backend environment: ~w.",
-							   [ self(), WxEnv ] ) ),
+    cond_utils:if_defined( myriad_debug_gui_environments,
+        trace_utils:debug_fmt( "[~w] Got wx backend environment: ~w.",
+                               [ self(), WxEnv ] ) ),
 
-	WxEnv.
+    WxEnv.
 
 
 -doc """
@@ -1610,10 +1610,10 @@ process.
 """.
 -spec set_backend_environment( backend_environment() ) -> void().
 set_backend_environment( WxEnv ) ->
-	cond_utils:if_defined( myriad_debug_gui_environments,
-		trace_utils:debug_fmt( "[~w] Setting wx backend environment ~w.",
-							   [ self(), WxEnv ] ) ),
-	wx:set_env( WxEnv ).
+    cond_utils:if_defined( myriad_debug_gui_environments,
+        trace_utils:debug_fmt( "[~w] Setting wx backend environment ~w.",
+                               [ self(), WxEnv ] ) ),
+    wx:set_env( WxEnv ).
 
 
 
@@ -1625,7 +1625,7 @@ Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
 """.
 -spec get_main_loop_pid() -> loop_pid().
 get_main_loop_pid() ->
-	environment:get( loop_pid, ?gui_env_reg_name ).
+    environment:get( loop_pid, ?gui_env_reg_name ).
 
 
 
@@ -1637,7 +1637,7 @@ Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
 """.
 -spec get_main_loop_pid( gui_env_designator() ) -> loop_pid().
 get_main_loop_pid( GUIEnvDesignator ) ->
-	environment:get( loop_pid, GUIEnvDesignator ).
+    environment:get( loop_pid, GUIEnvDesignator ).
 
 
 
@@ -1653,7 +1653,7 @@ gui_id).
 """.
 -spec get_id_allocator_pid() -> id_allocator_pid().
 get_id_allocator_pid() ->
-	environment:get( id_allocator_pid, ?gui_env_reg_name ).
+    environment:get( id_allocator_pid, ?gui_env_reg_name ).
 
 
 
@@ -1669,7 +1669,7 @@ gui_id).
 """.
 -spec get_id_allocator_pid( gui_env_designator() ) -> id_allocator_pid().
 get_id_allocator_pid( GUIEnvDesignator ) ->
-	environment:get( id_allocator_pid, GUIEnvDesignator ).
+    environment:get( id_allocator_pid, GUIEnvDesignator ).
 
 
 
@@ -1685,16 +1685,16 @@ generate, here, a (single) module to share the MyriadGUI base constants.
 -spec generate_support_modules() -> no_return().
 generate_support_modules() ->
 
-	TargetModName = gui_generated,
+    TargetModName = gui_generated,
 
-	%trace_bridge:info_fmt( "Generating module '~ts'...", [ TargetModName ] ),
+    %trace_bridge:info_fmt( "Generating module '~ts'...", [ TargetModName ] ),
 
-	TopicSpecs =
-		[ gui_constants:F() || F <- gui_constants:list_topic_spec_functions() ],
+    TopicSpecs =
+        [ gui_constants:F() || F <- gui_constants:list_topic_spec_functions() ],
 
-	_ModFilename =
-		const_bijective_topics:generate_in_file( TargetModName, TopicSpecs ),
+    _ModFilename =
+        const_bijective_topics:generate_in_file( TargetModName, TopicSpecs ),
 
-	%trace_bridge:info_fmt( "File '~ts' generated.", [ ModFilename ] ),
+    %trace_bridge:info_fmt( "File '~ts' generated.", [ ModFilename ] ),
 
-	erlang:halt().
+    erlang:halt().

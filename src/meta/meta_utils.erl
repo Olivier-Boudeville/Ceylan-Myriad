@@ -226,15 +226,15 @@ Note: apparently we cannot use the `when` notation here (`InputTerm ... when
 InputTerm :: term()`).
 """.
 -type term_transformer() :: fun( ( term(), user_data() ) ->
-										{ term(), user_data() } ).
+                                        { term(), user_data() } ).
 
 
 -export_type([ parse_transform_options/0,
-			   module_name/0,
-			   function_name/0, function_arity/0, function_id/0,
-			   function_type/0,
-			   clause_def/0, function_spec/0, variable_name/0,
-			   term_transformer/0 ]).
+               module_name/0,
+               function_name/0, function_arity/0, function_id/0,
+               function_type/0,
+               clause_def/0, function_spec/0, variable_name/0,
+               term_transformer/0 ]).
 
 
 
@@ -257,14 +257,14 @@ InputTerm :: term()`).
 
 % Parse-transform related functions:
 -export([ apply_ast_transforms/2,
-		  add_function/3, add_function/4, remove_function/2,
-		  add_type/2, remove_type/2 ]).
+          add_function/3, add_function/4, remove_function/2,
+          add_type/2, remove_type/2 ]).
 
 
 
 % General functions about functions, not operating on ASTs:
 -export([ list_exported_functions/1, get_arities_for/2,
-		  is_function_exported/3, check_potential_call/3 ]).
+          is_function_exported/3, check_potential_call/3 ]).
 
 
 % More general-purpose, term-oriented functions:
@@ -284,9 +284,9 @@ Registers (includes exporting) the specified (spec-less) function in the
 specified module.
 """.
 -spec add_function( function_id(), [ clause_def() ], module_info() ) ->
-							module_info().
+                            module_info().
 add_function( _FunId={ FunctionName, FunctionArity }, Clauses, ModuleInfo ) ->
-	add_function( FunctionName, FunctionArity, Clauses, ModuleInfo ).
+    add_function( FunctionName, FunctionArity, Clauses, ModuleInfo ).
 
 
 
@@ -295,80 +295,80 @@ Registers (includes exporting) the specified (spec-less) function in the
 specified module.
 """.
 -spec add_function( basic_utils:function_name(), meta_utils:function_arity(),
-					[ clause_def() ], module_info() ) -> module_info().
+                    [ clause_def() ], module_info() ) -> module_info().
 add_function( FunctionName, FunctionArity, Clauses,
-			  ModuleInfo=#module_info{ %function_exports=ExportTable,
-									   functions=FunTable,
-									   markers=MarkerTable } ) ->
+              ModuleInfo=#module_info{ %function_exports=ExportTable,
+                                       functions=FunTable,
+                                       markers=MarkerTable } ) ->
 
-	% Let's check first that the function is not already defined:
-	FunId = { FunctionName, FunctionArity },
+    % Let's check first that the function is not already defined:
+    FunId = { FunctionName, FunctionArity },
 
-	?table:has_entry( FunId, FunTable ) andalso
-		begin
-			CurrentFunInfo = ?table:get_value( FunId, FunTable ),
-			CurrentFunString =
-				ast_info:function_info_to_string( CurrentFunInfo ),
+    ?table:has_entry( FunId, FunTable ) andalso
+        begin
+            CurrentFunInfo = ?table:get_value( FunId, FunTable ),
+            CurrentFunString =
+                ast_info:function_info_to_string( CurrentFunInfo ),
 
-			ast_utils:display_error( "Function ~p already defined, as ~ts.",
-									 [ FunId, CurrentFunString ] ),
+            ast_utils:display_error( "Function ~p already defined, as ~ts.",
+                                     [ FunId, CurrentFunString ] ),
 
-			throw( { function_already_defined, FunId } )
-		end,
+            throw( { function_already_defined, FunId } )
+        end,
 
-	DefASTLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
+    DefASTLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
 
-	ExportASTLoc = ast_info:get_default_export_function_location(),
+    ExportASTLoc = ast_info:get_default_export_function_location(),
 
-	FunInfo = #function_info{ name=FunctionName,
-							  arity=FunctionArity,
-							  ast_location=DefASTLoc,
-							  file_location=0,
-							  clauses=Clauses,
-							  spec=undefined,
-							  callback=false,
+    FunInfo = #function_info{ name=FunctionName,
+                              arity=FunctionArity,
+                              ast_location=DefASTLoc,
+                              file_location=0,
+                              clauses=Clauses,
+                              spec=undefined,
+                              callback=false,
 
-							  % Will be auto-exported once module is recomposed:
-							  exported=[ ExportASTLoc ] },
+                              % Will be auto-exported once module is recomposed:
+                              exported=[ ExportASTLoc ] },
 
-	NewFunTable = ?table:add_entry( FunId, FunInfo, FunTable ),
+    NewFunTable = ?table:add_entry( FunId, FunInfo, FunTable ),
 
-	% It is not strictly needed anymore to update accordingly the overall export
-	% table, as would be done automatically when recomposing the AST:
-	%
-	%NewExportTable = ast_info:ensure_function_exported( FunId, [ ExportLoc ],
-	%                                   ModuleInfo, ExportTable ),
+    % It is not strictly needed anymore to update accordingly the overall export
+    % table, as would be done automatically when recomposing the AST:
+    %
+    %NewExportTable = ast_info:ensure_function_exported( FunId, [ ExportLoc ],
+    %                                   ModuleInfo, ExportTable ),
 
-	ModuleInfo#module_info{ %function_exports=NewExportTable,
-							functions=NewFunTable }.
+    ModuleInfo#module_info{ %function_exports=NewExportTable,
+                            functions=NewFunTable }.
 
 
 
 -doc "Unregisters the specified function from the specified module.".
 -spec remove_function( function_info(), module_info() ) -> module_info().
 remove_function( FunInfo=#function_info{ exported=ExportLocs },
-				 ModuleInfo=#module_info{ function_exports=ExportTable,
-										  functions=FunTable } ) ->
+                 ModuleInfo=#module_info{ function_exports=ExportTable,
+                                          functions=FunTable } ) ->
 
-	FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
+    FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
 
-	% First forget its description:
-	NewFunTable = case ?table:has_entry( FunId, FunTable ) of
+    % First forget its description:
+    NewFunTable = case ?table:has_entry( FunId, FunTable ) of
 
-		true ->
-			?table:remove_entry( FunId, FunTable );
+        true ->
+            ?table:remove_entry( FunId, FunTable );
 
-		false ->
-			throw( { non_existing_function_to_remove, FunId } )
+        false ->
+            throw( { non_existing_function_to_remove, FunId } )
 
-	end,
+    end,
 
-	% Then its exports:
-	NewExportTable = ast_info:ensure_function_not_exported( FunId, ExportLocs,
-															ExportTable ),
+    % Then its exports:
+    NewExportTable = ast_info:ensure_function_not_exported( FunId, ExportLocs,
+                                                            ExportTable ),
 
-	ModuleInfo#module_info{ function_exports=NewExportTable,
-							functions=NewFunTable }.
+    ModuleInfo#module_info{ function_exports=NewExportTable,
+                            functions=NewFunTable }.
 
 
 
@@ -378,69 +378,69 @@ remove_function( FunInfo=#function_info{ exported=ExportLocs },
 -doc "Registers the specified, fully-described type in the specified module.".
 -spec add_type( type_info(), module_info() ) -> module_info().
 add_type( TypeInfo=#type_info{ variables=TypeVariables,
-							   exported=ExportLocs },
-		  ModuleInfo=#module_info{ type_exports=ExportTable,
-								   types=TypeTable } ) ->
+                               exported=ExportLocs },
+          ModuleInfo=#module_info{ type_exports=ExportTable,
+                                   types=TypeTable } ) ->
 
-	Arity = length( TypeVariables ),
+    Arity = length( TypeVariables ),
 
-	% Let's check first that the type is not already defined:
-	TypeId = { TypeInfo#type_info.name, Arity },
+    % Let's check first that the type is not already defined:
+    TypeId = { TypeInfo#type_info.name, Arity },
 
-	?table:has_entry( TypeId, TypeTable ) andalso
-		begin
-			CurrentTypeInfo = ?table:get_value( TypeId, TypeTable ),
-			CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
+    ?table:has_entry( TypeId, TypeTable ) andalso
+        begin
+            CurrentTypeInfo = ?table:get_value( TypeId, TypeTable ),
+            CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
 
-			AddedTypeString = ast_info:type_info_to_string( TypeInfo ),
+            AddedTypeString = ast_info:type_info_to_string( TypeInfo ),
 
-			ast_utils:display_error( "Type ~p already defined, as ~ts, "
-				"whereas to be added, as ~ts.",
-				[ TypeId, CurrentTypeString, AddedTypeString ] ),
+            ast_utils:display_error( "Type ~p already defined, as ~ts, "
+                "whereas to be added, as ~ts.",
+                [ TypeId, CurrentTypeString, AddedTypeString ] ),
 
-			throw( { type_already_defined, TypeId } )
+            throw( { type_already_defined, TypeId } )
 
-		end,
+        end,
 
-	NewTypeTable = ?table:add_entry( TypeId, TypeInfo, TypeTable ),
+    NewTypeTable = ?table:add_entry( TypeId, TypeInfo, TypeTable ),
 
-	% Now updating the exports:
-	NewExportTable = ast_info:ensure_type_exported( TypeId, ExportLocs,
-													ModuleInfo, ExportTable ),
+    % Now updating the exports:
+    NewExportTable = ast_info:ensure_type_exported( TypeId, ExportLocs,
+                                                    ModuleInfo, ExportTable ),
 
-	ModuleInfo#module_info{ type_exports=NewExportTable,
-							types=NewTypeTable }.
+    ModuleInfo#module_info{ type_exports=NewExportTable,
+                            types=NewTypeTable }.
 
 
 
 -doc "Unregisters specified type from specified module.".
 -spec remove_type( type_info(), module_info() ) -> module_info().
 remove_type( TypeInfo=#type_info{ variables=TypeVariables,
-								  exported=ExportLocs },
-			 ModuleInfo=#module_info{ type_exports=ExportTable,
-									  types=TypeTable } ) ->
+                                  exported=ExportLocs },
+             ModuleInfo=#module_info{ type_exports=ExportTable,
+                                      types=TypeTable } ) ->
 
-	Arity = length( TypeVariables ),
+    Arity = length( TypeVariables ),
 
-	TypeId = { TypeInfo#type_info.name, Arity },
+    TypeId = { TypeInfo#type_info.name, Arity },
 
-	% First forget its description:
-	NewTypeTable = case ?table:has_entry( TypeId, TypeTable ) of
+    % First forget its description:
+    NewTypeTable = case ?table:has_entry( TypeId, TypeTable ) of
 
-		true ->
-			?table:remove_entry( TypeId, TypeTable );
+        true ->
+            ?table:remove_entry( TypeId, TypeTable );
 
-		false ->
-			throw( { non_existing_type_to_remove, TypeId } )
+        false ->
+            throw( { non_existing_type_to_remove, TypeId } )
 
-	end,
+    end,
 
-	% Then its exports:
-	NewExportTable =
-		ast_info:ensure_type_not_exported( TypeId, ExportLocs, ExportTable ),
+    % Then its exports:
+    NewExportTable =
+        ast_info:ensure_type_not_exported( TypeId, ExportLocs, ExportTable ),
 
-	ModuleInfo#module_info{ type_exports=NewExportTable,
-							types=NewTypeTable }.
+    ModuleInfo#module_info{ type_exports=NewExportTable,
+                            types=NewTypeTable }.
 
 
 
@@ -449,35 +449,35 @@ Applies the specified AST transformations (mostly depth-first) to the specified
 module information.
 """.
 -spec apply_ast_transforms( module_info(), ast_transforms() ) ->
-										{ module_info(), ast_transforms() }.
+                                        { module_info(), ast_transforms() }.
 apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
-											   records=RecordTable,
-											   functions=FunctionTable },
-					  Transforms ) ->
+                                               records=RecordTable,
+                                               functions=FunctionTable },
+                      Transforms ) ->
 
-	% Note: we consider that no transformation state is to be carried from a
-	% top-level transformation to another (so we consider that Transforms is
-	% immutable here)
+    % Note: we consider that no transformation state is to be carried from a
+    % top-level transformation to another (so we consider that Transforms is
+    % immutable here)
 
-	% First, update the type definitions accordingly (including in records):
+    % First, update the type definitions accordingly (including in records):
 
-	%ast_utils:display_trace( "[Myriad] Transforming known types." ),
-	{ NewTypeTable, TypeTransforms } =
-		ast_type:transform_type_table( TypeTable, Transforms ),
+    %ast_utils:display_trace( "[Myriad] Transforming known types." ),
+    { NewTypeTable, TypeTransforms } =
+        ast_type:transform_type_table( TypeTable, Transforms ),
 
-	%ast_utils:display_trace( "[Myriad] Transforming known types in records." ),
-	{ NewRecordTable, RecTransforms } =
-		ast_type:transform_types_in_record_table( RecordTable, TypeTransforms ),
+    %ast_utils:display_trace( "[Myriad] Transforming known types in records." ),
+    { NewRecordTable, RecTransforms } =
+        ast_type:transform_types_in_record_table( RecordTable, TypeTransforms ),
 
-	%ast_utils:display_trace( "[Myriad] Transforming all functions." ),
-	{ NewFunctionTable, FunTransforms } =
-		ast_function:transform_functions( FunctionTable, RecTransforms ),
+    %ast_utils:display_trace( "[Myriad] Transforming all functions." ),
+    { NewFunctionTable, FunTransforms } =
+        ast_function:transform_functions( FunctionTable, RecTransforms ),
 
-	% Updated module_info returned:
-	{ ModuleInfo#module_info{ types=NewTypeTable,
-							  records=NewRecordTable,
-							  functions=NewFunctionTable },
-	  FunTransforms }.
+    % Updated module_info returned:
+    { ModuleInfo#module_info{ types=NewTypeTable,
+                              records=NewRecordTable,
+                              functions=NewFunctionTable },
+      FunTransforms }.
 
 
 
@@ -489,46 +489,46 @@ code path.
 -spec list_exported_functions( module_name() ) -> [ function_id() ].
 list_exported_functions( ModuleName ) ->
 
-	% To avoid a unclear message like 'undefined function XXX:module_info/1':
-	code_utils:is_beam_in_path( ModuleName ) =:= not_found andalso
-		begin
+    % To avoid a unclear message like 'undefined function XXX:module_info/1':
+    code_utils:is_beam_in_path( ModuleName ) =:= not_found andalso
+        begin
 
-			FilteredCodePath = [
-				case file_utils:is_existing_directory_or_link( P ) of
+            FilteredCodePath = [
+                case file_utils:is_existing_directory_or_link( P ) of
 
-					true ->
-						P;
+                    true ->
+                        P;
 
-					false ->
-						text_utils:format( "(~ts)", [ P ] )
+                    false ->
+                        text_utils:format( "(~ts)", [ P ] )
 
-				end || P <- code_utils:get_code_path(), P =/= "" ],
+                end || P <- code_utils:get_code_path(), P =/= "" ],
 
-			trace_utils:error_fmt( "Module '~ts' not found in code path "
-				"(from '~ts'), which is (sorted alphabetically, "
-				"non-existing directories being parenthesized): ~ts",
-				[ ModuleName, file_utils:get_current_directory(),
-				  code_utils:code_path_to_string( FilteredCodePath ) ] ),
-			throw( { module_not_found_in_path, ModuleName } )
+            trace_utils:error_fmt( "Module '~ts' not found in code path "
+                "(from '~ts'), which is (sorted alphabetically, "
+                "non-existing directories being parenthesized): ~ts",
+                [ ModuleName, file_utils:get_current_directory(),
+                  code_utils:code_path_to_string( FilteredCodePath ) ] ),
+            throw( { module_not_found_in_path, ModuleName } )
 
-	end,
+    end,
 
-	% Supposedly relevant:
-	{ module, ModuleName } = code:ensure_loaded( ModuleName ),
+    % Supposedly relevant:
+    { module, ModuleName } = code:ensure_loaded( ModuleName ),
 
-	try
+    try
 
-		ModuleName:module_info( exports )
+        ModuleName:module_info( exports )
 
-	catch error:undef ->
+    catch error:undef ->
 
-		trace_utils:error_fmt( "Unable to get the exports for module '~ts'; "
-			"this may happen for example if this module was added to an OTP "
-			"release that was not rebuilt since then.", [ ModuleName ] ),
+        trace_utils:error_fmt( "Unable to get the exports for module '~ts'; "
+            "this may happen for example if this module was added to an OTP "
+            "release that was not rebuilt since then.", [ ModuleName ] ),
 
-		throw( { no_exports_for, ModuleName } )
+        throw( { no_exports_for, ModuleName } )
 
-	end.
+    end.
 
 
 
@@ -539,10 +539,10 @@ module is exported.
 -spec get_arities_for( module_name(), function_name() ) -> [ arity() ].
 get_arities_for( ModuleName, FunctionName ) ->
 
-	ExportedFuns = list_exported_functions( ModuleName ),
+    ExportedFuns = list_exported_functions( ModuleName ),
 
-	% Match on FunctionName:
-	[ Arity || { Name, Arity } <- ExportedFuns, Name =:= FunctionName ].
+    % Match on FunctionName:
+    [ Arity || { Name, Arity } <- ExportedFuns, Name =:= FunctionName ].
 
 
 
@@ -551,14 +551,14 @@ Tells whether the specified function (name with arity) is exported by the
 specified module.
 """.
 -spec is_function_exported( module_name(), function_name(), arity() ) ->
-									boolean().
+                                    boolean().
 is_function_exported( ModuleName, FunctionName, Arity ) ->
 
-	% Could have relied on erlang:function_exported/3 after a
-	% code:ensure_loaded/1:
-	%
-	lists:member( { FunctionName, Arity },
-				  list_exported_functions( ModuleName ) ).
+    % Could have relied on erlang:function_exported/3 after a
+    % code:ensure_loaded/1:
+    %
+    lists:member( { FunctionName, Arity },
+                  list_exported_functions( ModuleName ) ).
 
 
 
@@ -567,41 +567,41 @@ Checks whether a potential upcoming call to the specified MFA
 (Module,Function,Arguments) has a chance of succeeding.
 """.
 -spec check_potential_call( module_name(), function_name(),
-							[ basic_utils:argument() ] ) ->
-				'ok' | 'module_not_found' | 'function_not_exported'.
+                            [ basic_utils:argument() ] ) ->
+                'ok' | 'module_not_found' | 'function_not_exported'.
 check_potential_call( ModuleName, FunctionName, Arguments )
-				when is_atom( ModuleName ) andalso is_atom( FunctionName )
-					 andalso is_list( Arguments ) ->
+                when is_atom( ModuleName ) andalso is_atom( FunctionName )
+                     andalso is_list( Arguments ) ->
 
-	case code_utils:is_beam_in_path( ModuleName ) of
+    case code_utils:is_beam_in_path( ModuleName ) of
 
-		not_found ->
-			module_not_found;
+        not_found ->
+            module_not_found;
 
-		_ ->
-			Arity = length( Arguments ),
-			case is_function_exported( ModuleName, FunctionName, Arity ) of
+        _ ->
+            Arity = length( Arguments ),
+            case is_function_exported( ModuleName, FunctionName, Arity ) of
 
-				true ->
-					ok;
+                true ->
+                    ok;
 
-				false ->
-					function_not_exported
+                false ->
+                    function_not_exported
 
-			end
+            end
 
-	end;
+    end;
 
 check_potential_call( ModuleName, FunctionName, Arguments ) ->
 
-	is_atom( ModuleName ) orelse
-		throw( { non_atom_module_name, ModuleName } ),
+    is_atom( ModuleName ) orelse
+        throw( { non_atom_module_name, ModuleName } ),
 
-	is_atom( FunctionName ) orelse
-		throw( { non_atom_function_name, FunctionName } ),
+    is_atom( FunctionName ) orelse
+        throw( { non_atom_function_name, FunctionName } ),
 
-	% Only remaining possibility:
-	throw( { non_list_arguments, Arguments } ).
+    % Only remaining possibility:
+    throw( { non_list_arguments, Arguments } ).
 
 
 
@@ -633,99 +633,99 @@ transformed in turn. If the transformed term is the same as the original one,
 then that content will be shown as analysed twice.
 """.
 -spec transform_term( term(), option( concrete_type_description() ),
-	term_transformer(), user_data() ) -> { term(), user_data() }.
+    term_transformer(), user_data() ) -> { term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:
 transform_term( TargetTerm, ConcTypeDesc=list, TermTransformer, UserData )
                                 when is_list( TargetTerm ) ->
 
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+    { TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, ConcTypeDesc,
-								TermTransformer, NewUserData );
+    transform_transformed_term( TransformedTerm, ConcTypeDesc,
+                                TermTransformer, NewUserData );
 
 
 % Here the term is a list and we are not interested in them:
 transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
-								when is_list( TargetTerm ) ->
-	transform_list( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
+                                when is_list( TargetTerm ) ->
+    transform_list( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 % Here the term is a map and this is the type we want to intercept:
 transform_term( TargetTerm, ConcTypeDesc=map, TermTransformer, UserData )
-								when is_map( TargetTerm ) ->
+                                when is_map( TargetTerm ) ->
 
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+    { TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, ConcTypeDesc,
-								TermTransformer, NewUserData );
+    transform_transformed_term( TransformedTerm, ConcTypeDesc,
+                                TermTransformer, NewUserData );
 
 
 % Here the term is a map and we are not interested in them:
 transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
-								when is_map( TargetTerm ) ->
-	transform_map( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
+                                when is_map( TargetTerm ) ->
+    transform_map( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 
 % Here the term is a tuple (or a record...), and we want to intercept them:
 transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
                                 when is_tuple( TargetTerm ) andalso (
-			ConcTypeDesc =:= tuple orelse ConcTypeDesc =:= record ) ->
+            ConcTypeDesc =:= tuple orelse ConcTypeDesc =:= record ) ->
 
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+    { TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, ConcTypeDesc,
-								TermTransformer, NewUserData );
+    transform_transformed_term( TransformedTerm, ConcTypeDesc,
+                                TermTransformer, NewUserData );
 
 
 % Here the term is a tuple (or a record...), and we are not interested in them:
 transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData )
-								when is_tuple( TargetTerm ) ->
-	transform_tuple( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
+                                when is_tuple( TargetTerm ) ->
+    transform_tuple( TargetTerm, ConcTypeDesc, TermTransformer, UserData );
 
 
 % Base case (current term is not a binding structure, it is a leaf of the
 % underlying syntax tree):
 %
 transform_term( TargetTerm, _ConcTypeDesc=undefined, TermTransformer,
-				UserData ) ->
-	% All non-container types selected:
-	TermTransformer( TargetTerm, UserData );
+                UserData ) ->
+    % All non-container types selected:
+    TermTransformer( TargetTerm, UserData );
 
 transform_term( TargetTerm, ConcTypeDesc, TermTransformer, UserData ) ->
 
-	case type_utils:get_type_of( TargetTerm ) of
+    case type_utils:get_type_of( TargetTerm ) of
 
-		ConcTypeDesc ->
-			TermTransformer( TargetTerm, UserData );
+        ConcTypeDesc ->
+            TermTransformer( TargetTerm, UserData );
 
-		_ ->
-			% Unchanged:
-			{ TargetTerm, UserData }
+        _ ->
+            % Unchanged:
+            { TargetTerm, UserData }
 
-	end.
+    end.
 
 
 
 -doc "Transforms the elements of a list.".
 transform_list( TargetList, ConcTypeDesc, TermTransformer, UserData ) ->
 
-	{ NewList, NewUserData } = lists:foldl(
-		fun( Elem, { AccList, AccData } ) ->
+    { NewList, NewUserData } = lists:foldl(
+        fun( Elem, { AccList, AccData } ) ->
 
-			{ TransformedElem, UpdatedData } = transform_term( Elem,
-				ConcTypeDesc, TermTransformer, AccData ),
+            { TransformedElem, UpdatedData } = transform_term( Elem,
+                ConcTypeDesc, TermTransformer, AccData ),
 
-			% New accumulator, produces a reversed element list:
-			{ [ TransformedElem | AccList ], UpdatedData }
+            % New accumulator, produces a reversed element list:
+            { [ TransformedElem | AccList ], UpdatedData }
 
-		end,
+        end,
 
-		_Acc0={ _Elems=[], UserData },
+        _Acc0={ _Elems=[], UserData },
 
-		TargetList ),
+        TargetList ),
 
-	{ lists:reverse( NewList ), NewUserData }.
+    { lists:reverse( NewList ), NewUserData }.
 
 
 
@@ -737,40 +737,40 @@ key, then on the value.
 """.
 transform_map( TargetMap, ConcTypeDesc, TermTransformer, UserData ) ->
 
-	{ NewMap, NewUserData } = maps:fold(
-		fun( K, V, _Acc={ AccMap, AccData } ) ->
+    { NewMap, NewUserData } = maps:fold(
+        fun( K, V, _Acc={ AccMap, AccData } ) ->
 
-			{ TransformedK, UpdatedKData } = transform_term( K,
-				ConcTypeDesc, TermTransformer, AccData ),
+            { TransformedK, UpdatedKData } = transform_term( K,
+                ConcTypeDesc, TermTransformer, AccData ),
 
-			{ TransformedV, UpdatedVData } = transform_term( V,
-				ConcTypeDesc, TermTransformer, UpdatedKData ),
+            { TransformedV, UpdatedVData } = transform_term( V,
+                ConcTypeDesc, TermTransformer, UpdatedKData ),
 
-			NewAccMap = AccMap#{ TransformedK => TransformedV },
+            NewAccMap = AccMap#{ TransformedK => TransformedV },
 
-			% New accumulator, produces a reversed element map:
-			{ NewAccMap, UpdatedVData }
+            % New accumulator, produces a reversed element map:
+            { NewAccMap, UpdatedVData }
 
-		end,
+        end,
 
-		_Acc0={ _EmptyMap=#{}, UserData },
+        _Acc0={ _EmptyMap=#{}, UserData },
 
-		TargetMap ),
+        TargetMap ),
 
-	{ NewMap, NewUserData }.
+    { NewMap, NewUserData }.
 
 
 
 -doc "Transforms the elements of a tuple.".
 transform_tuple( TargetTuple, ConcTypeDesc, TermTransformer, UserData ) ->
 
-	% We do exactly as with lists:
-	TermAsList = tuple_to_list( TargetTuple ),
+    % We do exactly as with lists:
+    TermAsList = tuple_to_list( TargetTuple ),
 
-	{ NewList, NewUserData } = transform_list( TermAsList, ConcTypeDesc,
-											   TermTransformer, UserData ),
+    { NewList, NewUserData } = transform_list( TermAsList, ConcTypeDesc,
+                                               TermTransformer, UserData ),
 
-	{ list_to_tuple( NewList ), NewUserData }.
+    { list_to_tuple( NewList ), NewUserData }.
 
 
 
@@ -781,27 +781,27 @@ Helper to traverse a transformed term (e.g. if looking for a `{user_id, String}`
 pair, we must recurse in nested tuples like: `{3, {user_id, "Hello"}, 1}`).
 """.
 transform_transformed_term( TargetTerm, ConcTypeDesc, TermTransformer,
-							UserData ) ->
+                            UserData ) ->
 
-	case TermTransformer( TargetTerm, UserData ) of
+    case TermTransformer( TargetTerm, UserData ) of
 
-		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
-			transform_list( TransformedTerm, ConcTypeDesc, TermTransformer,
-							NewUserData );
+        { TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
+            transform_list( TransformedTerm, ConcTypeDesc, TermTransformer,
+                            NewUserData );
 
-		{ TransformedTerm, NewUserData } when is_map( TransformedTerm ) ->
-			transform_map( TransformedTerm, ConcTypeDesc, TermTransformer,
-							NewUserData );
+        { TransformedTerm, NewUserData } when is_map( TransformedTerm ) ->
+            transform_map( TransformedTerm, ConcTypeDesc, TermTransformer,
+                            NewUserData );
 
-		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
-			transform_tuple( TransformedTerm, ConcTypeDesc, TermTransformer,
-							 NewUserData );
+        { TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
+            transform_tuple( TransformedTerm, ConcTypeDesc, TermTransformer,
+                             NewUserData );
 
-		% {ImmediateTerm, NewUserData} ->
-		Other ->
-			Other
+        % {ImmediateTerm, NewUserData} ->
+        Other ->
+            Other
 
-	end.
+    end.
 
 
 
@@ -812,12 +812,12 @@ Returns the recommended base compilation options to be used for code generation
 -spec get_compile_base_opts() -> [ compile:option() ].
 get_compile_base_opts() ->
 
-	% We want here all generated functions to be exported:
-	%
-	% (a priori not interesting: 'compressed')
-	%
-	[ verbose,report_errors,report_warnings, warnings_as_errors,
-	  export_all, no_line_info, debug_info ] ++ get_debug_info_settings().
+    % We want here all generated functions to be exported:
+    %
+    % (a priori not interesting: 'compressed')
+    %
+    [ verbose,report_errors,report_warnings, warnings_as_errors,
+      export_all, no_line_info, debug_info ] ++ get_debug_info_settings().
 
 
 
@@ -828,14 +828,14 @@ get_compile_base_opts() ->
 -ifdef(myriad_debug_info_key).
 
 get_debug_info_settings() ->
-	Key = ?myriad_debug_info_key,
-	%trace_utils:debug_fmt( "Using debug info key '~ts'.", [ Key ] ),
-	[ { debug_info, des3_cbc, [], Key } ].
+    Key = ?myriad_debug_info_key,
+    %trace_utils:debug_fmt( "Using debug info key '~ts'.", [ Key ] ),
+    [ { debug_info, des3_cbc, [], Key } ].
 
 -else. % myriad_debug_info_key
 
 get_debug_info_settings() ->
-	%trace_utils:debug( "Not using any debug info key." ),
-	[].
+    %trace_utils:debug( "Not using any debug info key." ),
+    [].
 
 -endif. % myriad_debug_info_key
