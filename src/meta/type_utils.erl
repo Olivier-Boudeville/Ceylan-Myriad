@@ -649,9 +649,7 @@ types).
   | 'list'.
 
 
--doc """
-Specification of a compounding type.
-""".
+-doc "Specification of a compounding type.".
 -type compounding_type_spec() ::
     monomorphic_container_type_spec()
   | { 'table', { contextual_type(), contextual_type() } }
@@ -660,9 +658,7 @@ Specification of a compounding type.
 
 
 
--doc """
-Specification of a monomorphic container type.
-""".
+-doc "Specification of a monomorphic container type.".
 -type monomorphic_container_type_spec() ::
     { 'option', contextual_type() }
   | { 'list', contextual_type() }.
@@ -1085,6 +1081,12 @@ Transient terms are the opposite of permanent ones.
 -type transient_term() :: pid() | port() | reference() | fun().
 
 
+-doc """
+Describes an error met when coercing a string to a value of a given type.
+""".
+-type type_coercion_error() :: { 'value_not_matching_type',
+    ValueStr :: ustring(), Value :: value(), explicit_type() }.
+
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
                text_type/0, user_text_type/0,
@@ -1119,7 +1121,9 @@ Transient terms are the opposite of permanent ones.
                pair/0, triplet/0, tuple/1, tuple/2,
                map/2,
                pid_ref/0,
-               permanent_term/0, transient_term/0 ]).
+               permanent_term/0, transient_term/0,
+
+               type_coercion_error/0 ]).
 
 
 
@@ -1142,7 +1146,7 @@ Transient terms are the opposite of permanent ones.
           resolve_type/2, instantiate_type/2,
           vet_explicit_type/1,
           define_type/4, typedef_table_to_string/1,
-          coerce_stringified_to_type/2 ]).
+          coerce_stringified_to_type/2, interpret_type_coercion_error/1 ]).
 
 
 
@@ -1261,8 +1265,9 @@ Transient terms are the opposite of permanent ones.
 -type tagged_fallible( T ) :: basic_utils:tagged_fallible( T ).
 -type tagged_error_info() :: basic_utils:tagged_error_info().
 
-% As in a pioneer module:
--type fallible( TSuccess ) :: basic_utils:fallible( TSuccess ).
+% Being a pioneer module:
+-type fallible( TSuccess, TFailure ) ::
+    basic_utils:fallible( TSuccess, TFailure ).
 
 -type array() :: array:array().
 
@@ -2706,29 +2711,30 @@ typedef_entry_to_string( { _TypeId={ TypeName, _TypeArity },
 
 -doc """
 Converts the term specified as a string to the actual value that corresponds to
-the specified type.
+the specified explicit type.
 
 For example: `coerce_stringified_to_type("[4,3]", {list,integer}) = [4,3]`.
 """.
 -spec coerce_stringified_to_type( any_string(), explicit_type() ) ->
-                                                        fallible( value() ).
+                                    fallible( value(), type_coercion_error() ).
 % To have a plain string in all cases:
-coerce_stringified_to_type( BinStr, Type ) when is_binary( BinStr ) ->
-    coerce_stringified_to_type( text_utils:binary_to_string( BinStr ),
-                                Type );
+coerce_stringified_to_type( BinValueStr, ExplType )
+                                            when is_binary( BinValueStr ) ->
+    coerce_stringified_to_type( text_utils:binary_to_string( BinValueStr ),
+                                ExplType );
 
 % Now a plain string;
-coerce_stringified_to_type( ValueStr, CtxtType ) ->
+coerce_stringified_to_type( ValueStr, ExplType ) ->
     case ast_utils:string_to_value( ValueStr ) of
 
         Ro={ ok, V } ->
-            case is_of_type( V, CtxtType ) of
+            case is_of_type( V, ExplType ) of
 
                 true ->
                     Ro;
 
                 false ->
-                    Reason = { value_not_matching_type, ValueStr, V, CtxtType },
+                    Reason = { value_not_matching_type, ValueStr, V, ExplType },
                     { error, Reason }
 
             end;
@@ -2760,6 +2766,17 @@ coerce_stringified_to_type( ValueStr, CtxtType ) ->
 % supported.
 
 
+-doc "Interprets the specified type coercion error.".
+-spec interpret_type_coercion_error( type_coercion_error() ) -> ustring().
+interpret_type_coercion_error(
+        _Error={ value_not_matching_type, ValueStr, Value, ExplType } ) ->
+    text_utils:format( "value represented as a string by '~ts' translates "
+        "to the ~p actual value, which does not match the ~ts type",
+        [ ValueStr, Value, type_to_string( ExplType ) ] );
+
+interpret_type_coercion_error( Error ) ->
+    text_utils:format( "type-coercion error: ~p", [ Error ] ).
+
 
 
 -doc """
@@ -2767,6 +2784,8 @@ Returns a textual description (in canonical form, notably without whitespaces)
 of the specified contextual type.
 
 Expected to return a string that can be parsed back as a contextual type.
+
+Note: at least currently, only explicit types are supported.
 """.
 -spec type_to_string( contextual_type() ) -> text_type(). % user_text_type().
 % First, simple types, as always in definition order:
