@@ -1252,8 +1252,10 @@ interpret_stacktrace( Stacktrace ) ->
 
 -doc """
 Returns a "smart", complete textual description of the specified error
-stacktrace, including any argument-level analysis of the failure, listing just
-the filename of the corresponding source files (no full path wanted).
+stacktrace (possibly with a corresponding error term specified, then to
+interpret as well), including any argument-level analysis of the failure,
+listing just the filename of the corresponding source files (no full path
+wanted).
 """.
 -spec interpret_stacktrace( stack_trace(), option( error_term() ) ) ->
                                         ustring().
@@ -1265,7 +1267,8 @@ interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
 
 -doc """
 Returns, regarding standard output and file output, a "smart" textual
-description of the specified error stacktrace, including any argument-level
+description of the specified error stacktrace (possibly with a corresponding
+error term specified, then to interpret as well), including any argument-level
 analysis of the failure, listing just the filename of the corresponding source
 files (no full path wanted).
 
@@ -1319,9 +1322,11 @@ interpret_stacktrace_for_error_output( Stacktrace, MaybeErrorTerm ) ->
 
 -doc """
 Returns a "smart", complete textual description of the specified error
-stacktrace, including any argument-level analysis of the failure, listing either
-the full path of the corresponding source files, or just their filename, with
-stack items that are either full or ellipsed after the specified length.
+stacktrace (possibly with a corresponding error term specified, then to
+interpret as well), including any argument-level analysis of the failure,
+listing either the full path of the corresponding source files, or just their
+filename, with stack items that are either full or ellipsed after the specified
+length.
 """.
 -spec interpret_stacktrace( stack_trace(), option( error_term() ),
                             boolean(), option( length() ) ) -> ustring().
