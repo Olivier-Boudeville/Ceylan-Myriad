@@ -195,6 +195,27 @@ specified).
     { D :: days(), H :: hours(), M :: minutes(), S :: seconds() }.
 
 
+-doc """
+Month/Day/Hour/Minute/Second duration (not necessarily in a canonical form, for
+example more than 24 hours or 60 minutes can be specified).
+
+The duration of a month is the one defined in `months_to_seconds/1`.
+""".
+-type modhms_duration() :: { Mo :: months(), D :: days(), H :: hours(),
+                             M :: minutes(), S :: seconds() }.
+
+
+
+-doc """
+Any duration that can be expressed at an integer number of seconds, i.e a
+Month/Day/Hour/Minute/Second or Day/Hour/Minute/Second duration, or a
+`{Hours,Minutes,Seconds}` time triplet, or an integer number of seconds.
+""".
+-type any_second_duration() :: modhms_duration()
+                             | dhms_duration()
+                             | time()
+                             | seconds().
+
 
 -doc """
 A duration expressed as a number of full days (e.g. one way to express an age).
@@ -228,8 +249,11 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
                birth_date/0, user_date/0, date_in_year/0,
                time/0, extended_time/0,
                ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
-               ms_duration/0, ms_period/0, second_duration/0,
-               dhms_duration/0, day_duration/0,
+               ms_duration/0, ms_period/0,
+
+               any_second_duration/0, second_duration/0,
+               dhms_duration/0, modhms_duration/0, day_duration/0,
+
                iso8601_string/0, iso8601_bin_string/0 ]).
 
 
@@ -241,8 +265,10 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 
 
 % For rough, averaged conversions:
--export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
+-export([ years_to_seconds/1, months_to_seconds/1, months_to_float_seconds/1,
+          weeks_to_seconds/1,
           days_to_seconds/1, hours_to_seconds/1,
+          any_second_duration_to_seconds/1, modhms_to_seconds/1,
           dhms_to_seconds/1, seconds_to_dhms/1, time_to_seconds/1 ]).
 
 
@@ -1231,12 +1257,33 @@ years_to_seconds( YearDuration ) ->
 
 
 -doc """
-Converts a duration in months into a duration in seconds, supposing the duration
-of a month is 1/12 of the one of an average year.
+Converts a duration in months into a duration in floating-point seconds,
+supposing the duration of a month is 1/12 of the one of an average year.
+
+Deemed more relevant that alternating between 30 and then 31 days, with 30 days
+for the first month, 31 for the second, 30 for the third, etc.
+
+Note that counting in months induces quickly larger errors (e.g. more than 10
+hours if considering that a month is 30 days); prefer counting in days.
 """.
--spec months_to_seconds( months() ) -> float_seconds().
-months_to_seconds( MonthDuration ) ->
+-spec months_to_float_seconds( months() ) -> float_seconds().
+months_to_float_seconds( MonthDuration ) ->
     MonthDuration * 365.25 / 12 * 24 * 3600.
+
+
+-doc """
+Converts a duration in months into a duration in (integer) seconds, supposing
+the duration of a month is 1/12 of the one of an average year.
+
+Deemed more relevant that alternating between 30 and then 31 days, with 30 days
+for the first month, 31 for the second, 30 for the third, etc.
+
+Note that counting in months induces quickly larger errors (e.g. more than 10
+hours if considering that a month is 30 days); prefer counting in days.
+""".
+-spec months_to_seconds( months() ) -> seconds().
+months_to_seconds( MonthDuration ) ->
+    erlang:round( months_to_float_seconds( MonthDuration ) ).
 
 
 
@@ -1258,6 +1305,40 @@ days_to_seconds( DayDuration ) ->
 -spec hours_to_seconds( unit_utils:hours() ) -> seconds().
 hours_to_seconds( HourDuration ) ->
     HourDuration * 3600.
+
+
+
+-doc """
+Converts any duration that can be expressed at an integer number of seconds into
+such a number.
+""".
+-spec any_second_duration_to_seconds( any_second_duration() ) -> seconds().
+any_second_duration_to_seconds( D )
+        when is_tuple( D ) andalso size( D ) =:= 5 ->
+    modhms_to_seconds( D );
+
+any_second_duration_to_seconds( D )
+        when is_tuple( D ) andalso size( D ) =:= 4 ->
+    dhms_to_seconds( D );
+
+any_second_duration_to_seconds( D )
+        when is_tuple( D ) andalso size( D ) =:= 3 ->
+    time_to_seconds( D );
+
+any_second_duration_to_seconds( I ) when is_integer( I ) ->
+    I.
+
+
+
+-doc """
+Converts a MoDHMS duration (in Months/Days/Hours/Minutes/Seconds) into a
+duration in seconds.
+""".
+-spec modhms_to_seconds( modhms_duration() ) -> seconds().
+modhms_to_seconds( _MoDHMS={ Mo, D, H, M, S } ) ->
+    erlang:round( months_to_seconds( Mo ) )
+        + dhms_to_seconds( { D, H, M, S } ).
+
 
 
 

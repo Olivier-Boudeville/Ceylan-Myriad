@@ -33,7 +33,7 @@ Source files should be formatted for a 80-character width: no character should b
 
 Except in very specific cases, only ASCII code should be used (e.g. no accentuated characters).
 
-Tabulations should be preferred to series of spaces, and the text should be formatted according to 4-character tabulations.
+As recommended by various style guides, a series of 4 spaces shall be preferred to tabulations.
 
 All redundant whitespaces should be removed, preferably automatically (see the Emacs ``whitespace-cleanup`` command). This is why, with the `emacs settings`_ that we recommend, pressing the F8 key removes for example the yellow areas in the current buffer by replacing any series of four spaces by a corresponding tabulation.
 
