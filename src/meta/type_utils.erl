@@ -2770,8 +2770,8 @@ coerce_stringified_to_type( ValueStr, ExplType ) ->
 -spec interpret_type_coercion_error( type_coercion_error() ) -> ustring().
 interpret_type_coercion_error(
         _Error={ value_not_matching_type, ValueStr, Value, ExplType } ) ->
-    text_utils:format( "value represented as a string by '~ts' translates "
-        "to the ~p actual value, which does not match the ~ts type",
+    text_utils:format( "the value represented as the '~ts' string translates "
+        "to the '~p' actual value, which does not match the ~ts type",
         [ ValueStr, Value, type_to_string( ExplType ) ] );
 
 interpret_type_coercion_error( Error ) ->
