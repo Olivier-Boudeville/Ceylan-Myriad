@@ -202,9 +202,9 @@ Checks that the specified term corresponds to a so-called "proper" table, i.e. a
   an atom; if not, throws an exception
 
 - all its keys are different, as no duplicates are accepted when defining a
-proper table; if not, returns a `table/2` (i.e. a map_hashtable) whose keys are
-the duplicated keys in the input table, and whose values are their associated
-duplicate values
+proper table; if not, returns a `table/2` instance (i.e. not a list_table) whose
+keys are the duplicated keys in the input table, and whose values are their
+associated duplicate values
 
 Return `ok` if the specified table respects these specific conventions.
 
@@ -212,7 +212,7 @@ For example `list_table:check_proper([{a, 11}, {b,7}, {a,10}, {c,2}])`
 shall return a table with a single entry: `{a, [10,11]}`.
 
 Typically useful to vet (user-specified) configuration settings; allows better /
-more flexible feedback for the caller than `new/1`.
+more flexible feedback for the caller than a call to a mere `new/1`.
 """.
 -spec check_proper( list_table() ) -> 'ok' | table().
 check_proper( Table ) ->
