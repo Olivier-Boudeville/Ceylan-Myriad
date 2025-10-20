@@ -540,7 +540,14 @@ Of no real interest, as would designate speeds larger than `c`.
 -doc "In degree Celsius (°C).".
 -type celsius() :: float().
 
--export_type([ celsius/0 ]).
+
+% Electrical units.
+
+-doc "Voltage, in Volts (V).".
+-type volts() :: float().
+
+
+-export_type([ celsius/0, volts/0 ]).
 
 
 
@@ -1015,6 +1022,7 @@ order of magnitude and a multiplying factor).
 % Stringification section.
 
 -export([ temperature_to_string/1, maybe_temperature_to_string/1,
+          voltage_to_string/1,
           rpm_to_string/1, maybe_rpm_to_string/1,
           meters_to_string/1, position_to_string/1, speed_to_string/1 ]).
 
@@ -1142,7 +1150,7 @@ Returns a textual, possibly rounded, description of the specified temperature.
 """.
 -spec temperature_to_string( celsius() ) -> ustring().
 temperature_to_string( Temp ) ->
-    text_utils:float_to_string( Temp, [ { decimals, 1 }, compact ] ) ++ "°C".
+    text_utils:float_to_string( Temp, [ { decimals, 1 }, compact ] ) ++ " °C".
 
 
 
@@ -1156,6 +1164,14 @@ maybe_temperature_to_string( _Temp=undefined ) ->
 
 maybe_temperature_to_string( Temp ) ->
     temperature_to_string( Temp ).
+
+
+-doc """
+Returns a textual, possibly rounded, description of the specified voltage.
+""".
+-spec voltage_to_string( volts() ) -> ustring().
+voltage_to_string( V ) ->
+    text_utils:float_to_string( V, [ { decimals, 1 }, compact ] ) ++ " V".
 
 
 
