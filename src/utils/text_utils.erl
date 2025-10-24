@@ -5610,7 +5610,7 @@ format_text_for_width( Text, Width, DoPad ) ->
 
     % Whitespaces converted to spaces:
     CleanedTest = re:replace( lists:flatten( Text ), "\\s+", " ",
-                              [ global, { return, list } ] ),
+                              [ global, unicode, { return, list } ] ),
 
     Words = string:tokens( CleanedTest, _Sep=" " ),
 

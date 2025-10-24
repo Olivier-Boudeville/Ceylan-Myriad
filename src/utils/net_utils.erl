@@ -1249,7 +1249,7 @@ generate_valid_node_name_from( Name ) when is_list( Name ) ->
     re:replace( lists:flatten( Name ),
         "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
         "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|\\.|:)+", "_",
-        [ global, { return, list } ] ).
+        [ global, unicode, { return, list } ] ).
 
 
 

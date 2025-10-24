@@ -1197,20 +1197,23 @@ Returns the same type of string as the provided one.
 -spec convert_to_filename( any_string() ) -> any_file_name().
 convert_to_filename( BinName ) when is_binary( BinName ) ->
     re:replace( BinName, ?patterns_to_replace_for_paths, ?replacement_for_paths,
-                [ global, { return, binary } ] );
+                _Opts=[ global, unicode, { return, binary } ] );
 
 convert_to_filename( Name ) ->
 
     % Currently we use exactly the same translation rules both for node names
     % and file names (see net_utils:generate_valid_node_name_from/1).
-
+    %
     % Note however that now we duplicate the code instead of calling the
     % net_utils module from here, as otherwise there would be one more module to
     % deploy under some circumstances (and over time they may have to be
     % different).
-
+    %
+    % The 'unicode' option is needed, as some characters (e.g. '’') would make
+    % the next re:replace/4 call fail with "not an iodata term":
+    %
     re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
-        ?replacement_for_paths, [ global, { return, list } ] ).
+        ?replacement_for_paths, _Opts=[ global, unicode, { return, list } ] ).
 
 
 
@@ -5316,13 +5319,13 @@ path_to_variable_name( Filename, Prefix ) ->
 convert( Filename, Prefix ) ->
 
     NoDashName = re:replace( lists:flatten( Filename ), "-+", "_",
-        [ global, { return, list } ] ),
+        [ global, unicode, { return, list } ] ),
 
     NoDotName = re:replace( NoDashName, "\\.+", "_",
-        [ global, { return, list } ] ),
+        [ global, unicode, { return, list } ] ),
 
     Prefix ++ re:replace( NoDotName, "/+", "_",
-        [ global, { return, list } ] ).
+        [ global, unicode, { return, list } ] ).
 
 
 

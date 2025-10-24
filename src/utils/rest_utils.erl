@@ -417,8 +417,10 @@ text that is easier to understand, with actual carriage returns.
 -spec format_body_error( ustring() ) -> ustring().
 format_body_error( ContentBody ) ->
 
-    %re:replace( ContentBody, "\\\\n", "\\n", [ global, {return, list} ] ).
+    %re:replace( ContentBody, "\\\\n", "\\n",
+    %            [ global, unicode, {return, list} ] ).
 
+    % Most probably not Unicode-compliant:
     Tokens = string:replace( ContentBody, "\\n \\n ", "", all ),
 
     NotEmpty = lists:filter( fun( Tok ) -> length( Tok ) > 0 end, Tokens ),
