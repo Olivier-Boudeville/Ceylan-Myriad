@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **gephi_support** toolbox.
 
-See the gephi_support tested module.
+See the `gephi_support` tested module.
 """.
 
 

@@ -33,8 +33,8 @@ Support for the **Gephi** facilities.
 Gephi is an open source tool to visualise and explore all kinds of graphs and
 networks.
 
-See gephi_support_test.erl for the corresponding test, and the Gephi official
-website <https://gephi.org/> for further information.
+See gephi_support_test.erl for the corresponding test, and the [Gephi official
+website](https://gephi.org/> for further information).
 
 For the vast majority of the services defined here, an instance of a Gephi
 server is expected to have been configured and launched beforehand, both
@@ -61,8 +61,8 @@ according to our conventions.
 A user-specified path to a Gephi project file, from which a project name may be
 deduced.
 
-For example the "/tmp/foo/my_project.gephi" path is to correspond to the
-"my_project" project.
+For example the `"/tmp/foo/my_project.gephi"` path is to correspond to the
+`"my_project"` project.
 """.
 -type project_path() :: file_path().
 
@@ -73,7 +73,7 @@ A user-specified path to a Gephi project file, from which a project name may be
 deduced.
 
 For example the `<<"/tmp/foo/my_project.gephi">>` path is to correspond to the
-"my_project" project.
+`"my_project"` project.
 """.
 -type bin_project_path() :: bin_file_path().
 
@@ -83,16 +83,18 @@ For example the `<<"/tmp/foo/my_project.gephi">>` path is to correspond to the
 Any user-specified path to a Gephi project file, from which a project name may
 be deduced.
 
-For example the "/tmp/foo/my_project.gephi" path is to correspond to the
-"my_project" project.
+For example the `"/tmp/foo/my_project.gephi"` path is to correspond to the
+`"my_project"` project.
 """.
 -type any_project_path() :: any_file_path().
 
 
 
 -doc """
-The name of a Gephi project, typically one that shall be loaded. For example, a
-"Foobar" project name would refer to a "Foobar.gephi" project file.
+The name of a Gephi project, typically one that shall be loaded.
+
+For example, a `"Foobar"` project name would refer to a `"Foobar.gephi"` project
+file.
 """.
 -type project_name() :: ustring().
 
@@ -100,7 +102,7 @@ The name of a Gephi project, typically one that shall be loaded. For example, a
 
 -doc """
 The name of a Gephi project, typically one that shall be loaded. For example, a
-`<<"Foobar">>` project name would refer to a "Foobar.gephi" project file.
+`<<"Foobar">>` project name would refer to a `"Foobar.gephi"` project file.
 """.
 -type bin_project_name() :: bin_string().
 
@@ -112,17 +114,17 @@ The name of a Gephi project, typically one that shall be loaded. For example, a
 
 
 -doc """
-The name of a Gephi workspace (for example "Siclone"), in a project.
+The (plain) name of a Gephi workspace (for example `"Siclone"`), in a project.
 """.
 -type workspace_name() :: ustring().
 
 
--doc "The name of a Gephi workspace, in a project.".
+-doc "The binary name of a Gephi workspace, in a project.".
 -type bin_workspace_name() :: bin_string().
 
 
 
--doc "The name of a Gephi workspace, in a project.".
+-doc "Any name of a Gephi workspace, in a project.".
 -type any_workspace_name() :: bin_string().
 
 
@@ -162,7 +164,7 @@ The name of a Gephi workspace (for example "Siclone"), in a project.
 Information to designate an instance of a Gephi server, typically in order to
 access it from the network.
 
-Record not shared through an header file, as the get_server_info/* functions
+Record not shared through an header file, as the `get_server_info/*` functions
 shall be used instead.
 """.
 -type gephi_server_info() :: #gephi_server_info{}.
@@ -199,7 +201,7 @@ This is a node, an edge or a property.
 
 
 -doc """
-The identifier of a node property; for example "label", `<<"color">>`.
+The identifier of a node property; for example `"label"`, `<<"color">>`.
 """.
 -type property_id() :: element_id().
 
@@ -229,14 +231,14 @@ directly a valid JSON value would do.
 -doc """
 A color, typically of a graph element.
 
-Note that colors shall be defined like for HTML (e.g. as "#0000ff"); "blue" or
-'blue' will make Gephi fail (with a black window area).
+Note that colors shall be defined like for HTML (e.g. as `"#0000ff"`); `"blue"`
+or `'blue'` will make Gephi fail (with a black window area).
 """.
 -type graph_color() :: rgb_hexastring().
 
 
 
--doc "Possibly in [0.0, 1.0].".
+-doc "Possibly in `[0.0, 1.0]`.".
 -type timestamp() :: float().
 
 
@@ -456,7 +458,7 @@ Note that colors shall be defined like for HTML (e.g. as "#0000ff"); "blue" or
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
