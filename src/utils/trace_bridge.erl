@@ -83,6 +83,8 @@ trace_bridge:register(BridgeSpec), [...]
           set_application_timestamp/1, unregister/0,
           wait_bridge_sync/0,
 
+          inhibit_any/0, restore_any/1,
+
           debug/1, debug_fmt/2,
           info/1, info_fmt/2,
           notice/1, notice_fmt/2,
@@ -100,6 +102,16 @@ trace_bridge:register(BridgeSpec), [...]
 -define( myriad_trace_bridge_key, "_myriad_trace_bridge" ).
 
 
+% Implementation notes:
+%
+% The process dictionary is used in order to avoid carrying along too many
+% parameters: the myriad_trace_bridge_key define corresponds to the key to which
+% a bridge_info() term may be associated so that the current process is bridged
+% to a Trace system.
+%
+% Not special-casing the 'void' severity, as not used frequently enough.
+
+
 
 % Type shorthands:
 
@@ -114,15 +126,6 @@ trace_bridge:register(BridgeSpec), [...]
 -type trace_timestamp() :: trace_utils:trace_timestamp().
 
 
-
-% Implementation notes:
-%
-% The process dictionary is used in order to avoid carrying along too many
-% parameters: the myriad_trace_bridge_key define corresponds to the key to which
-% a bridge_info() term may be associated so that the current process is bridged
-% to a Trace system.
-%
-% Not special-casing the 'void' severity, as not used frequently enough.
 
 
 -doc "Bridging information typically specified by the user.".
@@ -149,11 +152,17 @@ thereof.
 
 -doc "A bridging information stored in a target process dictionary.".
 -opaque bridge_info() :: {
-    TraceEmitterName :: bin_string(),
-    TraceCategory :: bin_string(),
-    Location :: bin_string(),
-    BridgePid :: bridge_pid(),
-    ApplicationTimestamp :: option( trace_timestamp() ) }.
+        TraceEmitterName :: bin_string(),
+        TraceCategory :: bin_string(),
+        Location :: bin_string(),
+        BridgePid :: bridge_pid(),
+        ApplicationTimestamp :: option( trace_timestamp() ) }
+
+  % In some very rare cases, we want to inhibit a trace bridge (e.g. if needing
+  % to determine whether a service is available by triggering an operation that
+  % may fail with an error trace that should not be reported overall):
+  %
+  | 'inhibited_trace_bridge'.
 
 
 
@@ -309,7 +318,7 @@ set_bridge_info( MaybeBridgeInfo ) ->
 -doc """
 Sets the current application timestamp.
 
-Note: if no trace bridge is registered, does nothing.
+Note: if no trace bridge is registered, or if it is inhibited, does nothing.
 """.
 -spec set_application_timestamp( trace_timestamp() ) -> void().
 set_application_timestamp( NewAppTimestamp ) ->
@@ -319,6 +328,9 @@ set_application_timestamp( NewAppTimestamp ) ->
     case process_dictionary:get( BridgeKey ) of
 
         undefined ->
+            ok;
+
+        inhibited_trace_bridge ->
             ok;
 
         BridgeInfo ->
@@ -338,6 +350,49 @@ Unregisters the current process, which acted as a trace bridge; never fails.
 unregister() ->
     % No-op if not set:
     process_dictionary:remove( _K=?myriad_trace_bridge_key ).
+
+
+
+-doc """
+Inhibits any trace bridge, muting all traces sent based on this module from the
+current process.
+
+Useful if some called code could send undesirable traces (e.g. if failing during
+a test of the availability of a feature).
+
+This bridge can be restored with `restore/1`.
+""".
+-spec inhibit_any() -> option( bridge_info() ).
+inhibit_any() ->
+
+    BridgeKey = ?myriad_trace_bridge_key,
+
+    MaybeBridgeInfo = process_dictionary:get( BridgeKey ),
+
+    process_dictionary:put( BridgeKey, inhibited_trace_bridge ),
+
+    MaybeBridgeInfo.
+
+
+
+-doc "Restores any inhibited bridge, as it was obtained from `inhibit_any/0`.".
+-spec restore_any( option( bridge_info() ) ) -> void().
+restore_any( MaybeBridgeInfo ) ->
+
+    BridgeKey = ?myriad_trace_bridge_key,
+
+    case process_dictionary:get( BridgeKey ) of
+
+        inhibited_trace_bridge ->
+            process_dictionary:put( BridgeKey, MaybeBridgeInfo );
+
+        UnexpectedBridgeInfo ->
+            throw( { myriad_trace_bridge_not_inhibited, UnexpectedBridgeInfo,
+                     MaybeBridgeInfo } )
+
+    end.
+
+
 
 
 
@@ -561,7 +616,15 @@ send_bridge( SeverityType, Message,
             % Unechoed fire and forget here:
             BridgePid ! { send, Msg }
 
-    end.
+    end;
+
+send_bridge( SeverityType, Message, _BridgeInfo=inhibited_trace_bridge ) ->
+    cond_utils:if_defined( myriad_debug_traces,
+        trace_utils:debug_fmt(
+            "Not sending trace '~ts' with ~ts severity: inhibited bridge.",
+            [ Message, SeverityType ] ),
+        basic_utils:ignore_unused( [ SeverityType, Message ] ) ).
+
 
 
 
