@@ -537,17 +537,25 @@ Of no real interest, as would designate speeds larger than `c`.
 
 % Temperature units.
 
--doc "In degree Celsius (°C).".
+-doc "In degree Celsius (`°C`).".
 -type celsius() :: float().
 
 
 % Electrical units.
 
--doc "Voltage, in Volts (V).".
+-doc "Voltage, in Volts (`V`).".
 -type volts() :: float().
 
 
 -export_type([ celsius/0, volts/0 ]).
+
+
+% Light-related units.
+
+-doc "Illuminance, in Lux (`lx`).".
+-type lux() :: number().
+
+-export_type([ lux/0 ]).
 
 
 
@@ -1022,7 +1030,7 @@ order of magnitude and a multiplying factor).
 % Stringification section.
 
 -export([ temperature_to_string/1, maybe_temperature_to_string/1,
-          voltage_to_string/1,
+          voltage_to_string/1, illuminance_to_string/1,
           rpm_to_string/1, maybe_rpm_to_string/1,
           meters_to_string/1, position_to_string/1, speed_to_string/1 ]).
 
@@ -1172,6 +1180,17 @@ Returns a textual, possibly rounded, description of the specified voltage.
 -spec voltage_to_string( volts() ) -> ustring().
 voltage_to_string( V ) ->
     text_utils:float_to_string( V, [ { decimals, 1 }, compact ] ) ++ " V".
+
+
+-doc """
+Returns a textual, possibly rounded, description of the specified illuminance.
+""".
+-spec illuminance_to_string( lux() ) -> ustring().
+illuminance_to_string( L ) when is_float( L ) ->
+    text_utils:float_to_string( L, [ { decimals, 1 }, compact ] ) ++ " lx";
+
+illuminance_to_string( L ) ->
+    text_utils:format( "~B lx", [ L ] ).
 
 
 
