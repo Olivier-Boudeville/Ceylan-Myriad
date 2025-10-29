@@ -60,7 +60,7 @@ See `text_utils_test.erl` for the corresponding test.
           hexabinstring_to_binary/1, hexastring_to_binary/1,
           binary_to_hexastring/1, binary_to_hexastring/2,
 
-          integer_to_bits/1, integer_to_bits/2,
+          binary_to_bits/1, integer_to_bits/1, integer_to_bits/2,
 
           atom_to_string/1,
 
@@ -977,6 +977,27 @@ hexastring_to_binary( _HexaStr=[ SingleHex ], BinAcc ) ->
 
 
 -doc """
+Returns a plain string corresponding to the specified binary once translated to
+a series of bits, listed per groups of 4, not padded.
+
+Example: `"0b 0000-0000 0000-0001 0000-0010" = binary_to_bits(<<0,1,2>>)`.
+""".
+-spec binary_to_bits( binary() ) -> ustring().
+binary_to_bits( Bin ) ->
+    binary_to_bits( Bin, _AccStrs=[] ).
+
+
+% (helper)
+binary_to_bits( _Bin= <<>>, AccStrs ) ->
+    "0b " ++ join( _Sep=" ", lists:reverse( AccStrs ) );
+
+binary_to_bits( _Bin= <<H,T/binary>>, AccStrs ) ->
+    binary_to_bits( T,
+        [ integer_to_bits( H, _PadWidth=8, _AddPrefix=false ) | AccStrs ] ).
+
+
+
+-doc """
 Returns a plain string corresponding to the specified integer once translated to
 a series of bits, listed per groups of 4, not padded.
 
@@ -1003,6 +1024,18 @@ Example: `"0b0000-0100-0000-0011" = integer_to_bits(1024+2+1, 16)`.
 """.
 -spec integer_to_bits( integer(), width() ) -> ustring().
 integer_to_bits( I, PadWidth ) ->
+    integer_to_bits( I, PadWidth, _AddPrefix=true ).
+
+
+-doc """
+Returns a plain string corresponding to the specified integer once translated to
+a series of bits, listed per groups of 4, possibly padded with zeros on the left
+to reach the specified number of bits, and with a "0b" prefix if requested.
+
+Example: `"0b0000-0100-0000-0011" = integer_to_bits(1024+2+1, 16, true)`.
+""".
+-spec integer_to_bits( integer(), width(), boolean() ) -> ustring().
+integer_to_bits( I, PadWidth, AddPrefix ) ->
     AllBits = io_lib:format( "~.2B", [ I ] ),
     AllBitsPadded = list_utils:flatten_once(
         pad_string_right( AllBits, PadWidth, _PadChar=$0 ) ),
@@ -1011,7 +1044,10 @@ integer_to_bits( I, PadWidth ) ->
     RevAllBits = lists:reverse( AllBitsPadded ),
     RevPacketRevStrs = split_every( _GroupCount=4, RevAllBits ),
     RevPacketStrs = [ lists:reverse( S ) || S <- RevPacketRevStrs ],
-    "0b" ++ join( _Sep=$-, lists:reverse( RevPacketStrs ) ).
+    case AddPrefix of
+        true -> "0b";
+        false -> ""
+    end ++ join( _Sep=$-, lists:reverse( RevPacketStrs ) ).
 
 
 
