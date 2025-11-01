@@ -146,4 +146,24 @@ run() ->
     false = type_utils:is_of_type( { buzz, MyFifthTable },
                                    NonParamFooExplType ),
 
+
+    TestTypedefTable = type_utils:get_base_typedef_table(),
+
+    TestCtxtType = {string,[]},
+
+    TestExplType = type_utils:resolve_type( {string,[]}, TestTypedefTable ),
+
+    test_facilities:display( "Resolving the contextual type ~w "
+        "with the Myriad typedef table yields the ~w explicit type, i.e. ~ts.",
+        [ TestCtxtType, TestExplType,
+          type_utils:type_to_string( TestExplType ) ] ),
+
+    ResolvedTypedefTable = type_utils:resolve_typedef_table( TestTypedefTable ),
+
+    test_facilities:display( "Resolving the (Myriad-vanilla) ~ts "
+        "results in a ~ts", [
+            type_utils:typedef_table_to_string( TestTypedefTable ),
+            type_utils:typedef_table_to_string( ResolvedTypedefTable ) ] ),
+
+
     test_facilities:stop().
