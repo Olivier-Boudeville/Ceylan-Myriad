@@ -59,7 +59,7 @@ Often abbreviated as `ST`.
     % The prefix specific to this node (it is to be suffixed to the one of its
     % parent):
     %
-    Prefix :: [ uchar() ],
+    Prefix :: prefix(),
 
     % Tells whether this prefix was found terminating an actual word of the
     % vocabulary, or if it exists only to be suffixed by its children:
@@ -69,6 +69,10 @@ Often abbreviated as `ST`.
     % The direct, ordered children of this node, each adding its own prefix:
     [ ChildSTs :: spell_tree() ] }.
 
+
+
+-doc "A prefix, typically of a splitter.".
+-type prefix() :: [ uchar() ].
 
 
 -doc """
@@ -82,15 +86,16 @@ For example the splitter for `platypus` in a given tree could be `{"plat",
 
 Often noted `"plat|ypus"`.
 """.
--type splitter() :: { UnambiguousPrefix :: ustring(), Rest :: ustring() }.
+-type splitter() :: { UnambiguousPrefix :: prefix(), Rest :: ustring() }.
 
 
--export_type([ spell_tree/0, splitter/0 ]).
+-export_type([ spell_tree/0, prefix/0, splitter/0 ]).
 
 
 -export([ create/0, create/1,
           register_string/2, register_strings/2,
           find_completions/2, get_splitters/1, resolve/2,
+          concatenate/1, bin_concatenate/1,
           to_string/1, splitter_to_string/1 ]).
 
 
@@ -114,6 +119,7 @@ Often noted `"plat|ypus"`.
 
 -type uchar() :: text_utils:uchar().
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
 
 
@@ -405,6 +411,8 @@ Returns a list of the splitters for all strings registered in the specified
 spelling tree, i.e. a list of the shortest, unambiguous prefixes/remainder pairs
 for all these strings.
 
+No specific order shall be expected in the returned splitters.
+
 For example, if a spelling tree registered only "place" and "platypus", then
 their splitters would be, respectively, `{"plac", "e"}` and `{"plat", "ypus"}`.
 """.
@@ -471,6 +479,20 @@ resolve( Str, ST ) ->
 
     end.
 
+
+
+-doc "Concatenates the specified splitter into its corresponding string.".
+-spec concatenate( splitter() ) -> ustring().
+concatenate( _Splitter={ Pfx, Res } ) ->
+    Pfx ++ Res.
+
+
+-doc """
+Concatenates the specified splitter into its corresponding binary string.
+""".
+-spec bin_concatenate( splitter() ) -> bin_string().
+bin_concatenate( _Splitter={ Pfx, Res } ) ->
+    text_utils:string_to_binary( Pfx ++ Res ).
 
 
 -doc "Returns a textual description of the specified spelling tree.".
