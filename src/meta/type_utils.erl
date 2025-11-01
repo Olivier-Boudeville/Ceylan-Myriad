@@ -224,8 +224,8 @@ parse-transforms, etc.
 % also on formal grounds, for completeness).
 
 % Finally, for a built-in type T (designated as a whole - as opposed to defining
-% immediate values of it, as discussed in next section), Rep(TAsString) = T. For
-% example, Rep("atom") = atom, or Rep("my_type") = my_type.
+% immediate values of it, as discussed in next section), Rep(TAsString) = T.
+% For example, Rep("atom") = atom, or Rep("my_type") = my_type.
 
 
 
@@ -403,15 +403,24 @@ parse-transforms, etc.
 % - non-builtin types and atoms must be encoded differently, e.g., respectively,
 % as [foo()] / {list, {foo,[]}} versus [foo] / {list,{atom,foo}}
 %
-% - at least currently, no "origin" (like a module) of a type applies, they
-% share the same namespace
+% - at least currently:
+
+%   - no "origin" (like a module) of a type applies, they share the same
+%   namespace (e.g. only one 'count' type exists, even if it is actually
+%   basic_utils:count(), and if other modules could define their own 'count'
+%   type)
+%
+%   - the {TypeName,Specialiser} structure (see primitive_type_spec/0) could be
+%   enriched into a {TypeName,Specialiser,Constraints} one; an example of
+%   constraint could be, for integers, to respect open range (e.g. to express
+%   the same as pos_integer/0)
 
 
 % Implementation notes:
 %
 % This module is a pioneer one, as a result it is not processed by the Myriad
 % parse transform and thus cannot use 'cond_utils:if_defined(
-% myriad_debug_types, ...)'.
+% myriad_debug_types, ...)' or table/2 directly.
 
 
 
@@ -544,6 +553,7 @@ contextual type.
 -doc """
 The "most precise" descriptive name of an in-memory primitive type, in which:
 - simple types do not coexist (e.g. no `boolean` and `atom` overlapping)
+- `string` is not used (just a list of characters)
 - `number` and `bitstring` are not used (as they derive respectively from
 `float()|integer()` and `binary()`)
 
@@ -577,14 +587,17 @@ one, which are relatively different.
 
 
 -doc """
-A primitive type specialiser is either:
+A primitive type specialiser is:
 
-- an empty list to designate the type itself (like `[]` in `{integer,[]}`)
+- either an empty list, used to designate the type itself (like `[]` in
+  `{integer,[]}`)
 
-- a value of that type to designate a corresponding literal (like in
+- or a value of that type to designate a corresponding literal (like in
 `{integer,4}`, `{float,1.0}`, `{atom,foo}`, etc.)
 """.
--type primitive_type_specialiser() :: []
+-type primitive_type_specialiser() :: [] % The type itself.
+
+                                      % Literals:
                                     | atom()
                                     | binary()
                                     | float()
@@ -674,7 +687,7 @@ The "most precise" description of a value.
 
 Choices overlap intentionally (e.g. `integer` and `pos_integer`), to express
 finer types; as a result, the main purpose of this type is to tell whether a
-given value matches one of these types (see `is_value_matching/2`).
+given value matches specifically one of these types (see `is_value_matching/2`).
 
 See also `get_ast_builtin_types/0`.
 """.
@@ -690,7 +703,7 @@ See also `get_ast_builtin_types/0`.
   | 'byte'
   | 'char'
 
-  | 'string' % Plain one
+  | 'string' % Plain ones (lists of characters)
   | 'nonempty_string'
 
   | 'string_like' % Plain, binary strings, atoms, lists of them, etc.: iolist/0
@@ -757,14 +770,17 @@ integer()}` contextual type.
 -doc """
 A table of type definitions.
 
-Allows to convert a type in other (possibly explicit) types.
+Each type identifier (i.e. their combination of name and arity) shall be unique
+in such a table.
+
+Allows to convert a (generally contextual) type into (possibly explicit) types.
 
 For example, if wanting to define the `foo(V,K)` type as `table({bar,K}, V)`,
 then an entry whose key would be `{foo,2}` and whose value would be `{['V',
 'K'], {table,{{tuple,[{atom,'bar'},{typevar,'K'}]}, {typevar,'V'}}}}` would be
 introduced in such a table.
 """.
-% Not ?table:?table/2, not table/2 as pioneer module:
+% Not ?table:?table/2, not table/2, as pioneer module:
 -type typedef_table() ::
     map_hashtable:map_hashtable( type_id(), type_definition() ).
 
@@ -1135,6 +1151,11 @@ Describes an error met when coercing a string to a value of a given type.
 
           get_immediate_types/0, get_ast_builtin_types/0,
           get_elementary_types/0, get_plain_builtin_types/0,
+
+          get_base_typedef_table/0, register_typedef/3, register_typedefs/2,
+          resolve_typedef_table/1,
+          typedef_to_string/2, typedef_table_to_string/1,
+
           is_type/1, is_of_type/2,
           is_homogeneous/1, is_homogeneous/2,
           are_types_identical/2, is_subtype_of/2,
@@ -1145,7 +1166,7 @@ Describes an error met when coercing a string to a value of a given type.
           parse_type/1, interpret_parse_type_error/1, vet_contextual_type/1,
           resolve_type/2, instantiate_type/2,
           vet_explicit_type/1,
-          define_type/4, typedef_table_to_string/1,
+          define_type/4,
           coerce_stringified_to_type/2, interpret_type_coercion_error/1 ]).
 
 
@@ -1281,8 +1302,8 @@ Describes an error met when coercing a string to a value of a given type.
 
 
 -doc """
-Returns an atom describing the overall first-level, as precise as reasonably
-possible, type description of the specified concrete value (term).
+Returns an atom describing the overall first-level type description, as precise
+as reasonably possible, of the specified concrete value (term).
 
 No recursive identification is done to investigate nested values/types; for
 example if the specified term is `[1,4]`, `list` will be returned (not
@@ -1448,14 +1469,24 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
                                        [ length( Term ) ] );
 
                 _ ->
-                    Elems = [ interpret_type_helper( E,
+                    case [ interpret_type_helper( E,
                                 CurrentNestingLevel+1, MaxNestingLevel )
-                                    || E <- Term ],
+                                    || E <- Term ] of
 
-                    text_utils:format( "list of ~B elements: ~ts",
-                        [ length( Term ),
-                          text_utils:strings_to_enumerated_string( Elems,
-                            CurrentNestingLevel ) ] )
+                        [] ->
+                            "empty list";
+
+                        [ Elem ] ->
+                            text_utils:format( "list of a single element: ~ts",
+                                               [ Elem ] );
+
+                        Elems ->
+                            text_utils:format( "list of ~B elements: ~ts",
+                                [ length( Term ),
+                                  text_utils:strings_to_enumerated_string(
+                                      Elems, CurrentNestingLevel ) ] )
+
+                    end
 
             end
 
@@ -1463,21 +1494,41 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
                        MaxNestingLevel ) when is_map( Term ) ->
-    text_utils:format( "table of ~B entries", [ maps:size( Term ) ] );
+    case maps:size( Term ) of
+
+        0 ->
+            "empty table";
+
+        1 ->
+            "table with a single entry";
+
+        S ->
+            text_utils:format( "table of ~B entries", [ S ] )
+
+    end;
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-                when is_map( Term ) ->
+                                        when is_map( Term ) ->
 
-    Elems = [ text_utils:format( "key ~ts associated to value ~ts",
+    case [ text_utils:format( "key ~ts associated to value ~ts",
                 [ interpret_type_helper( K, CurrentNestingLevel+1,
                                          MaxNestingLevel ),
                   interpret_type_helper( V, CurrentNestingLevel+1,
                                          MaxNestingLevel ) ] )
-                        || { K, V } <- maps:to_list( Term ) ],
+                        || { K, V } <- maps:to_list( Term ) ] of
 
-    text_utils:format( "table of ~B entries: ~ts", [ maps:size( Term ),
-        text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
+        [] ->
+            "empty map";
 
+        [ Entry ] ->
+            text_utils:format( "map of a single entry: ~ts", [ Entry ] );
+
+        Entries ->
+            text_utils:format( "map of ~B entries: ~ts", [ length( Entries ),
+                text_utils:strings_to_enumerated_string( Entries,
+                    CurrentNestingLevel ) ] )
+
+    end;
 
 interpret_type_helper( _Term={ _A, _B }, _CurrentNestingLevel=MaxNestingLevel,
                        MaxNestingLevel ) ->
@@ -1648,6 +1699,159 @@ forms.
 -spec get_plain_builtin_types() -> [ type_name() ].
 get_plain_builtin_types() ->
     get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any', 'no_return' ].
+
+
+
+-doc "Returns the base, Myriad-level type definition table.".
+-spec get_base_typedef_table() -> typedef_table().
+get_base_typedef_table() ->
+    % We add it the contextual (i.e. non-explicit) types that are commonly used
+    % in Myriad (corresponds at least in spirit to the Erlang built-in types,
+    % see https://www.erlang.org/doc/system/typespec.html):
+    %
+    map_hashtable:new( [
+
+        % These are {type_id(), type_definition()} pairs, where
+        % type_definition() :: { [ type_variable_name() ], contextual_type() }:
+
+        % Two atom literals:
+        { {boolean,0}, { [], { union, [ {atom,true}, {atom,false} ] } } },
+
+        % Just an alias (the positive constraint cannot be expressed like with
+        % non_neg_integer/0):
+        %
+        { {count,0}, { [], {integer,[]} } },
+
+        { {number,0}, { [], { union, [ {integer,[]}, {float,[]} ] } } },
+
+        { {char,0}, { [], {integer,[]} } },
+
+        % Already explicit types (see type_utils_test to obtain any static
+        % resolution needed):
+        %
+        %{ {string,0}, { [], { list, {char,[]} } } }
+        { {string,0}, { [], { list, {integer,[]} } } }
+
+        % Add here all other types of interest.
+    ] ).
+
+
+
+-doc """
+Adds the definition of the specified contextual type to the specified typedef
+table.
+""".
+-spec register_typedef( type_name(), type_definition(), typedef_table() ) ->
+                                                    typedef_table().
+register_typedef( TypeName, _TypeDef={ TypeVarNames, CtxtType },
+          TypedefTable ) when is_atom( TypeName ) and is_list( TypeVarNames ) ->
+    vet_contextual_type( CtxtType ),
+    TypeId = { TypeName, length( TypeVarNames ) },
+    case map_hashtable:lookup_entry( TypeId, TypedefTable ) of
+
+        key_not_found ->
+            map_hashtable:add_entry( _K=TypeId, _V=CtxtType, TypedefTable );
+
+        { value, PrevCtxtType } ->
+            throw( { type_already_present, TypeId, PrevCtxtType, CtxtType } )
+
+    end.
+
+
+
+-doc """
+Adds the definition of the specified contextual types to the specified typedef
+table.
+""".
+-spec register_typedefs( [ { type_name(), type_definition() } ],
+                                typedef_table() ) -> typedef_table().
+register_typedefs( TypedefPairs, TypedefTable ) ->
+    lists:foldl( fun( _TP={ TN, TDef }, AccTDTable ) ->
+                   register_typedef( TN, TDef, AccTDTable )
+                 end,
+                 _Acc0=TypedefTable,
+                 _List=TypedefPairs ).
+
+
+
+-doc """
+Resolves the specified typedef table.
+
+Currently only a very basic implementation; does not manage yet
+mutually-dependent types.
+""".
+-spec resolve_typedef_table( typedef_table() ) -> typedef_table().
+resolve_typedef_table( TypedefTable ) ->
+    resolve_typedef_table( map_hashtable:enumerate( TypedefTable ),
+                           TypedefTable, _Changed=false ).
+
+
+% (helper)
+resolve_typedef_table( _TypePairs=[], TypedefTable, _Changed=false ) ->
+    TypedefTable;
+
+resolve_typedef_table( _TypePairs=[], TypedefTable, _Changed=true ) ->
+    % Rescans as long at least one more type could be resolved:
+    % (obvious risk of infinite loop)
+
+    % No cond_utils:if_defined/* in this module:
+    %trace_utils:debug_fmt( "Rescanning ~ts",
+    %                       [ map_hashtable:to_string( TypedefTable ) ] ),
+
+    resolve_typedef_table( TypedefTable );
+
+resolve_typedef_table(
+        _TypePairs=[ { TypeName, _TypeDef={ TVarNames, CtxtType } } | T ],
+        TypedefTable, Changed ) ->
+
+    case resolve_type( CtxtType, TypedefTable ) of
+
+        % Same:
+        CtxtType ->
+            resolve_typedef_table( T, TypedefTable, Changed );
+
+        ResolvedNewCtxtType ->
+
+            NewTypedefTable = map_hashtable:add_entry( _K=TypeName,
+                _V={ TVarNames, ResolvedNewCtxtType }, TypedefTable ),
+
+            resolve_typedef_table( T, NewTypedefTable, _Changed=true )
+
+    end.
+
+
+
+-doc "Returns a textual description of the specified type definition table.".
+-spec typedef_table_to_string( typedef_table() ) -> ustring().
+typedef_table_to_string( TypedefTable ) ->
+
+    case map_hashtable:enumerate( TypedefTable ) of
+
+        [] ->
+            "empty type definition table";
+
+        [ { TypeId, TypeDef } ] ->
+            text_utils:format( "table defining a single type: ~ts",
+                [ typedef_to_string( TypeId, TypeDef ) ] );
+
+        TypedefEntries ->
+            text_utils:format( "table defining ~B types: ~ts",
+                [ length( TypedefEntries ), text_utils:strings_to_string(
+                    [ typedef_to_string( TId, TDef )
+                        || { TId, TDef } <- TypedefEntries ] ) ] )
+
+    end.
+
+
+-doc "Returns a textual description of the specified type definition.".
+-spec typedef_to_string( type_id(), type_definition() ) -> ustring().
+typedef_to_string( _TypeId={ TypeName, _TypeArity },
+                   _TypeDef={ TypeVarNames, CtxtType } ) ->
+    TypeVarStrs = [ text_utils:atom_to_string( N ) || N <- TypeVarNames ],
+    VarNameStr = text_utils:join( _Sep=", ", TypeVarStrs ),
+    text_utils:format( "type ~ts(~ts) :: ~ts",
+        [ TypeName, VarNameStr, type_to_string( CtxtType ) ] ).
+
 
 
 
@@ -2392,7 +2596,10 @@ transform_for_contextual_type( Other ) ->
 
 
 
--doc "Returns the specified contextual type once (superficially) checked.".
+-doc """
+Returns the specified contextual type once (superficially) checked: tells
+whether it may be valid.
+""".
 % Note: cannot reuse vet_explicit_type/1, as having to recurse as contextual.
 -spec vet_contextual_type( contextual_type() ) -> contextual_type().
 vet_contextual_type( Type={ atom, AtomName } ) when is_atom( AtomName ) ->
@@ -2466,7 +2673,7 @@ resolve_type( _Type={ union, Types }, TypedefTable )  ->
 resolve_type( Type={ typevar, _TypeName }, _TypedefTable ) ->
     Type;
 
-% For implicit (i.e. non-explicit) types:
+% For contextual (i.e. non-explicit) types:
 resolve_type( _Type={ TypeName, ParamTypes }, TypedefTable ) ->
     % Erase this type by replacing it with its definition:
     TypeId = { TypeName, length( ParamTypes ) },
@@ -2476,6 +2683,10 @@ resolve_type( _Type={ TypeName, ParamTypes }, TypedefTable ) ->
             throw( { unknown_type, TypeId } );
 
         { value, _TypeDef={ VarNames, CtxtType } } ->
+
+            %trace_utils:debug_fmt( "~w resolved as ~w",
+            %                       [ TypeId, { VarNames, CtxtType } ] ),
+
             % If needed:
             ExplType = resolve_type( CtxtType, TypedefTable ),
 
@@ -2483,11 +2694,12 @@ resolve_type( _Type={ TypeName, ParamTypes }, TypedefTable ) ->
             NameTypedefPairs = [ { VN, resolve_type( T, TypedefTable ) }
                 || VN <:- VarNames && T <:- ParamTypes ],
 
-            trace_utils:debug_fmt( "Applying, for type ~ts/~B, the following "
-                "type variables: ~ts.", [ TypeName, length( ParamTypes ),
-                    text_utils:strings_to_listed_string(
-                        [ text_utils:format( "~ts=~w", [ VN, VT ] )
-                          || { VN, VT } <- NameTypedefPairs ] ) ] ),
+            %trace_utils:debug_fmt( "Applying, for type ~ts/~B, the following "
+            %    "type variables: ~ts.", [ TypeName, length( ParamTypes ),
+            %        text_utils:strings_to_listed_string(
+            %            [ text_utils:format( "~ts=~w", [ VN, VT ] )
+            %              || { VN, VT } <- NameTypedefPairs ] ) ] ),
+
             instantiate_type( ExplType, NameTypedefPairs )
 
     end;
@@ -2638,8 +2850,8 @@ define_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
         _TargetTerm=CtxtType, _TypeDescription=tuple,
         _TermTransformer=CollectTermTransformer, _UserData=set_utils:new() ),
 
-    trace_utils:debug_fmt( "Typevars collected from contextual type ~w: ~w.",
-        [ CtxtType, set_utils:to_list( CollectedTypeVarNameSet ) ] ),
+    %trace_utils:debug_fmt( "Typevars collected from contextual type ~w: ~w.",
+    %    [ CtxtType, set_utils:to_list( CollectedTypeVarNameSet ) ] ),
 
     { NotUsedSet, NotDeclaredSet } = set_utils:differences(
         DeclaredTypeVarNameSet, CollectedTypeVarNameSet ),
@@ -2675,39 +2887,6 @@ define_type( TypeName, TypeVarNames, CtxtType, TypedefTable )
 
 
 
--doc "Returns a textual description of the specified type definition table.".
--spec typedef_table_to_string( typedef_table() ) -> ustring().
-typedef_table_to_string( TypedefTable ) ->
-
-    case map_hashtable:enumerate( TypedefTable ) of
-
-        [] ->
-            "empty type definition table";
-
-        [ TypedefEntry ] ->
-            text_utils:format( "type definition table with a single entry: ~ts",
-                               [ typedef_entry_to_string( TypedefEntry ) ] );
-
-        TypedefEntries ->
-            text_utils:format( "type definition table with ~B entries: ~ts",
-                [ length( TypedefEntries ), text_utils:strings_to_string(
-                  [ typedef_entry_to_string( TE )
-                        || TE <- TypedefEntries ] ) ] )
-
-    end.
-
-
-
--doc "Returns a textual description of the specified type definition table.".
--spec typedef_entry_to_string( { type_id(), type_definition() } ) -> ustring().
-typedef_entry_to_string( { _TypeId={ TypeName, _TypeArity },
-                           _TypeDef={ TypeVarNames, CtxtType } } ) ->
-    TypeVarStrs = [ text_utils:atom_to_string( N ) || N <- TypeVarNames ],
-    VarNameStr = text_utils:join( _Sep=", ", TypeVarStrs ),
-    text_utils:format( "type ~ts(~ts) :: ~ts",
-        [ TypeName, VarNameStr, type_to_string( CtxtType ) ] ).
-
-
 
 -doc """
 Converts the term specified as a string to the actual value that corresponds to
@@ -2725,6 +2904,14 @@ coerce_stringified_to_type( BinValueStr, ExplType )
 
 % Now a plain string;
 coerce_stringified_to_type( ValueStr, ExplType ) ->
+
+    %trace_utils:debug_fmt(
+    %    "Coercing value string '~p' into explicit type '~w'.",
+    %    [ ValueStr, ExplType ] ),
+
+    % Security first:
+    vet_explicit_type( ExplType ),
+
     case ast_utils:string_to_value( ValueStr ) of
 
         Ro={ ok, V } ->
@@ -2771,8 +2958,9 @@ coerce_stringified_to_type( ValueStr, ExplType ) ->
 interpret_type_coercion_error(
         _Error={ value_not_matching_type, ValueStr, Value, ExplType } ) ->
     text_utils:format( "the value represented as the '~ts' string translates "
-        "to the '~p' actual value, which does not match the ~ts type",
-        [ ValueStr, Value, type_to_string( ExplType ) ] );
+        "to the '~p' actual value (of type ~ts), which does not match "
+        "the ~ts type",
+        [ ValueStr, Value, get_type_of( Value ), type_to_string( ExplType ) ] );
 
 interpret_type_coercion_error( Error ) ->
     text_utils:format( "type-coercion error: ~p", [ Error ] ).
