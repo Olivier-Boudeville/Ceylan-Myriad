@@ -173,6 +173,8 @@ See `text_utils_test.erl` for the corresponding test.
           ellipse/1, ellipse/2, ellipse_fmt/2, ellipse_fmt/3,
           tail/1, tail/2,
 
+          ensure_newline_terminated/1,
+
           get_default_bullet/0, get_bullet_for_level/1,
           format_text_for_width/2, format_text_for_width/3,
 
@@ -4146,7 +4148,7 @@ binary_to_float( BinString ) ->
 
 -doc """
 Capitalises the specified string, ensuring that the first letter of the plain
-returned string is a capital letter, uppercasing it if necessary.
+returned string is a capital letter - uppercasing it if necessary.
 """.
 -spec uppercase_initial_letter( any_string() ) -> ustring().
 uppercase_initial_letter( LettersBin ) when is_binary( LettersBin ) ->
@@ -5616,6 +5618,36 @@ tail( String, MaxLen ) ->
 
         _ ->
             String
+
+    end.
+
+
+
+-doc "Ensures that the specified string terminates with a newline character.".
+-spec ensure_newline_terminated( ustring() ) -> ustring().
+% Now useless:
+%ensure_newline_terminated( _Str="" ) ->
+%    [ $\n ];
+
+ensure_newline_terminated( Str ) ->
+    % Not efficient:
+    % case list_utils:get_last_element( Message ) of
+
+    %     $\n ->
+    %         Str;
+
+    %     _ ->
+    %         Str ++ "\n"
+
+    % end.
+
+    case lists:reverse( Str ) of
+
+        [ $\n | _T ] ->
+            Str;
+
+        RevStr ->
+            lists:reverse( [ $\n | RevStr ] )
 
     end.
 
