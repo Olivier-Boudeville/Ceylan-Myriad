@@ -1049,8 +1049,16 @@ severe_display( Message ) ->
 
     Bar = "----------------",
 
+    % Sometimes legit messages may be already terminated by a newline (e.g. if
+    % using text_utils:string_sto_string/1); avoiding an extraneous blank line
+    % between the message and the final bar:
+    %
+    % (initial newline removed)
+    Str = "<" ++ Bar ++ "\n"
+        ++ text_utils:ensure_newline_terminated( Message ) ++ Bar ++ ">",
+
     % Could be also error_logger:info_msg/1 for example:
-    actual_display( "\n<" ++ Bar ++ "\n" ++ Message ++ "\n" ++ Bar ++ ">\n" ).
+    actual_display( Str ).
 
 
 
@@ -1105,8 +1113,8 @@ actual_display( Message ) ->
     %
     %basic_utils:display_timed( RetainedMsg, _MsTimeOut=30000 ).
 
-    % If wanting a faster, less safe version:
-    io:format( "~ts~n", [ RetainedMsg ] ).
+    % If wanting a faster, less safe version (ending newline removed):
+    io:format( "~ts", [ RetainedMsg ] ).
 
 
 
