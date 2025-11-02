@@ -683,7 +683,7 @@ types).
 
 
 -doc """
-The "most precise" description of a value.
+The "most precise" (atom) description of a value.
 
 Choices overlap intentionally (e.g. `integer` and `pos_integer`), to express
 finer types; as a result, the main purpose of this type is to tell whether a
