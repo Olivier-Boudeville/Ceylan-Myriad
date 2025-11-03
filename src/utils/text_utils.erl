@@ -1001,7 +1001,7 @@ binary_to_bits( _Bin= <<H,T/binary>>, AccStrs ) ->
 
 -doc """
 Returns a plain string corresponding to the specified integer once translated to
-a series of bits, listed per groups of 4, not padded.
+a series of bits, listed per groups of 4, not padded (no leftwise bit fronteer).
 
 Example: `"0b100-0000-0011" = integer_to_bits(1024+2+1)`.
 """.
