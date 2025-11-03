@@ -1050,7 +1050,7 @@ severe_display( Message ) ->
     Bar = "----------------",
 
     % Sometimes legit messages may be already terminated by a newline (e.g. if
-    % using text_utils:string_sto_string/1); avoiding an extraneous blank line
+    % using text_utils:strings_to_string/1); avoiding an extraneous blank line
     % between the message and the final bar:
     %
     % (initial newline removed)
