@@ -95,6 +95,8 @@ See `text_utils_test.erl` for the corresponding test.
           atom_to_binary/1,
 
           string_to_binary/1, string_to_binary/2, maybe_string_to_binary/1,
+          maybe_any_string_to_binary/1,
+
           binary_to_string/1, binary_to_string/2,
           strings_to_binaries/1, binaries_to_strings/1,
           string_to_integer/1, try_string_to_integer/1, try_string_to_integer/2,
@@ -3799,9 +3801,6 @@ string_to_binary( Other, _CanFailDueToTranscoding ) ->
 -doc """
 Converts a plain (list-based) maybe-string into a binary. Returns `undefined` if
 the argument string is itself undefined.
-
-`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
-function is allowed to fail in turn.
 """.
 -spec maybe_string_to_binary( option( ustring() ) ) -> option( bin_string() ).
 maybe_string_to_binary( _MaybeString=undefined ) ->
@@ -3809,6 +3808,23 @@ maybe_string_to_binary( _MaybeString=undefined ) ->
 
 maybe_string_to_binary( MaybeString ) ->
     string_to_binary( MaybeString ).
+
+
+
+-doc """
+Converts a maybe-"any string" into a binary. Returns `undefined` if
+the argument string is itself undefined.
+""".
+-spec maybe_any_string_to_binary( option( any_string() ) ) ->
+                                        option( bin_string() ).
+maybe_any_string_to_binary( _MaybeAnyString=undefined ) ->
+    undefined;
+
+maybe_any_string_to_binary( BinStr ) when is_binary( BinStr ) ->
+    BinStr;
+
+maybe_any_string_to_binary( Str ) ->
+    string_to_binary( Str ).
 
 
 

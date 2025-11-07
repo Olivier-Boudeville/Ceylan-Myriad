@@ -1053,8 +1053,10 @@ severe_display( Message ) ->
     % using text_utils:string_sto_string/1); avoiding an extraneous blank line
     % between the message and the final bar:
     %
-    % (initial newline removed)
-    Str = "<" ++ Bar ++ "\n"
+    % (initial newline finally kept, otherwise may be displayed at the end of an
+    % unrelated line)
+    %
+    Str = "\n<" ++ Bar ++ "\n"
         ++ text_utils:ensure_newline_terminated( Message ) ++ Bar ++ ">",
 
     % Could be also error_logger:info_msg/1 for example:
@@ -1113,8 +1115,8 @@ actual_display( Message ) ->
     %
     %basic_utils:display_timed( RetainedMsg, _MsTimeOut=30000 ).
 
-    % If wanting a faster, less safe version (ending newline removed):
-    io:format( "~ts", [ RetainedMsg ] ).
+    % If wanting a faster, less safe version (ending newline must be kept):
+    io:format( "~ts~n", [ RetainedMsg ] ).
 
 
 
