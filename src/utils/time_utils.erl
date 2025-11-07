@@ -2360,6 +2360,11 @@ For example for a duration of 150 012 ms, returns: `"2 minutes, 30 seconds and
 
 See also `duration_to_string/1`, `duration_to_{compact,synthetics}_string/1` and
 `get_textual_duration/2`.
+
+The returned duration will be accurate as long as days or finer time units are
+used (will become approximate as soon as months or coarser time resolutions will
+be involved; we consider here that the duration of a year is simply 365 days,
+and that a month is 30 days).
 """.
 -spec duration_to_string( extended_duration() ) -> ustring().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
@@ -2373,19 +2378,58 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 
     FullSeconds = Milliseconds div 1000,
 
-    { Days, { Hours, Minutes, Seconds } } =
+    { TotalDays, { Hours, Minutes, Seconds } } =
         calendar:seconds_to_daystime( FullSeconds ),
 
-    ListWithDays = case Days of
+    DaysPerYear = 365,
+
+    Years = TotalDays div DaysPerYear,
+    DaysAfterYears = TotalDays rem DaysPerYear,
+
+
+    DaysPerMonth = 30,
+
+    Months = DaysAfterYears div DaysPerMonth,
+    DaysAfterMonths = DaysAfterYears rem DaysPerMonth,
+
+    ListWithYears = case Years of
 
         0 ->
             [];
 
         1 ->
-            [ "1 day" ];
+            [ "1 year" ];
 
         _ ->
-            [ text_utils:format( "~B days", [ Days ] ) ]
+            [ text_utils:format( "~B years", [ Years ] ) ]
+
+    end,
+
+    ListWithMonths = case Months of
+
+        0 ->
+            ListWithYears;
+
+        1 ->
+            [ "1 month" | ListWithYears ];
+
+        _ ->
+            [ text_utils:format( "~B months", [ Months ] )
+              | ListWithYears ]
+
+    end,
+
+
+    ListWithDays = case DaysAfterMonths of
+
+        0 ->
+            ListWithMonths;
+
+        1 ->
+            [ "1 day" | ListWithMonths ];
+
+        D ->
+            [ text_utils:format( "~B days", [ D ] ) | ListWithMonths ]
 
     end,
 

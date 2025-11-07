@@ -34,7 +34,7 @@ Gephi is an open source tool to visualise and explore all kinds of graphs and
 networks.
 
 See gephi_support_test.erl for the corresponding test, and the [Gephi official
-website](https://gephi.org/> for further information).
+website](https://gephi.org/) for further information).
 
 For the vast majority of the services defined here, an instance of a Gephi
 server is expected to have been configured and launched beforehand, both
@@ -281,7 +281,7 @@ or `'blue'` will make Gephi fail (with a black window area).
           update_node_property/4, update_node_properties/3,
           update_node_property/5,
 
-          add_edge/5, add_edge/6,
+          add_edge/5, add_edge/6, add_edge/7,
           update_edge_property/4, update_edge_properties/3,
           update_edge_property/5 ]).
 
@@ -362,10 +362,10 @@ or `'blue'` will make Gephi fail (with a black window area).
 % script in order to clear any prior instance of Gephi is effective, yet it does
 % not seem instantaneous; for example 'killall java; make gephi_support_run' may
 % fail, presumably because the test looked up successfully a Gephi instance
-% being terminated then tried to interact with it, but it does not exist anymore
+% being terminated then tried to interact with it, yet it did not exist anymore
 % then. So a short waiting (e.g. with 'sleep 1') might be useful before
 % launching Gephi again (otherwise, despite having waited for the Gephi server,
-% the next POST request may fail, reporting that it is unable to connect)
+% the next POST request may fail, reporting that it is unable to connect).
 %
 % See also: executable_utils:get_default_graph_stream_tool_{name,path}/0.
 
@@ -1085,12 +1085,12 @@ instance.
 """.
 -spec add_edge( edge_id(), node_id(), node_id(), boolean(), graph_color(),
                 gephi_server_info() ) -> void().
-add_edge( EdgeId, FirstNodeId, SecondNodeId, IsDirected, NodeColor, SrvInfo ) ->
+add_edge( EdgeId, FirstNodeId, SecondNodeId, IsDirected, EdgeColor, SrvInfo ) ->
 
     cond_utils:if_defined( myriad_debug_graph,
         trace_bridge:debug_fmt( "Adding a (directed: ~ts) edge of id '~ts' "
             "between nodes '~ts' and '~ts', with color '~ts'.",
-            [ IsDirected, EdgeId, FirstNodeId, SecondNodeId, NodeColor ] ) ),
+            [ IsDirected, EdgeId, FirstNodeId, SecondNodeId, EdgeColor ] ) ),
 
     % "ae": add edge
 
@@ -1102,7 +1102,41 @@ add_edge( EdgeId, FirstNodeId, SecondNodeId, IsDirected, NodeColor, SrvInfo ) ->
     JsonStr = text_utils:format(
         "{\"ae\":{\"~ts\":{\"source\":\"~ts\", \"target\":\"~ts\", "
         "\"directed\": ~ts, \"color\":\"~ts\"}}}",
-        [ EdgeId, FirstNodeId, SecondNodeId, IsDirected, NodeColor ] ),
+        [ EdgeId, FirstNodeId, SecondNodeId, IsDirected, EdgeColor ] ),
+
+    send_post( JsonStr, SrvInfo ).
+
+
+
+-doc """
+Adds an edge whose identifier is specified, together with the identifiers of the
+first node and the second one, telling whether it is a directed edge (from first
+node to second one) and what its color is, in the context of the specified Gephi
+instance.
+""".
+-spec add_edge( edge_id(), element_label(), node_id(), node_id(), boolean(),
+                graph_color(), gephi_server_info() ) -> void().
+add_edge( EdgeId, EdgeLabel, FirstNodeId, SecondNodeId, IsDirected,
+          EdgeColor, SrvInfo ) ->
+
+    cond_utils:if_defined( myriad_debug_graph,
+        trace_bridge:debug_fmt( "Adding a (directed: ~ts) edge of id '~ts' "
+            "with label '~ts' between nodes '~ts' and '~ts', with color '~ts'.",
+            [ IsDirected, EdgeId, EdgeLabel, FirstNodeId, SecondNodeId,
+              EdgeColor ] ) ),
+
+    % "ae": add edge
+
+    %JsonStr = json_utils:to_json( #{ ae => #{ EdgeId => #
+    %                       { source => SourceNodeId,
+    %                         target => TargetNodeId,
+    %                         directed => IsDirected } } } ),
+
+    JsonStr = text_utils:format(
+        "{\"ae\":{\"~ts\":{\"source\":\"~ts\", \"target\":\"~ts\", "
+        "\"directed\": ~ts, \"color\":\"~ts\", \"label\":\"~ts\"}}}",
+        [ EdgeId, FirstNodeId, SecondNodeId, IsDirected, EdgeColor,
+          EdgeLabel ] ),
 
     send_post( JsonStr, SrvInfo ).
 
@@ -1250,9 +1284,22 @@ send_post( Body, #gephi_server_info{ base_url=BaseUrl } ) ->
         %    <<"last-modified">> => <<"Thu, 04 Jan 2024 12:16:59 GMT">>,
         %    <<"server">> => <<"Gephi/0.7 alpha4">>}
         %
-        { _HTTPStatusCode=200, _HeaderMap, BinBody } ->
+        { _HTTPOKStatusCode=200, _HeaderMap, BinBody } ->
             %trace_bridge:debug_fmt( "Send POST to Gephi server succeeded "
             %   "(got headers: ~p, ~nbody: ~p).", [ HeaderMap, BinBody ] ),
-            BinBody
+            BinBody;
+
+        { _HTTPNotFoundStatusCode=404, _HeaderMap, BinBody } ->
+            trace_bridge:error_fmt( "Gephi resource not found for body ~p:~n~p",
+                                    [ Body, BinBody ] ),
+            throw( { gephi_resource_not_found, BinBody } );
+
+        { HTTPErrorStatusCode, _HeaderMap, BinBody } ->
+            trace_bridge:error_fmt(
+                "Gephi operation failed with HTTP code ~B for body ~p:~n ~ts",
+                [ HTTPErrorStatusCode, Body, BinBody ] ),
+
+            throw( { gephi_operation_failed, BinBody } )
+
 
     end.
