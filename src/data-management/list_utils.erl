@@ -388,7 +388,8 @@ For example `{[a,b,c], [d,e]} = extract_first_elements([a,b,c,d,e], 3)`.
 
 Throws an exception if there are not enough elements to do so.
 """.
--spec extract_first_elements( list(), count() ) -> { list(), list() }.
+-spec extract_first_elements( list(), count() ) ->
+                                        { Extracted :: list(), Rest :: list() }.
 extract_first_elements( List, Count ) ->
     extract_first_elements( List, Count, _Acc=[] ).
 
