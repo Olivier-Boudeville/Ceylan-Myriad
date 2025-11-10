@@ -103,7 +103,7 @@ See `system_utils.erl` for the actual execution of programs.
     get_default_openssl_executable_name/0,
     get_default_openssl_executable_path/0,
 
-    get_make_path/0,
+    get_make_path/0, get_ps_path/0,
 
     get_maybe_gnuplot_path/0,
     get_gnuplot_path/0,
@@ -172,6 +172,8 @@ directly from a common base.
 
 
 % Type shorthands:
+
+-type two_digit_version() :: basic_utils:two_digit_version().
 
 -type ustring() :: text_utils:ustring().
 -type width() :: text_utils:width().
@@ -943,15 +945,24 @@ get_default_openssl_executable_path() ->
 
 
 
--doc "Returns an absolute path to the default (GNU) make executable.".
+-doc "Returns an absolute path to the default (GNU) `make` executable.".
 -spec get_make_path() -> executable_path().
 get_make_path() ->
+    % Typically "/usr/bin/make":
     find_executable( "make" ).
+
+
+-doc "Returns an absolute path to the default `ps` executable.".
+-spec get_ps_path() -> executable_path().
+get_ps_path() ->
+    % Typically "/usr/bin/ps":
+    find_executable( "ps" ).
 
 
 
 -doc """
-Tells whether a gnuplot executable is available, by returning its path if found.
+Tells whether a `gnuplot` executable is available, by returning its path if
+found.
 """.
 -spec get_maybe_gnuplot_path() -> option( executable_path() ).
 get_maybe_gnuplot_path() ->
@@ -968,7 +979,7 @@ get_maybe_gnuplot_path() ->
 
 
 
--doc "Returns an absolute path to a gnuplot executable.".
+-doc "Returns an absolute path to a `gnuplot` executable.".
 -spec get_gnuplot_path() -> executable_path().
 get_gnuplot_path() ->
     % Note: expected to be on the PATH:
@@ -978,9 +989,9 @@ get_gnuplot_path() ->
 
 -doc """
 Returns, as a tuple (e.g. `{4,2}` for the 4.2 version), the gnuplot version
-actually available by default (in the PATH) on this computer.
+actually available by default (in the `PATH`) on this computer.
 """.
--spec get_current_gnuplot_version() -> basic_utils:two_digit_version().
+-spec get_current_gnuplot_version() -> two_digit_version().
 get_current_gnuplot_version() ->
     GnuplotPath = get_gnuplot_path(),
     get_current_gnuplot_version( GnuplotPath ).
@@ -992,7 +1003,7 @@ Returns, as a tuple (e.g. `{4,2}` for the 4.2 version), the gnuplot version
 actually available on this computer.
 """.
 -spec get_current_gnuplot_version( executable_path() ) ->
-            basic_utils:two_digit_version().
+                                                    two_digit_version().
 get_current_gnuplot_version( GnuplotPath ) ->
 
     % gnuplot -V returns information like "gnuplot 4.4 patchlevel 0"; rather
@@ -1182,7 +1193,7 @@ Otherwise, the application configuration will be read for the is_batch key
 also the `-config` command-line option in
 [https://erlang.org/doc/man/config.html]).
 
-Finally, if not set elsewhere, the application resource file (*.app) will be
+Finally, if not set elsewhere, the application resource file (`*.app`) will be
 searched for such an is_batch key.
 
 Note that, if relying on application configuration, the result will depend on
@@ -1239,7 +1250,7 @@ is_batch() ->
 % Helper functions.
 
 
--doc "Executes the dot (Graphviz) tool.".
+-doc "Executes the  `dot` (Graphviz) tool.".
 -spec execute_dot( file_name(), file_name() ) -> command_output().
 execute_dot( PNGFilename, GraphFilename ) ->
 
