@@ -2398,7 +2398,7 @@ local_format( FormatString, Values ) ->
 local_display( S ) ->
     % To avoid a wrong number of arguments being detected due to ~:
     EscapedS = string:replace( _In=S, _SearchPattern="~",
-                               _Replacement="\~", _Where=all),
+                               _Replacement="\~", _Where=all ),
 
     io:format( "~ts~n", [ EscapedS ] ).
 
@@ -3542,7 +3542,7 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 -doc """
 Returns the (longest, possibly empty) common prefix to the two specified
 strings, and any remainder of the two strings once their common prefix has been
-removed (thus their respective suffixes) .
+removed (thus their respective suffixes).
 """.
 -spec get_common_prefix_with_suffixes( ustring(), ustring() ) ->
         { CommonPrefix :: ustring(), FirstSuffix :: ustring(),
