@@ -96,7 +96,6 @@ See `system_utils_test.erl` for the corresponding test.
 
           get_interpreter_version/0, get_application_version/1,
 
-
           get_size_of_vm_word/0, get_size_of_vm_word_string/0,
           get_size/1,
 
@@ -108,11 +107,21 @@ See `system_utils_test.erl` for the corresponding test.
           get_total_physical_memory_on/1, get_memory_used_by_vm/0,
           get_total_memory_used/0,
 
+          interpret_top_processes_memory_wise/0,
+          interpret_top_processes_memory_wise/1,
+          get_top_processes_memory_wise/0, get_top_processes_memory_wise/1,
+          process_memory_info_to_string/1,
+
           get_swap_status/0, get_swap_status_string/0,
           get_core_count/0, get_core_count_string/0,
           get_process_count/0, get_process_count_string/0,
           compute_cpu_usage_between/2, compute_cpu_usage_for/1,
           compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
+
+          interpret_top_processes_cpu_wise/0,
+          interpret_top_processes_cpu_wise/1,
+          get_top_processes_cpu_wise/0, get_top_processes_cpu_wise/1,
+          process_cpu_info_to_string/1,
 
           get_disk_usage/0, get_disk_usage_string/0,
           get_mount_points/0, get_mount_points/1,
@@ -174,11 +183,11 @@ See `system_utils_test.erl` for the corresponding test.
 -doc """
 More precise categorization of an operating system.
 
-Generally using portable facilities (e.g. file_utils) shall be preferred to
+Generally using portable facilities (e.g. `file_utils`) shall be preferred to
 matching any value of that type.
 
 Unix system are designated by the name returned by `uname -s`, but in lower
-case. For example, on Solaris 1 and 2, it is 'sunos'.
+case. For example, on Solaris 1 and 2, it is `sunos`.
 """.
 -type os_name() :: 'linux'
                  | 'sunos'
@@ -234,15 +243,18 @@ Name of a (third-party) prerequisite package (e.g. "ErlPort", "jsx", etc.).
 
 
 
+-doc "A CPU load, as a percentage, possibly higher than 100% with multicores.".
+-type cpu_load() :: percent().
+
+
 -doc "Information about CPU usage.".
 -opaque cpu_usage_info() ::
     { integer(), integer(), integer(), integer(), integer() }.
 
-
-
 -doc "Percentages of CPU usages.".
 -type cpu_usage_percentages() ::
         { percent(), percent(), percent(), percent(), percent() }.
+
 
 
 
@@ -309,10 +321,17 @@ ones).
 
 
 -doc """
-Describes a command to be run (i.e. a path to an executable, with possibly
-command-line arguments).
+Describes, as a plain string, a command to be run (i.e. at least a path to an
+executable, with possibly command-line arguments).
 """.
 -type command() :: any_string().
+
+
+-doc """
+Describes, as a binary string, a command to be run (i.e. at least a path to an
+executable, with possibly command-line arguments).
+""".
+-type bin_command() :: any_string().
 
 
 
@@ -338,8 +357,8 @@ confuse it.
 
 -doc """
 A pair specifying a complete command-line ready to be executed by
-run_executable/n (convenient to store once for all if needing to launch it
-repeatedly). Generally more secure than command/1 as well.
+`run_executable/n` (convenient to store once for all if needing to launch it
+repeatedly). Generally more secure than a full `command/0` as well.
 """.
 -type execution_pair() :: { bin_executable_path(), [ executable_argument() ] }.
 
@@ -395,7 +414,7 @@ standard output; no exit status).
 
 
 -doc """
-Value of a shell environment variable, 'false' meaning that the corresponding
+Value of a shell environment variable, `false` meaning that the corresponding
 variable is not set.
 """.
 -type env_variable_value() :: ustring() | 'false'.
@@ -432,6 +451,9 @@ variable is not set.
 
 -doc "To store (UNIX-like) user names.".
 -type user_name() :: nonempty_string().
+
+-doc "To store (UNIX-like) user names.".
+-type bin_user_name() :: bin_string().
 
 
 
@@ -480,21 +502,33 @@ variable is not set.
 
 
 -doc """
-The PID of an operating-system process (OS-level, not Erlang-level, process
+The PID of an operating-system process (an OS-level - not Erlang-level - process
 identifier).
 """.
 -type os_pid() :: non_neg_integer().
 
 
 
+-doc "Information typically returned by `get_top_processes_memory_wise/1`.".
+-type process_memory_info() :: { RSSSize :: byte_size(), VSZSize :: byte_size(),
+                                 os_pid(), bin_user_name(), bin_command() }.
+
+
+-doc "Information typically returned by `get_top_processes_cpu_wise/1`.".
+-type process_cpu_info() ::
+    { CPULoad :: cpu_load(), os_pid(), bin_user_name(), bin_command() }.
+
+
+
 -export_type([ byte_size/0, bytes_per_second/0, byte_offset/0, bit_size/0,
-               cpu_usage_info/0, cpu_usage_percentages/0,
+               cpu_load/0, cpu_usage_info/0, cpu_usage_percentages/0,
                host_static_info/0, host_dynamic_info/0,
 
                actual_filesystem_type/0, pseudo_filesystem_type/0,
                filesystem_type/0, fs_info/0,
 
-               command/0, executable_argument/0, execution_pair/0,
+               command/0, bin_command/0, executable_argument/0,
+               execution_pair/0,
                port_option/0,
                return_code/0, command_output/0, execution_outcome/0,
 
@@ -505,14 +539,16 @@ identifier).
 
                encoding/0, encoding_option/0, encoding_options/0,
 
-               user_name/0, atom_user_name/0,
+               user_name/0, bin_user_name/0, atom_user_name/0,
                login/0, bin_login/0, any_login/0,
                password/0, bin_password/0, any_password/0,
 
                basic_credential/0,
                group_name/0,
 
-               user_id/0, group_id/0, os_pid/0 ]).
+               user_id/0, group_id/0, os_pid/0,
+
+               process_memory_info/0 ]).
 
 
 % For myriad_spawn*:
@@ -943,18 +979,21 @@ Runs (synchronously) specified command (an executable path possibly followed
 with command-line arguments; specified as a single, standalone string), with no
 specific port option, with a standard environment, from the current working
 directory, and returns its return code (exit status) and its outputs (both the
-standard and the error ones): {ReturnCode,CmdOutput}.
+standard and the error ones): `{ReturnCode,CmdOutput}`.
 
 This function will run a specific executable, not evaluate a shell expression
-(that would possibly run executables); see evaluate_shell_expression/{1,2} for
+(that would possibly run executables); see `evaluate_shell_expression/{1,2}` for
 that.
 
-So one should not try to abuse this function by adding an ampersand (`&`) at the
-end to trigger a background launch - this would just be interpreted as a last
-argument. Use run_background_command/{1,2,3} in this module instead.
+So one should not try to abuse this function by:
+- using pipes (`|`): for that, call, in this module,
+`evaluate_shell_expression/{1,2}`
+- adding an ampersand (`&`) at the end to trigger a background launch (this
+would just be interpreted as a last argument): for that, call instead
+`run_background_command/{1,2,3}`, in this module as well
 
-Note: the run_executable/* functions shall be preferred (as being better
-regarding encoding and security) to the run_command/* ones, which may be
+Note: the `run_executable/*` functions shall be preferred (as being better
+regarding encoding and security) to the `run_command/*` ones, which may be
 considered available only for backward compatibility.
 """.
 -spec run_command( command() ) -> execution_outcome().
@@ -968,17 +1007,20 @@ Executes (synchronously) specified command (an executable path possibly followed
 with command-line arguments; specified as a single, standalone string), with no
 specific port option, in specified shell environment and from the current
 working directory, and returns its return code (exit status) and its outputs
-(both the standard and the error ones): {ReturnCode,CmdOutput}.
+(both the standard and the error ones): `{ReturnCode,CmdOutput}`.
 
 This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables).
 
-So one should not try to abuse this function by adding an ampersand (`&`) at the
-end to trigger a background launch - this would just be interpreted as a last
-argument. Use run_background_command/{1,2,3} in this module instead.
+So one should not try to abuse this function by:
+- using pipes (`|`): for that, call, in this module,
+`evaluate_shell_expression/{1,2}`
+- adding an ampersand (`&`) at the end to trigger a background launch (this
+would just be interpreted as a last argument): for that, call instead
+`run_background_command/{1,2,3}`, in this module as well
 
-Note: the run_executable/* functions shall be preferred (as being better
-regarding encoding and security) to the run_command/* ones, which may be
+Note: the `run_executable/*` functions shall be preferred (as being better
+regarding encoding and security) to the `run_command/*` ones, which may be
 considered available only for backward compatibility.
 """.
 -spec run_command( command(), environment() ) -> execution_outcome().
@@ -992,17 +1034,20 @@ Executes (synchronously) specified command (an executable path possibly followed
 with command-line arguments; specified as a single, standalone string), with no
 specific port option, in specified shell environment and working directory, and
 returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode,CmdOutput}.
+error ones): `{ReturnCode,CmdOutput}`.
 
 This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables).
 
-So one should not try to abuse this function by adding an ampersand (`&`) at the
-end to trigger a background launch - this would just be interpreted as a last
-argument. Use run_background_command/{1,2,3} in this module instead.
+So one should not try to abuse this function by:
+- using pipes (`|`): for that, call, in this module,
+`evaluate_shell_expression/{1,2}`
+- adding an ampersand (`&`) at the end to trigger a background launch (this
+would just be interpreted as a last argument): for that, call instead
+`run_background_command/{1,2,3}`, in this module as well
 
-Note: the run_executable/* functions shall be preferred (as being better
-regarding encoding and security) to the run_command/* ones, which may be
+Note: the `run_executable/*` functions shall be preferred (as being better
+regarding encoding and security) to the `run_command/*` ones, which may be
 considered available only for backward compatibility.
 """.
 -spec run_command( command(), environment(), option( working_dir() ) ) ->
@@ -1018,22 +1063,26 @@ Executes (synchronously) the specified command (an executable path possibly
 followed with command-line arguments; specified as a single, standalone string),
 in the specified shell environment and working directory, with specified extra
 port options (possibly containing any relevant command-line arguments; see
-<http://erlang.org/doc/man/erlang.html#open_port-2>).
+[http://erlang.org/doc/man/erlang.html#open_port-2]).
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode,CmdOutput}.
+error ones): `{ReturnCode,CmdOutput}`.
 
 This function will run a specific executable, not evaluate a shell expression
-(that would possibly run executables).
+(that would possibly run executables); see `evaluate_shell_expression/{1,2}` for
+that.
 
-So one should not try to abuse this function by adding an ampersand (`&`) at the
-end to trigger a background launch - this would just be interpreted as a last
-argument. Use run_background_command/{1,2,3} in this module instead.
+So one should not try to abuse this function by:
+- using pipes (`|`): for that, call, in this module,
+`evaluate_shell_expression/{1,2}`
+- adding an ampersand (`&`) at the end to trigger a background launch (this
+would just be interpreted as a last argument): for that, call instead
+`run_background_command/{1,2,3}`, in this module as well
 
 This is the most complete function to run a command.
 
-Note: the run_executable/* functions shall be preferred (as being better
-regarding encoding and security) to the run_command/* ones, which may be
+Note: the `run_executable/*` functions shall be preferred (as being better
+regarding encoding and security) to the `run_command/*` ones, which may be
 considered available only for backward compatibility.
 """.
 -spec run_command( command(), environment(), option( working_dir() ),
@@ -1072,16 +1121,17 @@ run_command( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
 
 -doc """
+
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
-environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with no specific command-line argument, with a
-standard environment, from the current working directory, using the default port
-options.
+environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+no specific command-line argument, with a standard environment, from the current
+working directory, using the default port options.
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode, CmdOutput}.
+error ones): `{ReturnCode, CmdOutput}`.
 """.
 -spec run_executable( executable_path() ) -> execution_outcome().
 run_executable( ExecPath ) ->
@@ -1093,14 +1143,14 @@ run_executable( ExecPath ) ->
 -doc """
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
-environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with specified command-line arguments, with a
-standard environment, from the current working directory, using the default port
-options.
+environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+specified command-line arguments, with a standard environment, from the current
+working directory, using the default port options.
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode, CmdOutput}.
+error ones): `{ReturnCode, CmdOutput}`.
 """.
 -spec run_executable( executable_path(), [ executable_argument() ] ) ->
                             execution_outcome().
@@ -1113,13 +1163,14 @@ run_executable( ExecPath, Arguments ) ->
 -doc """
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
-environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with specified command-line arguments and environment
-variables, from the current working directory, using the default port options.
+environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, using `evaluate_shell_expression/{1,2}` for that)
+with specified command-line arguments and environment variables, from the
+current working directory, using the default port options.
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode, CmdOutput}.
+error ones): `{ReturnCode, CmdOutput}`.
 """.
 -spec run_executable( executable_path(), [ executable_argument() ],
                       environment() ) -> execution_outcome().
@@ -1132,13 +1183,14 @@ run_executable( ExecPath, Arguments, Environment ) ->
 -doc """
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
-environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with specified command-line arguments and environment
-variables, from any specified working directory, using the default port options.
+environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+specified command-line arguments and environment variables, from any specified
+working directory, using the default port options.
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode, CmdOutput}.
+error ones): `{ReturnCode, CmdOutput}`.
 
 """.
 -spec run_executable( executable_path(), [ executable_argument() ],
@@ -1152,13 +1204,14 @@ run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir ) ->
 -doc """
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
-environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with specified command-line arguments and environment
-variables, from any specified working directory and any extra port options.
+environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+specified command-line arguments and environment variables, from any specified
+working directory and any extra port options.
 
 Returns its return code (exit status) and its outputs (both the standard and the
-error ones): {ReturnCode, CmdOutput}.
+error ones): `{ReturnCode, CmdOutput}`.
 
 This is the recommended, most complete way of running an executable.
 """.
@@ -1534,7 +1587,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one should consider using evaluate_background_shell_expression/2 instead.
+one should consider using `evaluate_background_shell_expression/2` instead.
 
 """.
 -spec run_background_command( command(), environment() ) -> void().
@@ -1553,7 +1606,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one should consider using evaluate_background_shell_expression/2 instead.
+one should consider using `evaluate_background_shell_expression/2` instead.
 """.
 -spec run_background_command( command(), environment(),
                               option( working_dir() ) ) -> void().
@@ -1567,7 +1620,7 @@ run_background_command( Command, Environment, MaybeWorkingDir ) ->
 Executes asynchronously, in the background, the specified command, in the
 specified shell environment and working directory, with the specified options
 (possibly containing any relevant command-line arguments; see
-<http://erlang.org/doc/man/erlang.html#open_port-2>).
+[http://erlang.org/doc/man/erlang.html#open_port-2]).
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1575,7 +1628,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one should consider using evaluate_background_shell_expression/2 instead.
+one should consider using `evaluate_background_shell_expression/2` instead.
 
 This is the most complete function to run a background option.
 """.
@@ -1613,11 +1666,11 @@ run_background_command( Command, Environment, MaybeWorkingDir,
 -doc """
 Executes asynchronously, in the background, the specified executable, whose path
 is exactly the specified one (that is: taken verbatim, not looked-up through any
-PATH environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with no specific command-line argument, with a
-standard environment, from the current working directory and using the default
-port options.
+PATH environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+no specific command-line argument, with a standard environment, from the current
+working directory and using the default port options.
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1638,11 +1691,11 @@ run_background_executable( ExecPath ) ->
 -doc """
 Executes asynchronously, in the background, the specified executable, whose path
 is exactly the specified one (that is: taken verbatim, not looked-up through any
-PATH environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with the specified command-line arguments, with a
-standard environment, from the current working directory and using the default
-port options.
+PATH environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+the specified command-line arguments, with a standard environment, from the
+current working directory and using the default port options.
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1650,7 +1703,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one may consider using evaluate_background_shell_expression/2 instead.
+one may consider using `evaluate_background_shell_expression/2` instead.
 """.
 -spec run_background_executable( executable_path(),
                                  [ executable_argument() ] ) -> void().
@@ -1663,11 +1716,11 @@ run_background_executable( ExecPath, Arguments ) ->
 -doc """
 Executes asynchronously, in the background, the specified executable, whose path
 is exactly the specified one (that is: taken verbatim, not looked-up through any
-PATH environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with the specified command-line arguments and
-environment, from the current working directory and using the default port
-options.
+PATH environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+the specified command-line arguments and environment, from the current working
+directory and using the default port options.
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1675,7 +1728,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one may consider using evaluate_background_shell_expression/2 instead.
+one may consider using `evaluate_background_shell_expression/2` instead.
 """.
 -spec run_background_executable( executable_path(), [ executable_argument() ],
                                  environment() ) -> void().
@@ -1688,10 +1741,11 @@ run_background_executable( ExecPath, Arguments, Environment ) ->
 -doc """
 Executes asynchronously, in the background, the specified executable, whose path
 is exactly the specified one (that is: taken verbatim, not looked-up through any
-PATH environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with the specified command-line arguments,
-environment and working directory, and using the default port options.
+PATH environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+the specified command-line arguments, environment and working directory, and
+using the default port options.
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1699,7 +1753,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one may consider using evaluate_background_shell_expression/2 instead.
+one may consider using `evaluate_background_shell_expression/2` instead.
 """.
 -spec run_background_executable( executable_path(), [ executable_argument() ],
                 environment(), option( working_dir() ) ) -> void().
@@ -1713,11 +1767,11 @@ run_background_executable( ExecPath, Arguments, Environment,
 -doc """
 Executes asynchronously, in the background, the specified executable, whose path
 is exactly the specified one (that is: taken verbatim, not looked-up through any
-PATH environment variable; use, in the executable_utils module,
-lookup_executable/{1,2} or find_executable/1 for that; not using any
-intermediary shell either) with the specified command-line arguments,
-environment, working directory and port options (see
-<http://erlang.org/doc/man/erlang.html#open_port-2>).
+PATH environment variable; use, in the `executable_utils` module,
+`lookup_executable/{1,2}` or `find_executable/1` for that; not using any
+intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
+the specified command-line arguments, environment, working directory and port
+options (see [http://erlang.org/doc/man/erlang.html#open_port-2]).
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -1725,13 +1779,13 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one may consider using evaluate_background_shell_expression/2 instead.
+one may consider using `evaluate_background_shell_expression/2` instead.
 
 This is the recommended, most complete way of running an executable in the
 background.
 """.
 -spec run_background_executable( executable_path(), [ executable_argument() ],
-        environment(), option( working_dir() ), [ port_option() ] ) -> void().
+    environment(), option( working_dir() ), [ port_option() ] ) -> void().
 run_background_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
                            PortOptions ) ->
 
@@ -1905,8 +1959,8 @@ add_path_for_executable_lookup( PathName ) ->
 
 -doc """
 Adds the specified directories to the system's executable search paths
-(typically (typically the PATH environment variable), in first position,
-respecting the specified path order.
+(typically the `PATH` environment variable), in first position, respecting the
+specified path order.
 
 Any relative path will be transformed into an absolute one (based on current
 directory) first.
@@ -1946,7 +2000,7 @@ add_paths_for_executable_lookup( [ Path | T ], Acc ) ->
 
 -doc """
 Adds the specified directory to the system's library search paths (typically the
-LD_LIBRARY_PATH environment variable), in first position.
+`LD_LIBRARY_PATH` environment variable), in first position.
 
 A relative path will be transformed into an absolute one (based on current
 directory) first.
@@ -1959,7 +2013,7 @@ add_path_for_library_lookup( PathName ) ->
 
 -doc """
 Adds the specified directories to the system's library search paths (typically
-the LD_LIBRARY_PATH environment variable), in first position, respecting the
+the `LD_LIBRARY_PATH` environment variable), in first position, respecting the
 specified path order.
 
 Any relative path will be transformed into an absolute one (based on current
@@ -2056,8 +2110,8 @@ environment_to_string( Environment ) ->
 Returns the version information of the current Erlang interpreter (actually the
 one of the whole environment, including the VM) being used.
 
-Returns a full version name (e.g. "R13B04") or, if not available, a shorter one
-(e.g. "R11B").
+Returns a full version name (e.g. `"R13B04"`) or, if not available, a shorter
+one (e.g. `"R11B"`).
 """.
 -spec get_interpreter_version() -> ustring().
 get_interpreter_version() ->
@@ -2119,8 +2173,8 @@ get_operating_system_type() ->
 
 -doc """
 Returns the version information (as a 2 or 3-part tuple) corresponding to the
-specified Erlang standard application (e.g. for 'kernel', could return {3,0} or
-{2,16,3}).
+specified Erlang standard application (e.g. for `kernel`, could return `{3,0}`
+or `{2,16,3}`).
 
 Throws an exception if the information could not be retrieved.
 """.
@@ -2179,17 +2233,17 @@ heap (and reference-counted).
 The (flat) size of on-heap terms is incremented to account for the top term word
 (which is kept in a register or on the stack).
 
-Note that the size/1 BIF is not optimized by the JIT, and its use can result in
-worse types for Dialyzer. When one knows that the value being tested must be a
-tuple, tuple_size/1 should always be preferred.
+Note that the `size/1` BIF is not optimized by the JIT, and its use can result
+in worse types for Dialyzer. When one knows that the value being tested must be
+a tuple, `tuple_size/1` should always be preferred.
 
-When one knows that the value being tested must be a binary, byte_size/1 should
-be preferred, provided the value is not a bitstring (that are accepted by
-byte_size/1, which rounds up size to a whole number of bytes) - so is_binary/1
-shall be used beforehand (note that the compiler removes redundant calls to
-is_binary/1).
+When one knows that the value being tested must be a binary, `byte_size/1`
+should be preferred, provided the value is not a bitstring (that are accepted by
+`byte_size/1` which rounds up size to a whole number of bytes) - so
+`is_binary/1` shall be used beforehand (note that the compiler removes redundant
+calls to `is_binary/1`).
 
-See also <https://www.erlang.org/doc/efficiency_guide/advanced.html>.
+See also [https://www.erlang.org/doc/efficiency_guide/advanced.html].
 """.
 -spec get_size( term() ) -> byte_size().
 get_size( Bin ) when is_binary( Bin ) ->
@@ -2209,7 +2263,7 @@ expressed in bytes, using multipliers of 2^10=1024 (hence not SI kilos, that is
 1000-based multipliers): GiB (Gibibytes, not Gigabytes), MiB (Mebibytes, not
 Megabytes), KiB (Kibibytes, not Kilobytes) and bytes.
 
-See <http://en.wikipedia.org/wiki/Kibibyte>.
+See [http://en.wikipedia.org/wiki/Kibibyte].
 """.
 -spec interpret_byte_size( byte_size() ) -> ustring().
 interpret_byte_size( SizeInBytes ) ->
@@ -2295,7 +2349,7 @@ Gigabytes), MiB (Mebibytes, not Megabytes), KiB (Kibibytes, not Kilobytes) and
 bytes, rounding that value to 1 figure after the comma (this is thus an
 approximate value).
 
-See <http://en.wikipedia.org/wiki/Kibibyte>.
+See [http://en.wikipedia.org/wiki/Kibibyte].
 """.
 -spec interpret_byte_size_with_unit( byte_size() ) -> ustring().
 interpret_byte_size_with_unit( Size ) ->
@@ -2336,12 +2390,12 @@ interpret_byte_size_with_unit( Size ) ->
 Converts the specified size, in bytes, as a value expressed in an appropriate
 size unit.
 
-Returns a { Unit, Value } pair, in which:
+Returns a `{Unit,Value}` pair, in which:
 
 - Unit is the largest size unit that can be selected so that the specified size
 if worth at least 1 unit of it (e.g. we do not want a value 0.9, at least 1.0 is
-wanted); Unit can be 'gib', for GiB (Gibibytes), 'mib', for MiB (Mebibytes),
-'kib' for KiB (Kibibytes), or 'byte', for Byte
+wanted); Unit can be `gib`, for GiB (Gibibytes), `mib`, for MiB (Mebibytes),
+`kib` for KiB (Kibibytes), or `byte`, for Byte
 
 - Value is the converted byte size, in the specified returned unit, expressed
 either as an integer (for bytes) or as a float
@@ -2482,7 +2536,7 @@ get_total_physical_memory_string() ->
 
 -doc """
 Returns the total installed physical volatile memory (RAM) of the computer on
-which specified node (specified as an atom) is running, expressed in bytes.
+which the specified node (specified as an atom) is running, expressed in bytes.
 """.
 -spec get_total_physical_memory_on( net_utils:atom_node_name() ) -> byte_size().
 get_total_physical_memory_on( Node ) ->
@@ -2521,9 +2575,9 @@ get_memory_used_by_vm() ->
 
 
 -doc """
-Returns {UsedRAM, TotalRAM} where UsedRAM is the actual total memory used on the
-current host by all applications, in bytes, and TotalRAM is the total installed
-RAM, in bytes.
+Returns `{UsedRAM, TotalRAM}` where UsedRAM is the actual total memory used on
+the current host by all applications, in bytes, and TotalRAM is the total
+installed RAM, in bytes.
 
 The cached memory and the buffers used by the kernel are not taken into account
 into the returned count.
@@ -2658,6 +2712,7 @@ get_total_memory_used() ->
 
 
 
+
 -doc """
 Returns a textual description of the current RAM status.
 
@@ -2692,7 +2747,7 @@ get_ram_status_string() ->
 
 
 -doc """
-Returns {UsedSwap, TotalSwap} where UsedSwap is the size of the used swap and
+Returns `{UsedSwap, TotalSwap}` where UsedSwap is the size of the used swap and
 TotalSwap is the total amount of swap space on the local host, both expressed in
 bytes.
 
@@ -2770,6 +2825,167 @@ get_swap_status_string() ->
                            [ Exception ] )
 
     end.
+
+
+
+
+-doc """
+Returns a description of the processes currently consuming the most RAM, by
+decreasing order.
+
+See `get_top_processes_memory_wise/1` for more details.
+""".
+-spec interpret_top_processes_memory_wise() -> ustring().
+interpret_top_processes_memory_wise() ->
+    interpret_top_processes_memory_wise( _ProcessCount=15 ).
+
+
+-doc """
+Returns a description of the specified number of processes currently consuming
+the most RAM, by decreasing order.
+
+See `get_top_processes_memory_wise/1` for more details.
+""".
+-spec interpret_top_processes_memory_wise( count() ) -> ustring().
+interpret_top_processes_memory_wise( ProcessCount ) ->
+    TotalRAMSize = get_total_physical_memory(),
+    PMemInfos = get_top_processes_memory_wise( ProcessCount ),
+    text_utils:format( "Listing the ~B largest operating-system "
+        "processes currently in RAM, in terms of RSS (VSZ) metrics: ~ts",
+        [ ProcessCount, text_utils:strings_to_string(
+            [ process_memory_info_to_string( PMI, TotalRAMSize )
+                || PMI <- PMemInfos ] ) ] ).
+
+
+
+
+
+-doc """
+Returns a list of information regarding the processes currently consuming the
+most RAM, by decreasing order.
+
+See `get_top_processes_memory_wise/1` for more details.
+""".
+-spec get_top_processes_memory_wise() -> [ { process_memory_info() } ].
+get_top_processes_memory_wise() ->
+    get_top_processes_memory_wise( _ProcessCount=15 ).
+
+
+
+-doc """
+Returns a list of information regarding the specified number of processes
+currently consuming the most RAM, by decreasing order.
+
+`RSS` means *Resident Set Size*, i.e. how much RAM (i.e. physical memory, not
+counting any swap) has been allocated to a process during its execution,
+counting the libraries that it uses that are already loaded in memory, and are
+possibly used by other processes.
+
+`VSZ` means *Virtual Memory Size*, i.e. the total amount of (logical) memory a
+process may hypothetically access (declared pages being load when needed). It
+accounts for the size of the binary itself, any linked libraries, and any stack
+or heap allocations.
+
+The goal being to spot any processes ballooning in memory, we rely primarily on
+`RSS`.
+""".
+-spec get_top_processes_memory_wise( count() ) -> [ { process_memory_info() } ].
+get_top_processes_memory_wise( ProcessCount ) ->
+
+    PsExec = executable_utils:get_ps_path(),
+
+    %FullStr = evaluate_shell_expression( PsExec ++ " aux --sort=-%mem" ),
+
+    % e: display all processes
+    % o: define the columns to be displayed
+    % (sizes in KiB; user column width augmented)
+    %
+    FullStr = evaluate_shell_expression(
+        PsExec ++ " -eo rss,vsz,pid,user:20,args --sort=-rss,-vsz" ),
+
+    % Skip the "RSS VSZ PID USER COMMAND" header
+    % (there is at least one process):
+    %
+    AllLines = tl( text_utils:split( FullStr, _Sep=$\n ) ),
+
+    LineCount = length( AllLines ),
+
+    ToExtractCount = min( ProcessCount, LineCount ),
+
+    { ExtractedLines, _Rest } =
+        list_utils:extract_first_elements( AllLines, ToExtractCount ),
+
+    % Now we have lines in the form of:
+    % "  9200  3984    2729 rambo bash DESKTOP=xfce TRASH=XXX foo -bar".
+    % Extracting the first four fields, the rest being the full command.
+
+    % PCR2 regex, with ^\s* to ignore initial whitespaces, (\S+) to capture a
+    % word, \s+ as words are separated with at least one whitespace, (.*) to
+    % capture all the rest (possibly with whitespaces):
+    %
+    Regex = "^\\s*(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$",
+
+    { ok, CompiledRegexp } = re:compile( Regex ),
+
+    % all_but_first: do not return group 0, i.e. the one corresponding to the
+    % whole string.
+    %
+    % Actually 5-element lists, not 5-tuples:
+    Quintuplets = [ case re:run( L, CompiledRegexp,
+                                 [ { capture, all_but_first, list } ] ) of
+
+        { match, Groups } ->
+            Groups;
+
+        nomatch ->
+            throw( { matching_failed, L } )
+
+      end || L <- ExtractedLines ],
+
+    % Having here elements like {"9200", "3984", "2729, "rambo", "bash
+    % DESKTOP=xfce TRASH=XXX foo -bar"}:
+
+    % KiB is kibibytes, per 1024 rather per 1000:
+    [ { text_utils:string_to_integer( RSSStr ) * 1024,
+        text_utils:string_to_integer( VSZStr ) * 1024,
+        text_utils:string_to_integer( PidStr ),
+        text_utils:string_to_binary( UserStr ),
+        text_utils:string_to_binary( CmdStr ) }
+            || [ RSSStr, VSZStr, PidStr, UserStr, CmdStr ] <:- Quintuplets ].
+
+
+
+-doc """
+Returns a textual description of the specified process memory information; first
+size is the RSS one, second is the VSZ one.
+""".
+-spec process_memory_info_to_string( process_memory_info() ) -> ustring().
+process_memory_info_to_string(
+        _PMemInfo={ RSSSize, VSZSize, OSPid, BinUsername, BinCmd } ) ->
+    text_utils:format( "process ~B: ~ts (~ts), whose user is '~ts' "
+        "and command is: '~ts'",
+        [ OSPid, interpret_byte_size_with_unit( RSSSize ),
+          interpret_byte_size_with_unit( VSZSize ),
+          BinUsername, text_utils:ellipse( BinCmd, _MaxLen=200 ) ] ).
+
+
+-doc """
+Returns a textual description of the specified process memory information; first
+size is the RSS one, second is the VSZ one, and based on the specified total
+physical RAM, the RSS percentage of it is also given.
+""".
+-spec process_memory_info_to_string( process_memory_info(), byte_size() ) ->
+                                                    ustring().
+process_memory_info_to_string(
+        _PMemInfo={ RSSSize, VSZSize, OSPid, BinUsername, BinCmd },
+        TotalRAMSize ) ->
+    text_utils:format( "~ts for process ~B: ~ts (~ts), whose user is '~ts' "
+        "and command is: '~ts'",
+        [ text_utils:percent_to_string( RSSSize / TotalRAMSize ), OSPid,
+          interpret_byte_size_with_unit( RSSSize ),
+          interpret_byte_size_with_unit( VSZSize ),
+          BinUsername, text_utils:ellipse( BinCmd, _MaxLen=200 ) ] ).
+
 
 
 
@@ -2857,7 +3073,7 @@ get_process_count_string() ->
 
 
 -doc """
-Returns an aggregated view of the CPU usage (a float in [0;100]) based on the
+Returns an aggregated view of the CPU usage (a float in `[0;100]`) based on the
 two specified sets of CPU counters, that is the average (on all cores of all
 processors of the local host) percentage of CPU utilization (all kinds of usage
 except idle) during the period which elapsed between the start and end measures
@@ -2869,8 +3085,8 @@ FirstMeasure = system_utils:get_cpu_usage_counters(),
 (do something)
 SecondMeasure = system_utils:get_cpu_usage_counters(),
 
-UsageInPercent = system_utils:compute_cpu_usage_between( FirstMeasure,
-   SecondMeasure )
+UsageInPercent = system_utils:compute_cpu_usage_between(FirstMeasure,
+   SecondMeasure)
 ```
 """.
 -spec compute_cpu_usage_between( cpu_usage_info(), cpu_usage_info() ) ->
@@ -2884,12 +3100,12 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 
 
 -doc """
-Returns an aggregated view of the CPU usage (a float in [0;100]) based on the
+Returns an aggregated view of the CPU usage (a float in `[0;100]`) based on the
 specified detailed CPU percentages, that is the average (on all cores of all
 processors of the local host) percentage of CPU utilization (all kinds of usage
 except idle) during the period the input percentages correspond to.
 
-Returns 'undefined' iff the specified usage is itself undefined.
+Returns `undefined` iff the specified usage is itself undefined.
 """.
 -spec compute_cpu_usage_for( option( cpu_usage_percentages() ) ) ->
                                         option( percent() ).
@@ -2907,12 +3123,12 @@ compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
 -doc """
 Returns a detailed view of the CPU usage, that is the average (on all cores of
 all processors of the local host) percentage of the various kinds of CPU
-utilization: {UserPercent, NicePercent, SystemPercent, IdlePercent,
-OtherPercent}, respectively for user mode, user mode with low priority (nice),
+utilization: `{UserPercent, NicePercent, SystemPercent, IdlePercent,
+OtherPercent}`, respectively for user mode, user mode with low priority (nice),
 system mode, idle task and all other usages (if any), between the two sets of
 measures.
 
-If the two sets of specified counters are equal, returns 'undefined', as no
+If the two sets of specified counters are equal, returns `undefined`, as no
 usage can be quantified then.
 """.
 -spec compute_detailed_cpu_usage( cpu_usage_info(), cpu_usage_info() ) ->
@@ -3010,6 +3226,133 @@ get_cpu_usage_counters() ->
 
 
 -doc """
+Returns a description of the processes currently using the most CPU cumulative
+(not instantaneous) load, by decreasing order.
+
+See `get_top_processes_cpu_wise/1` for more details.
+""".
+-spec interpret_top_processes_cpu_wise() -> ustring().
+interpret_top_processes_cpu_wise() ->
+    interpret_top_processes_cpu_wise( _ProcessCount=15 ).
+
+
+
+-doc """
+Returns a description of the specified number of processes currently using the
+most CPU cumulative (not instantaneous) load, by decreasing order.
+
+See `get_top_processes_cpu_wise/1` for more details.
+""".
+-spec interpret_top_processes_cpu_wise( count() ) -> ustring().
+interpret_top_processes_cpu_wise( ProcessCount ) ->
+    PCpuInfos = get_top_processes_cpu_wise( ProcessCount ),
+    text_utils:format( "Listing the ~B most demanding operating-system "
+                       "processes in terms of cumulated CPU load: ~ts",
+        [ ProcessCount, text_utils:strings_to_string(
+            [ process_cpu_info_to_string( PCI ) || PCI <- PCpuInfos ] ) ] ).
+
+
+
+-doc """
+Returns a list of information regarding the processes currently using the most
+CPU cumulative (not instantaneous) load, by decreasing order.
+
+See `get_top_processes_cpu_wise/1` for more details.
+""".
+-spec get_top_processes_cpu_wise() -> [ { process_cpu_info() } ].
+get_top_processes_cpu_wise() ->
+    get_top_processes_cpu_wise( _ProcessCount=15 ).
+
+
+
+-doc """
+Returns a list of information regarding the specified number of processes
+currently using the most CPU cumulative (not instantaneous) load, by decreasing
+order.
+
+CPU loads, even cumulative ones, may be over 100% with multicore computers.
+""".
+-spec get_top_processes_cpu_wise( count() ) -> [ { process_cpu_info() } ].
+get_top_processes_cpu_wise( ProcessCount ) ->
+
+    % 'top' is interactive, 'pidstat' would be an often unavailable
+    % dependency. No simple way of determining from script the instantaneous CPU
+    % load (like 'top'), besides sampling /proc/<PID>/stat.
+
+    PsExec = executable_utils:get_ps_path(),
+
+    %FullStr = evaluate_shell_expression( PsExec ++ " aux --sort=-%mem" ),
+
+    % e: display all processes
+    % o: define the columns to be displayed
+    % (sizes in KiB; user column width augmented)
+    %
+    FullStr = evaluate_shell_expression(
+        PsExec ++ " -eo %cpu,pid,user:20,args --sort=-%cpu" ),
+
+    % Skip the %CPU PID USER COMMAND" header
+    % (there is at least one process):
+    %
+    AllLines = tl( text_utils:split( FullStr, _Sep=$\n ) ),
+
+    LineCount = length( AllLines ),
+
+    ToExtractCount = min( ProcessCount, LineCount ),
+
+    { ExtractedLines, _Rest } =
+        list_utils:extract_first_elements( AllLines, ToExtractCount ),
+
+    % Now we have lines in the form of:
+    % "9.3 1316240 rambo bash DESKTOP=xfce TRASH=XXX foo -bar".
+    % Extracting the first three fields, the rest being the full command.
+
+    % PCR2 regex, with ^\s* to ignore initial whitespaces, (\S+) to capture a
+    % word, \s+ as words are separated with at least one whitespace, (.*) to
+    % capture all the rest (possibly with whitespaces):
+    %
+    Regex = "^\\s*(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$",
+
+    { ok, CompiledRegexp } = re:compile( Regex ),
+
+    % all_but_first: do not return group 0, i.e. the one corresponding to the
+    % whole string.
+    %
+    % Actually 4-element lists, not 4-tuples:
+    Quadruplets = [ case re:run( L, CompiledRegexp,
+                                 [ { capture, all_but_first, list } ] ) of
+
+        { match, Groups } ->
+            Groups;
+
+        nomatch ->
+            throw( { matching_failed, L } )
+
+      end || L <- ExtractedLines ],
+
+    % Having here elements like {"9.3", "1316240", "rambo", "bash DESKTOP=xfce
+    % TRASH=XXX foo -bar"}:
+
+    [ { text_utils:string_to_float( CPUStr ),
+        text_utils:string_to_integer( PidStr ),
+        text_utils:string_to_binary( UserStr ),
+        text_utils:string_to_binary( CmdStr ) }
+            || [ CPUStr, PidStr, UserStr, CmdStr ] <:- Quadruplets ].
+
+
+
+-doc "Returns a textual description of the specified process CPU information.".
+-spec process_cpu_info_to_string( process_cpu_info() ) -> ustring().
+process_cpu_info_to_string(
+        _PCpuInfo={ CpuLoad, OSPid, BinUsername, BinCmd } ) ->
+    % Already a percentage:
+    text_utils:format( "~.1f% for process ~B, whose user is '~ts' "
+        "and command is: '~ts'",
+        [ CpuLoad, OSPid, BinUsername,
+          text_utils:ellipse( BinCmd, _MaxLen=200 ) ] ).
+
+
+
+-doc """
 Returns the current usage of local disks, as a human-readable string.
 
 Limiting to disks that are local, otherwise, in the presence of a
@@ -3079,7 +3422,7 @@ get_mount_points() ->
 -doc """
 Returns a list of the current, local mount points (excluding the
 pseudo-filesystems), throwing an exception on error if requested, otherwise
-displaying an error trace and returning 'undefined'.
+displaying an error trace and returning `undefined`.
 """.
 -spec get_mount_points( boolean() ) -> option( [ directory_path() ] ).
 get_mount_points( CanFail ) ->
@@ -3152,7 +3495,7 @@ get_filesystem_info( AnyFilesystemPath ) ->
 -doc """
 Returns information about the specified filesystem, throwing an exception on
 error if requested, otherwise displaying an error trace and returning
-'undefined'.
+`undefined`.
 """.
 -spec get_filesystem_info( any_directory_path(), boolean() ) ->
                                             option( fs_info() ).
@@ -3521,7 +3864,7 @@ get_software_base_directory() ->
 
 -doc """
 Returns the (expected, conventional) base installation directory of the
-specified third-party, prerequisite package (e.g. "Foobar").
+specified third-party, prerequisite package (e.g. `"Foobar"`).
 """.
 -spec get_dependency_base_directory( package_name() ) -> directory_path().
 get_dependency_base_directory( PackageName="ErlPort" ) ->
@@ -3616,7 +3959,7 @@ get_dependency_base_directory( PackageName ) ->
 
 -doc """
 Returns the (expected, conventional) code installation directory of the
-specified third-party, prerequisite, Erlang package (e.g. "Foobar").
+specified third-party, prerequisite, Erlang package (e.g. `"Foobar"`).
 """.
 -spec get_dependency_code_directory( package_name() ) -> directory_path().
 get_dependency_code_directory( PackageName ) ->
