@@ -52,8 +52,8 @@ run() ->
     test_facilities:display( "Empty spell tree: ~ts.",
                              [ spell_tree:to_string( EmptyST ) ] ),
 
-    AllStrs = [ "test", "place", "platypus", "porridge", "plate", "placebo",
-                "eric", "eric", "erlang" ],
+    AllStrs = [ "test", "testing", "place", "platypus", "porridge", "plate",
+                "placebo", "eric", "erlang", "eric", "stop", "stop_other" ],
 
     OneWST = spell_tree:register_string( hd( AllStrs ), EmptyST ),
 
@@ -81,7 +81,7 @@ run() ->
         "on the registering of:~n ~p.", [ lists:sort( AllStrs ) ] ),
 
     TestStrs = AllStrs
-        ++ [ "", "other", "p", "pla", "te", "er", "erica", "xyz" ],
+        ++ [ "", "t", "other", "p", "pla", "te", "er", "erica", "xyz" ],
 
     [ test_facilities:display( "Completions determined for prefix '~ts': ~p.",
         [ Pfx, spell_tree:find_completions( Pfx, MultiWST ) ] )
