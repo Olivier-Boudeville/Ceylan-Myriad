@@ -102,14 +102,16 @@ See `system_utils_test.erl` for the corresponding test.
           interpret_byte_size/1, interpret_byte_size_with_unit/1,
           convert_byte_size_with_unit/1,
 
+          report_main_system_metrics/0, report_main_system_metrics/1,
+
           display_memory_summary/0,
           get_total_physical_memory/0, get_total_physical_memory_string/0,
           get_total_physical_memory_on/1, get_memory_used_by_vm/0,
           get_total_memory_used/0,
 
-          interpret_top_processes_memory_wise/0,
-          interpret_top_processes_memory_wise/1,
-          get_top_processes_memory_wise/0, get_top_processes_memory_wise/1,
+          interpret_top_memory_using_processes/0,
+          interpret_top_memory_using_processes/1,
+          get_top_memory_using_processes/0, get_top_memory_using_processes/1,
           process_memory_info_to_string/1,
 
           get_swap_status/0, get_swap_status_string/0,
@@ -118,9 +120,10 @@ See `system_utils_test.erl` for the corresponding test.
           compute_cpu_usage_between/2, compute_cpu_usage_for/1,
           compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
 
-          interpret_top_processes_cpu_wise/0,
-          interpret_top_processes_cpu_wise/1,
-          get_top_processes_cpu_wise/0, get_top_processes_cpu_wise/1,
+
+          interpret_top_cumulated_cpu_processes/0,
+          interpret_top_cumulated_cpu_processes/1,
+          get_top_cumulated_cpu_processes/0, get_top_cumulated_cpu_processes/1,
           process_cpu_info_to_string/1,
 
           get_disk_usage/0, get_disk_usage_string/0,
@@ -509,12 +512,12 @@ identifier).
 
 
 
--doc "Information typically returned by `get_top_processes_memory_wise/1`.".
+-doc "Information typically returned by `get_top_memory_using_processes/1`.".
 -type process_memory_info() :: { RSSSize :: byte_size(), VSZSize :: byte_size(),
                                  os_pid(), bin_user_name(), bin_command() }.
 
 
--doc "Information typically returned by `get_top_processes_cpu_wise/1`.".
+-doc "Information typically returned by `get_top_cumulated_cpu_processes/1`.".
 -type process_cpu_info() ::
     { CPULoad :: cpu_load(), os_pid(), bin_user_name(), bin_command() }.
 
@@ -1518,7 +1521,7 @@ monitor_port( Port, Data ) ->
 
 
 -doc """
-Evaluates specified shell (e.g. sh, bash, etc - not Erlang) expression, in a
+Evaluates specified shell (e.g. sh, bash, etc. - not Erlang) expression, in a
 standard environment.
 
 No return code is available with this approach, only the output of the
@@ -2447,6 +2450,66 @@ convert_byte_size_with_unit( SizeInBytes ) ->
 
 
 -doc """
+Reports the main local, instantaneous system metrics, including the top
+processes in terms of instantaneous CPU use, by decreasing order.
+
+Based on the information returned by the `top` executable.
+""".
+-spec report_main_system_metrics() -> ustring().
+report_main_system_metrics() ->
+    report_main_system_metrics( _ProcessCount=20 ).
+
+
+-doc """
+Reports the main local, instantaneous system metrics, including the specified
+number of the top processes in terms of instantaneous CPU use, by decreasing
+order.
+
+Based on the information returned by the `top` executable.
+""".
+-spec report_main_system_metrics( count() ) -> ustring().
+report_main_system_metrics( ProcessCount ) ->
+
+    % Determining from script the instantaneous CPU load does not require
+    % sampling /proc/<PID>/stat, as 'top' is not necessarily interactive;
+    % moreover 'pidstat' would be an often unavailable dependency. So:
+
+    % Usually /usr/bin/top:
+    case executable_utils:lookup_executable( _ExecName="top" ) of
+
+        false ->
+            % Preferring in a troubleshooting session not to crash in turn:
+            "(no main system metrics to report, as no 'top' executable found)";
+
+        TopExecPath ->
+            % -b: batch mode
+            % -n 1: a single iteration
+            % -c: full command (not just the executable name)
+            % -w N: up to N characters per process line
+            %
+            TopOptsStr = " -b -n 1 -c -w 250",
+
+            FullStr = evaluate_shell_expression( TopExecPath ++ TopOptsStr ),
+
+            AllLines = text_utils:split( FullStr, _Sep=$\n ),
+
+            LineCount = length( AllLines ),
+
+            % For the general information header returned by 'top':
+            HeaderLineCount = 7,
+
+            ToExtractCount = min( ProcessCount+HeaderLineCount, LineCount ),
+
+            { ExtractedLines, _Rest } =
+                list_utils:extract_first_elements( AllLines, ToExtractCount ),
+
+            text_utils:join( _Separator=$\n, ExtractedLines )
+
+    end.
+
+
+
+-doc """
 Returns a summary of the dynamically allocated memory currently being used by
 the Erlang emulator.
 """.
@@ -2833,23 +2896,23 @@ get_swap_status_string() ->
 Returns a description of the processes currently consuming the most RAM, by
 decreasing order.
 
-See `get_top_processes_memory_wise/1` for more details.
+See `get_top_memory_using_processes/1` for more details.
 """.
--spec interpret_top_processes_memory_wise() -> ustring().
-interpret_top_processes_memory_wise() ->
-    interpret_top_processes_memory_wise( _ProcessCount=15 ).
+-spec interpret_top_memory_using_processes() -> ustring().
+interpret_top_memory_using_processes() ->
+    interpret_top_memory_using_processes( _ProcessCount=15 ).
 
 
 -doc """
 Returns a description of the specified number of processes currently consuming
 the most RAM, by decreasing order.
 
-See `get_top_processes_memory_wise/1` for more details.
+See `get_top_memory_using_processes/1` for more details.
 """.
--spec interpret_top_processes_memory_wise( count() ) -> ustring().
-interpret_top_processes_memory_wise( ProcessCount ) ->
+-spec interpret_top_memory_using_processes( count() ) -> ustring().
+interpret_top_memory_using_processes( ProcessCount ) ->
     TotalRAMSize = get_total_physical_memory(),
-    PMemInfos = get_top_processes_memory_wise( ProcessCount ),
+    PMemInfos = get_top_memory_using_processes( ProcessCount ),
     text_utils:format( "Listing the ~B largest operating-system "
         "processes currently in RAM, in terms of RSS (VSZ) metrics: ~ts",
         [ ProcessCount, text_utils:strings_to_string(
@@ -2864,11 +2927,11 @@ interpret_top_processes_memory_wise( ProcessCount ) ->
 Returns a list of information regarding the processes currently consuming the
 most RAM, by decreasing order.
 
-See `get_top_processes_memory_wise/1` for more details.
+See `get_top_memory_using_processes/1` for more details.
 """.
--spec get_top_processes_memory_wise() -> [ { process_memory_info() } ].
-get_top_processes_memory_wise() ->
-    get_top_processes_memory_wise( _ProcessCount=15 ).
+-spec get_top_memory_using_processes() -> [ { process_memory_info() } ].
+get_top_memory_using_processes() ->
+    get_top_memory_using_processes( _ProcessCount=15 ).
 
 
 
@@ -2889,8 +2952,9 @@ or heap allocations.
 The goal being to spot any processes ballooning in memory, we rely primarily on
 `RSS`.
 """.
--spec get_top_processes_memory_wise( count() ) -> [ { process_memory_info() } ].
-get_top_processes_memory_wise( ProcessCount ) ->
+-spec get_top_memory_using_processes( count() ) ->
+                                            [ { process_memory_info() } ].
+get_top_memory_using_processes( ProcessCount ) ->
 
     PsExec = executable_utils:get_ps_path(),
 
@@ -3229,11 +3293,11 @@ get_cpu_usage_counters() ->
 Returns a description of the processes currently using the most CPU cumulative
 (not instantaneous) load, by decreasing order.
 
-See `get_top_processes_cpu_wise/1` for more details.
+See `get_top_cumulated_cpu_processes/1` for more details.
 """.
--spec interpret_top_processes_cpu_wise() -> ustring().
-interpret_top_processes_cpu_wise() ->
-    interpret_top_processes_cpu_wise( _ProcessCount=15 ).
+-spec interpret_top_cumulated_cpu_processes() -> ustring().
+interpret_top_cumulated_cpu_processes() ->
+    interpret_top_cumulated_cpu_processes( _ProcessCount=20 ).
 
 
 
@@ -3241,11 +3305,11 @@ interpret_top_processes_cpu_wise() ->
 Returns a description of the specified number of processes currently using the
 most CPU cumulative (not instantaneous) load, by decreasing order.
 
-See `get_top_processes_cpu_wise/1` for more details.
+See `get_top_cumulated_cpu_processes/1` for more details.
 """.
--spec interpret_top_processes_cpu_wise( count() ) -> ustring().
-interpret_top_processes_cpu_wise( ProcessCount ) ->
-    PCpuInfos = get_top_processes_cpu_wise( ProcessCount ),
+-spec interpret_top_cumulated_cpu_processes( count() ) -> ustring().
+interpret_top_cumulated_cpu_processes( ProcessCount ) ->
+    PCpuInfos = get_top_cumulated_cpu_processes( ProcessCount ),
     text_utils:format( "Listing the ~B most demanding operating-system "
                        "processes in terms of cumulated CPU load: ~ts",
         [ ProcessCount, text_utils:strings_to_string(
@@ -3257,11 +3321,11 @@ interpret_top_processes_cpu_wise( ProcessCount ) ->
 Returns a list of information regarding the processes currently using the most
 CPU cumulative (not instantaneous) load, by decreasing order.
 
-See `get_top_processes_cpu_wise/1` for more details.
+See `get_top_cumulated_cpu_processes/1` for more details.
 """.
--spec get_top_processes_cpu_wise() -> [ { process_cpu_info() } ].
-get_top_processes_cpu_wise() ->
-    get_top_processes_cpu_wise( _ProcessCount=15 ).
+-spec get_top_cumulated_cpu_processes() -> [ { process_cpu_info() } ].
+get_top_cumulated_cpu_processes() ->
+    get_top_cumulated_cpu_processes( _ProcessCount=15 ).
 
 
 
@@ -3272,23 +3336,19 @@ order.
 
 CPU loads, even cumulative ones, may be over 100% with multicore computers.
 """.
--spec get_top_processes_cpu_wise( count() ) -> [ { process_cpu_info() } ].
-get_top_processes_cpu_wise( ProcessCount ) ->
+-spec get_top_cumulated_cpu_processes( count() ) -> [ { process_cpu_info() } ].
+get_top_cumulated_cpu_processes( ProcessCount ) ->
 
-    % 'top' is interactive, 'pidstat' would be an often unavailable
-    % dependency. No simple way of determining from script the instantaneous CPU
-    % load (like 'top'), besides sampling /proc/<PID>/stat.
+    PsExecPath = executable_utils:get_ps_path(),
 
-    PsExec = executable_utils:get_ps_path(),
-
-    %FullStr = evaluate_shell_expression( PsExec ++ " aux --sort=-%mem" ),
+    %FullStr = evaluate_shell_expression( PsExecPath ++ " aux --sort=-%mem" ),
 
     % e: display all processes
     % o: define the columns to be displayed
     % (sizes in KiB; user column width augmented)
     %
     FullStr = evaluate_shell_expression(
-        PsExec ++ " -eo %cpu,pid,user:20,args --sort=-%cpu" ),
+        PsExecPath ++ " -eo %cpu,pid,user:20,args --sort=-%cpu" ),
 
     % Skip the %CPU PID USER COMMAND" header
     % (there is at least one process):
