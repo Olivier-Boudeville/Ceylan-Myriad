@@ -95,7 +95,10 @@ run() ->
           text_utils:strings_to_string(
               [ spell_tree:splitter_to_string( S ) || S <- Splitters ] ) ] ),
 
-    ToResolveStrs = [ "", "foo", "t", "test", "plate", "placeb", "erk", "erl" ],
+    ToResolveStrs = [ "", "foo",
+         "t", "te", "tes", "test", "testo", "testi", "testin", "testing",
+         "testingxx",
+         "p", "pl", "pla", "plat", "plate", "placeb", "erk", "erl" ],
 
     ResolvedStrs = [ spell_tree:resolve( S, MultiWST ) || S <- ToResolveStrs ],
 
