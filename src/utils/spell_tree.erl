@@ -651,37 +651,35 @@ resolve_all( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ],
 
 -doc """
 Returns a list of the splitters for all strings registered in the specified
-spelling tree, i.e. a list of the shortest, unambiguous prefixes/remainder pairs
-for all these strings.
+spelling tree, i.e. a list of the shortest, unambiguous `{Prefix, Remainder}`
+pairs for all these strings.
 
 No specific order shall be expected in the returned splitters.
 
-For example, if a spelling tree registered only "place" and "platypus", then
-their splitters would be, respectively, `{"plac", "e"}` and `{"plat", "ypus"}`.
+For example, if a spelling tree registered only:
+- "place" and "platypus", then their splitters would be, respectively, `{"plac",
+"e"}` and `{"plat", "ypus"}`
+
+- "tire", "test" and "testing", then their splitters would be, respectively,
+`{"ti", "re"}`, `{"te", "st"}` (not just `{"test", ""}`),  and `{"testi", "ng"}`
 """.
 -spec get_splitters( spell_tree() ) -> [ splitter() ].
-% Algorithm is:
-% - if a the string of a node is terminal yet this node has children, that
-% string cannot be abbreviated
-% - if a node does not have any child, then its unambiguous prefix stops just at
-% the first letter of the prefix of this node
-%
+% If a node is terminal, its first letter will suffice.
 get_splitters( ST ) ->
     get_splitters( ST, _Pfx="", _AccSplits=[] ).
 
 
-
 % (helper)
-% Terminal and with no child: first letter sufficient to discriminate.
-get_splitters( _ST={ _STPrefix=[ FirstChar | Rest ], _IsTerminal=true,
-                         _ChildSTs=[] }, Pfx, AccSplits ) ->
-    [ { Pfx ++ [ FirstChar ], Rest } | AccSplits ];
-
-% Terminal with at least one child: cannot be abbreviated, must be complete:
-get_splitters( _ST={ STPrefix, _IsTerminal=true, ChildSTs }, Pfx,
-                   AccSplits ) ->
+%
+% Terminal: can still be shortened to its first letter, regardless of its
+% children (see "test" and "testing", both terminal, becoming "t|est" and
+% "testi|ng"):
+%
+get_splitters(
+        _ST={ STPrefix=[ FirstChar | Rest ], _IsTerminal=true, ChildSTs },
+        Pfx, AccSplits ) ->
     NewPfx = Pfx ++ STPrefix,
-    NewAccSplits = [ { NewPfx, "" } | AccSplits ],
+    NewAccSplits = [ { Pfx ++ [ FirstChar ], Rest } | AccSplits ],
     lists:foldl( fun( ST, AccSp ) ->
                     get_splitters( ST, NewPfx, AccSp )
                  end,
@@ -689,8 +687,7 @@ get_splitters( _ST={ STPrefix, _IsTerminal=true, ChildSTs }, Pfx,
                  _List=ChildSTs );
 
 % Non-terminal, necessarily has at least one child, just recurse:
-get_splitters( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx,
-                   AccSplits ) ->
+get_splitters( _ST={ STPrefix, _IsTerminal, ChildSTs }, Pfx, AccSplits ) ->
     NewPfx = Pfx ++ STPrefix,
     lists:foldl( fun( ST, AccSp ) ->
                     get_splitters( ST, NewPfx, AccSp )
