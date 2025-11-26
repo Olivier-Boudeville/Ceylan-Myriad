@@ -2344,6 +2344,8 @@ is_transient( _T ) ->
     false.
 
 
+% No is_boolean/1 needed, this BIF exists.
+
 
 -doc "Tells whether the specified term is a byte.".
 -spec is_byte( term() ) -> boolean().
@@ -2476,7 +2478,7 @@ Returns a textual description of the specified error triggered by
 -spec interpret_parse_type_error( tagged_error_info() ) -> ustring().
 interpret_parse_type_error( { _ErrorTag=not_string, _ErrorInfo=TypeStr } ) ->
     text_utils:format( "the specified type to parse is not a textual one; "
-        "it is not a string, but:~n ~p", [ TypeStr ] );
+        "it is not a string, but '~p'", [ TypeStr ] );
 
 interpret_parse_type_error( { _ErrorTag=type_parsing_failed,
                               _ErrorInfo={ ErrStr, TypeStr, Tokens } } ) ->
