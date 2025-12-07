@@ -30,7 +30,7 @@
 -moduledoc """
 Minor utilities to manage **pairs** (that is: all kinds of 2-element tuples).
 
-For lists of tagged pairs, refer to the tagged_list module.
+For lists of tagged pairs, refer to the `tagged_list` module.
 """.
 
 
@@ -39,8 +39,10 @@ For lists of tagged pairs, refer to the tagged_list module.
 -type pair() :: { element(), element() }.
 
 
+
 -doc """
-A pair whose first element is of type F (first), and second of type S (second).
+A pair whose first element is of type `F` (first), and second of type `S`
+(second).
 """.
 -type pair( _F, _S ) :: pair().
 
@@ -49,7 +51,7 @@ A pair whose first element is of type F (first), and second of type S (second).
 -doc """
 A pair whose first element is an atom, and second is of the specified type.
 
-For lists of tagged pairs, refer to the tagged_list module.
+For lists of tagged pairs, refer to the `tagged_list` module.
 """.
 -type tagged_pair( T ) :: { atom(), T }.
 
@@ -57,7 +59,7 @@ For lists of tagged pairs, refer to the tagged_list module.
 -doc """
 A pair whose first element is an atom.
 
-For lists of tagged pairs, refer to the tagged_list module.
+For lists of tagged pairs, refer to the `tagged_list` module.
 """.
 -type tagged_pair() :: { atom(), element() }.
 
@@ -70,6 +72,11 @@ For lists of tagged pairs, refer to the tagged_list module.
 
 -compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
+
+
+% Type shorthand:
+
+-type ustring() :: text_utils:ustring().
 
 
 -doc "Returns the first element of the specified pair.".
@@ -113,7 +120,7 @@ seconds( Pairs ) ->
 -doc """
 Unzips the specified list of pairs.
 
-For example, unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}.
+For example: `unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}`.
 """.
 -spec unzip( [ pair( F, S ) ] ) -> pair( [ F ], [ S ] ).
 unzip( Pairs ) ->
@@ -160,6 +167,6 @@ to_list( _P={ F, S } ) ->
 
 
 -doc "Returns a textual description of the specified pair.".
--spec to_string( pair() ) -> text_utils:ustring().
+-spec to_string( pair() ) -> ustring().
 to_string( _P={ X, Y } ) ->
     text_utils:format( "{ ~p, ~p }", [ X, Y ] ).
