@@ -103,6 +103,7 @@ See `text_utils_test.erl` for the corresponding test.
           string_to_float/1, try_string_to_float/1,
           string_to_atom/1, strings_to_atoms/1,
           terms_to_string/1, terms_to_string/2,
+          terms_to_raw_string/1, terms_to_raw_string/2,
           terms_to_enumerated_string/1, terms_to_listed_string/1,
           binary_to_atom/1, binary_to_integer/1, binary_to_float/1,
           float_to_string/1, float_to_string/2, number_to_string/1,
@@ -4108,6 +4109,27 @@ indentation.
                                             ustring().
 terms_to_string( Terms, IndentationOrBullet ) ->
     strings_to_string( [ format( "~p", [ T ] ) || T <- Terms ],
+                       IndentationOrBullet ).
+
+
+-doc """
+Returns a textual representation of the specified terms, as a list of their
+user-friendly (that is based on `~w`) default representation.
+""".
+-spec terms_to_raw_string( [ term() ] ) -> ustring().
+terms_to_raw_string( Terms ) ->
+    strings_to_string( [ format( "~w", [ T ] ) || T <- Terms ] ).
+
+
+-doc """
+Returns a textual representation of the specified terms, as a list of their
+raw (that is based on `~w`) default representation, for the specified
+indentation.
+""".
+-spec terms_to_raw_string( [ term() ], indentation_level_or_bullet() ) ->
+                                            ustring().
+terms_to_raw_string( Terms, IndentationOrBullet ) ->
+    strings_to_string( [ format( "~w", [ T ] ) || T <- Terms ],
                        IndentationOrBullet ).
 
 
