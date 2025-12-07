@@ -2482,14 +2482,24 @@ report_main_system_metrics( ProcessCount ) ->
             "(no main system metrics to report, as no 'top' executable found)";
 
         TopExecPath ->
+
             % -b: batch mode
             % -n 1: a single iteration
             % -c: full command (not just the executable name)
             % -w N: up to N characters per process line
             %
-            TopOptsStr = " -b -n 1 -c -w 250",
+            % (the default column used for sorting is %CPU - the instantaneous
+            % load, which is the one we are interested in; apparently the fields
+            % displayed by top cannot be set non-interactively, otherwise we
+            % would have gone for: '%CPU %CUC %MEM VIRT RES SWAP TIME+ USER PID
+            % PPID S PR NI COMMAND')
+            %
+            TopOptsStr = "-b -n 1 -c -w 250",
 
-            FullStr = evaluate_shell_expression( TopExecPath ++ TopOptsStr ),
+            % Not wanting to catch 'top' itself:
+            FullStr = evaluate_shell_expression( text_utils:format(
+                "~ts ~ts | grep -v '~ts'",
+                [ TopExecPath, TopOptsStr, TopExecPath ] ) ),
 
             AllLines = text_utils:split( FullStr, _Sep=$\n ),
 
