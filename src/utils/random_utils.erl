@@ -1871,6 +1871,8 @@ Could be named normal_2p_pdf() as well.
 % One shall instead use either the {gaussian, Mu, Sigma} law specification or
 % the {positive_integer_gaussian, Mu, Sigma} one.
 
+
+% At least currently, preferring relying on 'rand':
 %-define(use_crypto_module,).
 
 
@@ -2104,8 +2106,8 @@ stop_random_source() ->
 Returns a random float uniformly distributed between 0.0 (included) and 1.0
 (excluded), updating the random state in the process dictionary.
 
-Spec already specified, for all random settings.
 """.
+% (spec already specified, for all random settings)
 get_uniform_value() ->
     % Not available: crypto:rand_uniform( 0.0, 1.0 ).
     throw( not_available ).
@@ -2116,25 +2118,31 @@ get_uniform_value() ->
 Returns an integer random value generated from an uniform distribution.
 
 Given an integer `N >= 1`, returns a random integer uniformly distributed
-between 1 and N (both included), updating the random state in the process
+between `1` and `N` (both included), updating the random state in the process
 dictionary.
 
-Spec already specified, for all random settings.
+May raise an `error:low_entropy` exception.
 """.
+% (spec already specified, for all random settings)
 get_uniform_value( N ) ->
-    crypto:rand_uniform( 1, N+1 ).
+    % Now deprecated: crypto:rand_uniform( 1, N+1 ).
+
+    % As 0 =< result < N:
+    crypto:strong_rand_range( N ) + 1.
 
 
 
 -doc """
 Returns an integer random value generated from an uniform distribution in
-`[Nmin,Nmax]` (thus with both bounds included), updating the random state in the
-process dictionary.
-
-Spec already specified, for all random settings.
+`[Nmin,Nmax]` (thus with both bounds included, with Nmax >= Nmin), updating the
+random state in the process dictionary.
 """.
+% (spec already specified, for all random settings)
 get_uniform_value( Nmin, Nmax ) when Nmin =< Nmax ->
-    crypto:rand_uniform( Nmin, Nmax+1 ).
+    % Now deprecated: crypto:rand_uniform( Nmin, Nmax+1 ).
+
+    % As 0 =< result < N:
+    Nmin + crypto:strong_rand_range( Nmax - Nmin + 1 ).
 
 
 
@@ -2145,10 +2153,9 @@ distribution.
 Given a number (integer or float) N (positive or not), returns a random
 floating-point value uniformly distributed between 0.0 (included) and N
 (excluded), updating the random state in the process dictionary.
-
-Spec already specified, for all random settings.
 """.
-get_uniform_floating_point_value( N ) ->
+% (spec already specified, for all random settings)
+get_uniform_floating_point_value( _N ) ->
     throw( not_available ).
 
 
@@ -2161,19 +2168,14 @@ Given two numbers (integer or float) Nmin and Nmax (each being positive or not),
 returns a random floating-point value uniformly distributed between Nmin
 (included) and Nmax (excluded), updating the random state in the process
 dictionary.
-
-Spec already specified, for all random settings.
 """.
-get_uniform_floating_point_value( Nmin, Nmax ) ->
+% (spec already specified, for all random settings)
+get_uniform_floating_point_value( _Nmin, _Nmax ) ->
     throw( not_available ).
 
 
 
--doc """
-Returns the name of the module managing the random generation.
-
-Spec already specified, for all random settings.
-""".
+-doc "Returns the name of the module managing the random generation.".
 -spec get_random_module_name() -> 'crypto'.
 get_random_module_name() ->
     crypto.
@@ -2183,9 +2185,8 @@ get_random_module_name() ->
 -doc """
 Returns the random state of this process (it is useful for example for process
 serialisations).
-
-Spec already specified, for all random settings.
 """.
+% (spec already specified, for all random settings)
 get_random_state() ->
     % At least: not implemented yet.
     throw( not_available ).
@@ -2195,9 +2196,8 @@ get_random_state() ->
 -doc """
 Sets the random state of this process (it is useful for example for process
 serialisations).
-
-Spec already specified, for all random settings.
 """.
+% (spec already specified, for all random settings)
 set_random_state( _NewState ) ->
     % At least: not implemented yet.
     throw( not_available ).
@@ -2393,8 +2393,8 @@ get_uniform_value( N ) ->
 
 
 % doc: Returns an integer random value generated from an uniform distribution in
-% [Nmin,Nmax] (i.e. both bounds included), updating the random state in the
-% process dictionary.
+% [Nmin,Nmax] (i.e. both bounds includedd, with Nmax >= Nmin), updating the
+% random state in the process dictionary.
 %
 % Spec already specified, for all random settings.
 %
