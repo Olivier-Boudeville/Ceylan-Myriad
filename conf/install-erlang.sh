@@ -51,7 +51,9 @@ fi
 
 
 # Note: if one wants to download src or doc base (i.e. not patch ones) archives
-# by oneself, one may also point directly to http://erlang.org/download/.
+# by oneself, one may also point directly to
+# https://github.com/erlang/otp/releases/download/OTP-x.y/otp_src_x.y.tar.gz
+# (otherwise rely on http://erlang.org/download/).
 
 # Now we keep the SHA512 (previously: MD5) sums of the sources of former
 # Erlang/OTP versions, in order to reduce any risk of downloading an altered
@@ -61,6 +63,9 @@ fi
 
 # As for erlang_commit_id_for_* (Git commit of the release; currently not used),
 # it is just obtained from (some) downloaded source archive.
+
+
+erlang_sha512_for_28_3="a48c9164fe84a5f1d12a814146b287deb25307029b83915020f4f02186d4b427aff8a4121be450eb339ab4ee2e6c98c1ced413e5d86174a88edbf908b2d9eac4"
 
 erlang_sha512_for_28_1="045c7f5d1dd926c277b344ca396d12ff61fb01e0c3419a3171307faa0ecb252e8fe8d67922361d34cda59e30da45b17c347a776c7dc7b4d218f94bdd9764bfaa"
 
@@ -128,8 +133,8 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="28.1"
-erlang_sum="${erlang_sha512_for_28_1}"
+erlang_version="28.3"
+erlang_sum="${erlang_sha512_for_28_3}"
 
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
@@ -138,8 +143,8 @@ erlang_sum="${erlang_sha512_for_28_1}"
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="28.0.2" # "27.3.2"
-erlang_sum_candidate="${erlang_sha512_for_28_0_2}"
+erlang_version_candidate="28.1" # "28.0.2"
+erlang_sum_candidate="${erlang_sha512_for_28_1}"
 #erlang_commit_id_candidate=""
 
 base_install_dir="${HOME}/Software/Erlang"
