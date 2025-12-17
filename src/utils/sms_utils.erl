@@ -30,10 +30,10 @@
 -moduledoc """
 Gathering of various convenient **SMS-related** facilities.
 
-They rely mostly on a web gateway for that. See <http://mobile.esperide.org> for
+They rely mostly on a web gateway for that. See [http://mobile.esperide.org] for
 one based typically on 3G devices.
 
-See sms_utils_test.erl for testing.
+See `sms_utils_test.erl` for testing.
 """.
 
 
@@ -80,9 +80,15 @@ See sms_utils_test.erl for testing.
 
 
 % Sending-related functions:
--export([ create_sms/3, create_sms/4, send/2, send/7,
-          update_credits/1,
-          account_to_string/1, sms_to_string/1 ]).
+-export([ create_sms/3, create_sms/4, send/2, send/7 ]).
+
+
+% General functions:
+-export([ check_phone_number/1 ]).
+
+
+% Other functions:
+-export([ update_credits/1, account_to_string/1, sms_to_string/1 ]).
 
 
 
@@ -107,10 +113,24 @@ See sms_utils_test.erl for testing.
 
 
 -doc """
-A phone number, preferably international, preferably with no whitespaces (e.g.
-"+330616XXXXXX").
+A phone number (mobile or not), preferably international, preferably with no
+whitespaces (e.g. `"+330616XXXXXX"`), as a plain string.
 """.
 -type phone_number() :: ustring().
+
+
+-doc """
+A phone number (mobile or not), preferably international, preferably with no
+whitespaces (e.g. `<<"+330616XXXXXX">>`), as a binary string.
+""".
+-type bin_phone_number() :: bin_string().
+
+
+-doc """
+A phone number (mobile or not), preferably international, preferably with no
+whitespaces (e.g. `<<"+330616XXXXXX">>`), as any string.
+""".
+-type any_phone_number() :: any_string().
 
 
 
@@ -200,7 +220,8 @@ actually SMS always shown as sent by the number "38200".
 
 
 
--export_type([ provider/0, credits/0, sms_account/0, message/0, phone_number/0,
+-export_type([ provider/0, credits/0, sms_account/0, message/0,
+               phone_number/0, bin_phone_number/0, any_phone_number/0,
                recipient/0, sender_description/0, service_class/0, sms/0,
                sending_outcome/0 ]).
 
@@ -210,11 +231,13 @@ actually SMS always shown as sent by the number "38200".
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
 
 
 
 -doc """
-Creates a SMS record instance from specified information, the service class
+Creates a SMS record instance from the specified information, the service class
 being not defined, so that the default class of the account will prevail.
 """.
 -spec create_sms( message(), recipient(), sender_description() ) -> sms().
@@ -225,7 +248,7 @@ create_sms( Message, Recipient, SenderDescription ) when is_list( Message )
 
 
 
--doc "Creates a SMS record instance from specified information.".
+-doc "Creates a SMS record instance from the specified information.".
 -spec create_sms( message(), recipient(), sender_description(),
                   option( service_class() ) ) -> sms().
 create_sms( Message, Recipient, SenderDescription, ServiceClass )
@@ -264,15 +287,15 @@ create_sms( Message, Recipient, SenderDescription, ServiceClass )
 % Sending-related functions.
 
 
--doc "Sends specified SMS, using specified account.".
+-doc "Sends the specified SMS, using the specified account.".
 -spec send( sms(), sms_account() ) -> { sending_outcome(), sms_account() }.
 send( #sms{ message=Message, recipient=Recipient,
             sender_description=SenderDescription, service_class=ServiceClass },
-      Account=#sms_account{ provider=Provider,
-                            user_name=UserName, password=Password,
-                            default_class=DefaultClass, credits=Credits,
-                            sent_count=SentCount, sent_success_count=Successes
-                          } ) ->
+      Account=#sms_account{
+          provider=Provider,
+          user_name=UserName, password=Password,
+          default_class=DefaultClass, credits=Credits,
+          sent_count=SentCount, sent_success_count=Successes } ) ->
 
     % From a user perspective, to a technical one:
 
@@ -310,7 +333,7 @@ send( #sms{ message=Message, recipient=Recipient,
 
 
 -doc """
-Sends specified SMS, using most detailed (explicit) settings.
+Sends the specified SMS, using most detailed (explicit) settings.
 
 (base, only actual sending function)
 """.
@@ -411,12 +434,37 @@ send( Provider, _ServiceClass, _Username, _Password, _Message, _Recipient,
 
 
 -doc """
+Checks that the specified term is a string-based phone number
+(`phone_number/0`), and returns its binary form, otherwise throws an exception.
+""".
+-spec check_phone_number( term() ) -> bin_phone_number().
+% Of course a regex could be used.
+check_phone_number( Str=[ $+ | Digits ] ) ->
+
+    text_utils:are_digits( Digits ) orelse
+        throw( { invalid_phone_number, not_digits_after_plus, Str } ),
+
+    text_utils:string_to_binary( Str );
+
+check_phone_number( Digits ) when is_list( Digits ) ->
+
+    text_utils:are_digits( Digits ) orelse
+        throw( { invalid_phone_number, not_digits, Digits } ),
+
+    text_utils:string_to_binary( Digits );
+
+check_phone_number( Other ) ->
+    throw( { invalid_phone_number, not_string, Other } ).
+
+
+
+-doc """
 Returns the specified SMS account, whose credit count has been updated, telling
 whether the actual, provider-obtained count corresponds to the recorded one
-('matching') or not ('overwritten'), in which case the actual one replaces the
+(`matching`) or not (`overwritten`), in which case the actual one replaces the
 recorded one.
 
-If the operation failed, returns 'failed' with an unchanged account.
+If the operation failed, returns `failed` with an unchanged account.
 """.
 -spec update_credits( sms_account() ) ->
                 { 'matching' | 'overwritten' | 'failed', sms_account() }.
@@ -502,7 +550,7 @@ get_mime_type() ->
 
 -doc """
 Returns the current number of credits for the specified account, as reported by
-the provider, or 'undefined' if the operation failed.
+the provider, or `undefined` if the operation failed.
 """.
 -spec get_credits_for( sms_account() ) -> credits().
 get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
@@ -563,11 +611,7 @@ get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
 
 
 
--doc """
-Executes the specified HTTP request.
-
-(helper)
-""".
+-doc "Executes the specified HTTP request.".
 execute_request( Request, Username, Password, Recipient ) ->
 
     % Note: should use web_utils now.
