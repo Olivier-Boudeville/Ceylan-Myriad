@@ -134,14 +134,15 @@ See `text_utils_test.erl` for the corresponding test.
 
           get_unique_string/2,
           safe_length/1, length/1,
-          uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
+          lowercase_initial_letter/1, uppercase_initial_letter/1,
+          to_lowercase/1, to_uppercase/1,
           flatten/1, io_to_binary/1,
           join/2, bin_join/2, join_maybe/2,
 
           split/2,
           split_lines/1, unsplit_lines/1, bin_unsplit_lines/1,
           split_per_element/2, split_parsed/2,
-          split_at_whitespaces/1,
+          split_at_whitespaces/1, split_at_whitespaces_non_empty/1,
           split_at_first/2, split_camel_case/1, split_every/2,
 
           tokenizable_to_camel_case/2,
@@ -186,7 +187,8 @@ See `text_utils_test.erl` for the corresponding test.
           pad_string_right/2, pad_string_right/3,
           center_string/2, center_string/3,
 
-          is_char/1, is_chars/1, is_nested_chars/1,
+          is_char/1, are_chars/1, are_nested_chars/1,
+          is_digit/1, check_digit/1, are_digits/1, check_digits/1,
           is_string/1, is_bin_string/1, is_any_string/1, is_non_empty_string/1,
           is_string_like/1,
           are_strings/1, are_binaries/1, are_of_same_string_type/2,
@@ -3299,8 +3301,8 @@ ensure_string( String ) ->
 -doc """
 Returns a (plain) string version of the specified text-like parameter.
 
-CanFailDueToTranscoding tells whether, should a transcoding fail, this function
-is allowed to fail in turn.
+`CanFailDueToTranscoding` tells whether, should a transcoding fail, this
+function is allowed to fail in turn.
 
 Note: using such functions may be a bad practice, as it may lead to losing the
 awareness of the types of the variables that are handled. We now output warning
@@ -4185,6 +4187,22 @@ binary_to_float( BinString ) ->
 
 
 -doc """
+Uncapitalises the specified string, ensuring that the first letter of the plain
+returned string is not a capital letter - lowercasing it if necessary.
+""".
+-spec lowercase_initial_letter( any_string() ) -> ustring().
+lowercase_initial_letter( LettersBin ) when is_binary( LettersBin ) ->
+    lowercase_initial_letter( binary_to_list( LettersBin ) );
+
+lowercase_initial_letter( _Letters=[] ) ->
+    [];
+
+lowercase_initial_letter( _Letters=[ First | Others ] ) ->
+    % More reliable than to use First-$a+$A if $a =< First, First =< $z:
+    [ string:to_lower( First ) | Others ].
+
+
+-doc """
 Capitalises the specified string, ensuring that the first letter of the plain
 returned string is a capital letter - uppercasing it if necessary.
 """.
@@ -4202,7 +4220,7 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 -doc """
-Sets the specified string to lowercase, that is downcase it (as a whole).
+Sets the specified string to lowercase, that is downcases it (as a whole).
 """.
 -spec to_lowercase( ustring() ) -> ustring();
                   ( bin_string() ) -> bin_string().
@@ -4536,15 +4554,29 @@ split_parsed( _ParseString=[ Other | _T ], _Separators, _AccElem, _AccStrs ) ->
 
 
 -doc """
-Splits the specified string into a list of strings, using whitespaces as
-separators.
+Splits the specified any-string into a list of strings of the same type
+(plain/binary ones), using whitespaces as separators, returning a list possibly
+including empty strings.
 
 For example: `split_at_whitespaces("  aaa  bbb  ccc  ") =
     [[], [], "aaa", [], "bbb", [], "ccc", [], []]`.
 """.
--spec split_at_whitespaces( ustring() ) -> [ ustring() ].
+-spec split_at_whitespaces( any_string() ) -> [ any_string() ].
 split_at_whitespaces( String ) ->
     split( String, list_whitespaces() ).
+
+
+-doc """
+Splits the specified any-string into a list of strings of the same type
+(plain/binary ones), using whitespaces as separators, returning a list of
+non-empty strings.
+
+For example: `split_at_whitespaces_non_empty(<<"  aaa  bbb  ccc  ">>) =
+    [<<"aaa">>, <<"bbb">>, <<"ccc">>]`.
+""".
+-spec split_at_whitespaces_non_empty( any_string() ) -> [ any_string() ].
+split_at_whitespaces_non_empty( String ) ->
+    [ S || S <- split_at_whitespaces( String ), S =/= [] ].
 
 
 
@@ -5103,7 +5135,7 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 -doc "Removes all newlines from the specified string.".
 -spec remove_newlines( ustring() ) -> ustring().
 remove_newlines( String ) ->
-    lists:flatten( string:replace( String, "\n", "", all ) ).
+    lists:flatten( string:replace( String, _Src="\n", _Target="", all ) ).
 
 
 
@@ -6044,11 +6076,11 @@ is_char( _Other ) ->
 Tells whether the specified term is a list of (possibly Unicode, UTF-8)
 characters, i.e. `[char()]`.
 """.
--spec is_chars( term() ) -> boolean().
-is_chars( L ) when is_list( L ) ->
+-spec are_chars( term() ) -> boolean().
+are_chars( L ) when is_list( L ) ->
     lists:all( fun( C ) -> is_char(C) end, L );
 
-is_chars( _Other ) ->
+are_chars( _Other ) ->
     false.
 
 
@@ -6056,14 +6088,67 @@ is_chars( _Other ) ->
 Tells whether the specified term is a nested string, that is a possibly
 arbitrarily deep list containing only `char()` elements, and lists thereof.
 """.
--spec is_nested_chars( term() ) -> boolean().
-is_nested_chars( L ) when is_list( L ) ->
-    lists:all( fun is_nested_chars/1, L );
+-spec are_nested_chars( term() ) -> boolean().
+are_nested_chars( L ) when is_list( L ) ->
+    lists:all( fun are_nested_chars/1, L );
 
-is_nested_chars( C ) ->
+are_nested_chars( C ) ->
     is_char( C ).
 
 
+
+-doc """
+Tells whether the specified term is a character corresponding to a digit,
+i.e. in the `[$0, $9]` range.
+""".
+-spec is_digit( term() ) -> boolean().
+is_digit( I ) when is_integer( I ), I >= $0, I =< $9 ->
+    true;
+
+is_digit( _Other ) ->
+    false.
+
+
+
+-doc """
+Checks that the specified term is a character corresponding to a digit,
+i.e. in the `[$0, $9]` range, and returns it.
+""".
+-spec check_digit( term() ) -> uchar().
+check_digit( T ) ->
+    case is_digit( T ) of
+
+        true ->
+            T;
+
+        false ->
+            throw( { not_a_char_digit, T } )
+
+    end.
+
+
+-doc """
+Tells whether the specified term is a list of characters corresponding to
+digits, i.e. in the `[$0, $9]` range.
+""".
+-spec are_digits( term() ) -> boolean().
+are_digits( L ) when is_list( L ) ->
+    lists:all( fun is_digit/1, L );
+
+are_digits( _Other ) ->
+    false.
+
+
+-doc """
+Checks that the specified term is a list of characters corresponding to digits,
+i.e. in the `[$0, $9]` range, and returns it.
+""".
+-spec check_digits( term() ) -> ustring().
+check_digits( L ) when is_list( L ) ->
+    [ check_digit( C ) || C <- L ];
+
+check_digits( Other ) ->
+    throw( { not_char_digits, Other } ).
 
 
 
@@ -6157,7 +6242,7 @@ is_string_like( L ) ->
     % (e.g. with T=["a", "b", 32]), but apparently an atom is accepted iff it is
     % single (not mixed with strings, chars or even just other atoms); so:
     %
-    is_chars( L ).
+    are_chars( L ).
 
 
 
