@@ -655,6 +655,7 @@ eliminate afterwards).
 % Message-related functions.
 -export([ flush_pending_messages/0, flush_pending_messages/1,
           notify_pending_messages/0, check_no_pending_message/0,
+          check_only_normal_exit_pending_messages/0,
 
           wait_for/2, wait_for/4,
 
@@ -1272,6 +1273,7 @@ check_no_pending_message() ->
 
     receive
 
+        % Only the first one reported:
         Message ->
             trace_utils:error_fmt( "Following message was pending in the "
                 "mailbox of ~w:~n  ~p", [ self(), Message ] ),
@@ -1282,6 +1284,38 @@ check_no_pending_message() ->
 
     end.
 
+
+-doc """
+Ensures that only normal EXIT messages (possibly none) are pending in the
+mailbox of this process.
+
+Accepts for example `{'EXIT',#Port<0.6>,normal}` messages.
+
+Does not block.
+
+Useful for tests.
+""".
+-spec check_only_normal_exit_pending_messages() -> void().
+check_only_normal_exit_pending_messages() ->
+
+    receive
+
+        Msg={ 'EXIT', _AnyPortOrPid, normal } ->
+            trace_utils:debug_fmt( "(skipping accepted message ~p)", [ Msg ] ),
+            check_only_normal_exit_pending_messages();
+
+        % Only the first one reported:
+        Message ->
+            trace_utils:error_fmt( "Following non-normal EXIT message "
+                "was pending in the mailbox of ~w:~n  ~p",
+                [ self(), Message ] ),
+            throw( { non_normal_exit_pending_message_in_mailbox, Message,
+                     self() } )
+
+    after 0 ->
+        ok
+
+    end.
 
 
 -doc """
