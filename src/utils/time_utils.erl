@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2025 Olivier Boudeville
+% Copyright (C) 2015-2026 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1779,8 +1779,8 @@ check_maybe_timestamp( Term ) ->
 
 
 -doc """
-Returns a string corresponding to the current timestamp, like: "2009/9/1
-11:46:53".
+Returns a string corresponding to the current timestamp, like: `"2009/9/1
+11:46:53"`.
 
 Note that the display order here is YY-MM-DD (same as when specifying the
 timestamp), as opposed to DD-MM-YY, which is maybe more usual.
@@ -1793,11 +1793,11 @@ get_textual_timestamp() ->
 
 -doc """
 Returns a (clear, non-ambiguous) string corresponding to the specified
-timestamp, like: "2009/9/1 11:46:53".
+timestamp, like: `"2009/9/1 11:46:53"`.
 """.
 -spec get_textual_timestamp( timestamp() ) -> ustring().
 get_textual_timestamp(
-            _Timestamp={ { Year, Month, Day }, { Hour, Minute, Second } } ) ->
+        _Timestamp={ { Year, Month, Day }, { Hour, Minute, Second } } ) ->
     text_utils:format( "~B/~B/~B ~B:~2..0B:~2..0B",
                        [ Year, Month, Day, Hour, Minute, Second ] ).
 
@@ -1927,7 +1927,7 @@ get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
 
 
 -doc """
-Returns a string corresponding to the specified timestamp, with "dash"
+Returns a string corresponding to the specified timestamp, with "dash-based"
 conventions (e.g. used by jsgantt), like `"2017-05-20 12:00:17"`.
 """.
 -spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
