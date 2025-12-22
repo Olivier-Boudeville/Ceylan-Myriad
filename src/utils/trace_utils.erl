@@ -68,9 +68,12 @@ that their names differ).
 -type trace_message() :: ustring().
 
 
-
 -doc "An actual (binary) trace message.".
 -type trace_bin_message() :: bin_string().
+
+
+-doc "An actual trace message, of any string type.".
+-type trace_any_message() :: any_string().
 
 
 
@@ -245,16 +248,16 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
 
 
 
 
 
 -doc "Outputs the specified debug message.".
--spec debug( trace_message() ) -> void().
+-spec debug( trace_any_message() ) -> void().
 debug( Message ) ->
-    actual_display( "[debug] " ++ Message ).
-
+    actual_display( "[debug] ~ts", [ Message ] ).
 
 
 -doc "Outputs the specified formatted debug message.".
@@ -267,8 +270,8 @@ debug_fmt( Format, Values ) ->
 -doc """
 Outputs the specified debug message, with the specified message categorization.
 """.
--spec debug_categorized( trace_message(), trace_message_categorization() ) ->
-                            void().
+-spec debug_categorized( trace_any_message(),
+                         trace_message_categorization() ) -> void().
 debug_categorized( Message, _MessageCategorization=uncategorized ) ->
     actual_display( "[debug] ~ts", [ Message ] );
 
@@ -281,8 +284,8 @@ debug_categorized( Message, MessageCategorization ) ->
 Outputs the specified debug message, with the specified message categorization
 and time information.
 """.
--spec debug_categorized_timed( trace_message(), trace_message_categorization(),
-                               trace_timestamp() ) -> void().
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 debug_categorized_timed( Message, _MessageCategorization=uncategorized,
                          Timestamp ) ->
     actual_display( "[debug][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -294,9 +297,9 @@ debug_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified info message.".
--spec info( trace_message() ) -> void().
+-spec info( trace_any_message() ) -> void().
 info( Message ) ->
-    actual_display( "[info] " ++ Message ).
+    actual_display( "[info] ~ts", [ Message ] ).
 
 
 
@@ -310,7 +313,7 @@ info_fmt( Format, Values ) ->
 -doc """
 Outputs the specified info message, with the specified message categorization.
 """.
--spec info_categorized( trace_message(), trace_message_categorization() ) ->
+-spec info_categorized( trace_any_message(), trace_message_categorization() ) ->
                             void().
 info_categorized( Message, _MessageCategorization=uncategorized ) ->
     actual_display( "[info] ~ts", [ Message ] );
@@ -324,8 +327,8 @@ info_categorized( Message, MessageCategorization ) ->
 Outputs the specified info message, with the specified message categorization
 and time information.
 """.
--spec info_categorized_timed( trace_message(), trace_message_categorization(),
-                              trace_timestamp() ) -> void().
+-spec info_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 info_categorized_timed( Message, _MessageCategorization=uncategorized,
                         Timestamp ) ->
     actual_display( "[info][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -337,9 +340,9 @@ info_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified notice message.".
--spec notice( trace_message() ) -> void().
+-spec notice( trace_any_message() ) -> void().
 notice( Message ) ->
-    actual_display( "[notice] " ++ Message ).
+    actual_display( "[notice] ~ts", [ Message ] ).
 
 
 
@@ -353,8 +356,8 @@ notice_fmt( Format, Values ) ->
 -doc """
 Outputs the specified notice message, with the specified message categorization.
 """.
--spec notice_categorized( trace_message(), trace_message_categorization() ) ->
-                            void().
+-spec notice_categorized( trace_any_message(),
+                          trace_message_categorization() ) -> void().
 notice_categorized( Message, _MessageCategorization=uncategorized ) ->
     actual_display( "[notice] ~ts", [ Message ] );
 
@@ -367,8 +370,8 @@ notice_categorized( Message, MessageCategorization ) ->
 Outputs the specified notice message, with the specified message categorization
 and time information.
 """.
--spec notice_categorized_timed( trace_message(), trace_message_categorization(),
-                                trace_timestamp() ) -> void().
+-spec notice_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 notice_categorized_timed( Message, _MessageCategorization=uncategorized,
                           Timestamp ) ->
     actual_display( "[notice][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -380,9 +383,9 @@ notice_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified warning message.".
--spec warning( trace_message() ) -> void().
+-spec warning( trace_any_message() ) -> void().
 warning( Message ) ->
-    severe_display( "[warning] " ++ Message ),
+    severe_display( "[warning] ~ts", [ Message ] ),
     system_utils:await_output_completion().
 
 
@@ -399,8 +402,8 @@ warning_fmt( Format, Values ) ->
 Outputs the specified warning message, with the specified message
 categorization.
 """.
--spec warning_categorized( trace_message(), trace_message_categorization() ) ->
-                                void().
+-spec warning_categorized( trace_any_message(),
+                           trace_message_categorization() ) -> void().
 warning_categorized( Message, _MessageCategorization=uncategorized ) ->
     severe_display( "[warning] ~ts", [ Message ] );
 
@@ -413,7 +416,7 @@ warning_categorized( Message, MessageCategorization ) ->
 Outputs the specified warning message, with the specified message categorization
 and time information.
 """.
--spec warning_categorized_timed( trace_message(),
+-spec warning_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> void().
 warning_categorized_timed( Message, _MessageCategorization=uncategorized,
                            Timestamp ) ->
@@ -426,9 +429,9 @@ warning_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified error message.".
--spec error( trace_message() ) -> void().
+-spec error( trace_any_message() ) -> void().
 error( Message ) ->
-    severe_display( "[error] " ++ Message ),
+    severe_display( "[error] ~ts", [ Message ] ),
     system_utils:await_output_completion().
 
 
@@ -444,8 +447,8 @@ error_fmt( Format, Values ) ->
 -doc """
 Outputs the specified error message, with the specified message categorization.
 """.
--spec error_categorized( trace_message(), trace_message_categorization() ) ->
-                                            void().
+-spec error_categorized( trace_any_message(),
+                         trace_message_categorization() ) -> void().
 error_categorized( Message, _MessageCategorization=uncategorized ) ->
     severe_display( "[error] ~ts", [ Message ] );
 
@@ -458,8 +461,8 @@ error_categorized( Message, MessageCategorization ) ->
 Outputs the specified error message, with the specified message categorization
 and time information.
 """.
--spec error_categorized_timed( trace_message(), trace_message_categorization(),
-                               trace_timestamp() ) -> void().
+-spec error_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 error_categorized_timed( Message, _MessageCategorization=uncategorized,
                          Timestamp ) ->
     severe_display( "[error][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -471,9 +474,9 @@ error_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified critical message.".
--spec critical( trace_message() ) -> void().
+-spec critical( trace_any_message() ) -> void().
 critical( Message ) ->
-    severe_display( "[critical] " ++ Message ),
+    severe_display( "[critical] ~ts", [ Message ] ),
     system_utils:await_output_completion().
 
 
@@ -490,8 +493,8 @@ critical_fmt( Format, Values ) ->
 Outputs the specified critical message, with the specified message
 categorization.
 """.
--spec critical_categorized( trace_message(), trace_message_categorization() ) ->
-                                            void().
+-spec critical_categorized( trace_any_message(),
+                            trace_message_categorization() ) -> void().
 critical_categorized( Message, _MessageCategorization=uncategorized ) ->
     severe_display( "[critical] ~ts", [ Message ] );
 
@@ -504,7 +507,7 @@ critical_categorized( Message, MessageCategorization ) ->
 Outputs the specified critical message, with the specified message
 categorization and time information.
 """.
--spec critical_categorized_timed( trace_message(),
+-spec critical_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> void().
 critical_categorized_timed( Message, _MessageCategorization=uncategorized,
                             Timestamp ) ->
@@ -517,9 +520,9 @@ critical_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified alert message.".
--spec alert( trace_message() ) -> void().
+-spec alert( trace_any_message() ) -> void().
 alert( Message ) ->
-    severe_display( "[alert] " ++ Message ),
+    severe_display( "[alert] ~ts", [ Message ] ),
     system_utils:await_output_completion().
 
 
@@ -535,8 +538,8 @@ alert_fmt( Format, Values ) ->
 -doc """
 Outputs the specified alert message, with the specified message categorization.
 """.
--spec alert_categorized( trace_message(), trace_message_categorization() ) ->
-                                            void().
+-spec alert_categorized( trace_any_message(),
+                         trace_message_categorization() ) -> void().
 alert_categorized( Message, _MessageCategorization=uncategorized ) ->
     severe_display( "[alert] ~ts", [ Message ] );
 
@@ -549,8 +552,8 @@ alert_categorized( Message, MessageCategorization ) ->
 Outputs the specified alert message, with the specified message categorization
 and time information.
 """.
--spec alert_categorized_timed( trace_message(), trace_message_categorization(),
-                               trace_timestamp() ) -> void().
+-spec alert_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 alert_categorized_timed( Message, _MessageCategorization=uncategorized,
                          Timestamp ) ->
     severe_display( "[alert][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -562,9 +565,9 @@ alert_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 -doc "Outputs the specified emergency message.".
--spec emergency( trace_message() ) -> void().
+-spec emergency( trace_any_message() ) -> void().
 emergency( Message ) ->
-    severe_display( "[emergency] " ++ Message ),
+    severe_display( "[emergency] ~ts", [ Message ] ),
     system_utils:await_output_completion().
 
 
@@ -581,7 +584,7 @@ emergency_fmt( Format, Values ) ->
 Outputs the specified emergency message, with the specified message
 categorization.
 """.
--spec emergency_categorized( trace_message(),
+-spec emergency_categorized( trace_any_message(),
                              trace_message_categorization() ) -> void().
 emergency_categorized( Message, _MessageCategorization=uncategorized ) ->
     severe_display( "[emergency] ~ts", [ Message ] );
@@ -596,8 +599,8 @@ emergency_categorized( Message, MessageCategorization ) ->
 Outputs the specified emergency message, with the specified message
 categorization and time information.
 """.
--spec emergency_categorized_timed( trace_message(),
-            trace_message_categorization(), trace_timestamp() ) -> void().
+-spec emergency_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 emergency_categorized_timed( Message, _MessageCategorization=uncategorized,
                              Timestamp ) ->
     severe_display( "[emergency][at ~ts] ~ts", [ Timestamp, Message ] );
@@ -611,7 +614,7 @@ emergency_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 -doc """
 "Outputs" the specified void message.
 """.
--spec void( trace_message() ) -> void().
+-spec void( trace_any_message() ) -> void().
 void( _Message ) ->
     ok.
 
@@ -629,8 +632,8 @@ void_fmt( _Format, _Values ) ->
 -doc """
 "Outputs" the specified void message, with the specified message categorization.
 """.
--spec void_categorized( trace_message(), trace_message_categorization() ) ->
-                                            void().
+-spec void_categorized( trace_any_message(),
+                        trace_message_categorization() ) -> void().
 void_categorized( _Message, _MessageCategorization ) ->
     ok.
 
@@ -640,8 +643,8 @@ void_categorized( _Message, _MessageCategorization ) ->
 "Outputs" the specified void message, with the specified message categorization
 and time information.
 """.
--spec void_categorized_timed( trace_message(), trace_message_categorization(),
-                              trace_timestamp() ) -> void().
+-spec void_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> void().
 void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
     ok.
 
@@ -699,7 +702,7 @@ upper layers (e.g. `send_alert_fmt/3`, in the Traces layer) do not need to bind
 variables in their body (which may trigger bad matches as soon as more than once
 trace is sent in the same scope).
 """.
--spec echo( trace_message(), trace_severity(),
+-spec echo( trace_any_message(), trace_severity(),
             trace_message_categorization() ) -> void().
 echo( TraceMessage, _TraceSeverity=debug, MessageCategorization ) ->
     debug_categorized( TraceMessage, MessageCategorization );
@@ -740,8 +743,8 @@ upper layers (e.g. `send_alert_fmt/3`, in the Traces layer) do not need to bind
 variables in their body (which may trigger bad matches as soon as more than once
 trace is sent in the same scope).
 """.
--spec echo( trace_message(), trace_severity(), trace_message_categorization(),
-            trace_timestamp() ) -> void().
+-spec echo( trace_any_message(), trace_severity(),
+            trace_message_categorization(), trace_timestamp() ) -> void().
 echo( TraceMessage, _TraceSeverity=debug, MessageCategorization, Timestamp ) ->
     debug_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
 
