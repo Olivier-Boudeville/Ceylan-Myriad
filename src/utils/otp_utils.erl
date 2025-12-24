@@ -1,4 +1,4 @@
-% Copyright (C) 2019-2025 Olivier Boudeville
+% Copyright (C) 2019-2026 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -34,7 +34,7 @@ Useful notably to test an OTP application from within it, from a non-OTP
 context, i.e. from a simple test without needing to create a separate, dedicated
 OTP release for that.
 
-See myriad_otp_application_test.erl as an example.
+See `myriad_otp_application_test.erl` as an example.
 
 Following convention is supposed to apply for testing: all applications
 (i.e. the tested one and its prerequisites) are expected to have their build
@@ -351,14 +351,14 @@ application is started once if active (or not at all if non-active), and after
 all its prerequisites.
 
 The specified, ordered, application list is somehow semantically similar to the
-'deps' entry of a rebar.config file.
+`deps` entry of a `rebar.config` file.
 
 Prerequisites that are common to multiple dependencies are supposed to be of a
 single version.
 
 Note that our previous implementation (refer to commit 5fffa10) used to
 discriminate between applications that are active or not, and to collect their
-start module/arguments; this is not necessary though, as application:start/1
+start module/arguments; this is not necessary though, as `application:start/1`
 seems able to support non-active applications, and for active ones to trigger by
 itself the right start call.
 
@@ -407,11 +407,11 @@ prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
 
 -doc """
 Manages the specified application and, recursively, all its prerequisites
-(direct or not), if any: checks that their .app specification can be found,
+(direct or not), if any: checks that their `.app` specification can be found,
 that they are built, updates the code path accordingly and lists the active
 ones.
 
-Called recursively (through prepare_for_execution/3).
+Called recursively (through `prepare_for_execution/3`).
 
 (helper)
 """.
@@ -468,7 +468,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 -doc """
 Returns the information about the specified OTP application, namely the executed
 application itself or one of its own (direct or indirect) prerequisites
-(supposing the 'default' rebar3 profile being used, if relevant), based on the
+(supposing the `default` rebar3 profile being used, if relevant), based on the
 specified root of the current base tree.
 
 Following locations will be searched for the relevant directories, from the root
@@ -1165,6 +1165,7 @@ stop_application( _AppName=kernel ) ->
 stop_application( AppName ) ->
 
     ?info_fmt( "Stopping the '~ts' OTP application.", [ AppName ] ),
+
     %trace_utils:debug_fmt( "Stopping the '~ts' OTP application.",
     %   [ AppName ] ),
 
