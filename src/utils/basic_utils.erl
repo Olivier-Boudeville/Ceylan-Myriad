@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2025 Olivier Boudeville
+% Copyright (C) 2007-2026 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1218,7 +1218,7 @@ flush_pending_messages() ->
 
 -doc """
 Flushes all the messages still in the mailbox of this process that (exactly)
-match the specified one.
+match the specified one (and only them).
 """.
 -spec flush_pending_messages( any() ) -> void().
 flush_pending_messages( Message ) ->
@@ -1236,7 +1236,7 @@ flush_pending_messages( Message ) ->
 
 
 -doc """
-Reads all pending messages in the mailbox of this process and notifies about
+Reads all pending messages in the mailbox of this process, and notifies about
 them on the console.
 
 Does not block.
@@ -1264,32 +1264,52 @@ notify_pending_messages() ->
 -doc """
 Ensures that no message is pending in the mailbox of this process.
 
+Reports all messages found (in-order), and raises an exception if at least one
+is found.
+
 Does not block.
 
 Useful for tests.
 """.
 -spec check_no_pending_message() -> void().
 check_no_pending_message() ->
+    check_no_pending_message( _Acc=[] ).
+
+
+% (helper)
+check_no_pending_message( Acc ) ->
 
     receive
 
-        % Only the first one reported:
         Message ->
-            trace_utils:error_fmt( "Following message was pending in the "
-                "mailbox of ~w:~n  ~p", [ self(), Message ] ),
-            throw( { pending_message_in_mailbox, Message, self() } )
+            check_no_pending_message( [ Message | Acc ] )
 
     after 0 ->
-        ok
+        Acc =:= [] orelse
+            begin
+
+                RevAcc = lists:reverse( Acc ),
+
+                trace_utils:error_fmt( "Following ~B messages were pending "
+                    "in the mailbox of ~w:~n ~ts", [ length( Acc ), self(),
+                        text_utils:terms_to_string( RevAcc ) ] ),
+
+                throw( { pending_messages_in_mailbox, RevAcc, self() } )
+
+            end
 
     end.
+
 
 
 -doc """
 Ensures that only normal EXIT messages (possibly none) are pending in the
 mailbox of this process.
 
-Accepts for example `{'EXIT',#Port<0.6>,normal}` messages.
+Accepts for example `{'EXIT', #Port<0.6>, normal}` messages.
+
+Reports all non-normal EXIT messages found (in-order), and raises an exception
+if at least one is found.
 
 Does not block.
 
@@ -1297,25 +1317,37 @@ Useful for tests.
 """.
 -spec check_only_normal_exit_pending_messages() -> void().
 check_only_normal_exit_pending_messages() ->
+    check_only_normal_exit_pending_messages( _Acc=[] ).
+
+
+check_only_normal_exit_pending_messages( Acc ) ->
 
     receive
 
         Msg={ 'EXIT', _AnyPortOrPid, normal } ->
             trace_utils:debug_fmt( "(skipping accepted message ~p)", [ Msg ] ),
-            check_only_normal_exit_pending_messages();
+            check_only_normal_exit_pending_messages( Acc );
 
-        % Only the first one reported:
-        Message ->
-            trace_utils:error_fmt( "Following non-normal EXIT message "
-                "was pending in the mailbox of ~w:~n  ~p",
-                [ self(), Message ] ),
-            throw( { non_normal_exit_pending_message_in_mailbox, Message,
-                     self() } )
+        Msg ->
+            check_only_normal_exit_pending_messages( [ Msg | Acc ] )
 
     after 0 ->
-        ok
+        Acc =:= [] orelse
+            begin
+
+                RevAcc = lists:reverse( Acc ),
+
+                trace_utils:error_fmt( "Following ~B non-normal EXIT messages "
+                    "were pending in the mailbox of ~w:~n ~ts", [ length( Acc ),
+                        self(), text_utils:terms_to_string( RevAcc ) ] ),
+
+                throw( { non_normal_exit_pending_message_in_mailbox, RevAcc,
+                         self() } )
+
+            end
 
     end.
+
 
 
 -doc """
