@@ -132,7 +132,7 @@ See `file_utils_test.erl` for the corresponding test.
 
           copy_tree/2,
 
-          rename/2, rename_preserving/2, rename_preserving/3,
+          rename/2, rename_preserving/2, rename_preserving/3, rename_force/2,
           move_file/2, create_link/2,
           hide/1, hide/2, hide_overwriting/1, hide_overwriting/2,
 
@@ -4300,6 +4300,19 @@ rename_preserving( SourceFilePath, DestinationFilePath, HidingSuffix ) ->
 
 
 -doc """
+Renames the specified file; if the destination file already exists, overwrites
+it.
+
+Returns, for convenience, the new name.
+""".
+-spec rename_force( any_file_path(), any_file_path() ) -> any_file_path().
+rename_force( SourceFilePath, DestinationFilePath ) ->
+    remove_file_if_existing( DestinationFilePath ),
+    move_file( SourceFilePath, DestinationFilePath ).
+
+
+
+-doc """
 Hides the specified file: renames it to a conventionally-deriving name, to have
 it out of the way; throws an exception if the resulting file already exists.
 
@@ -4372,10 +4385,13 @@ the specified path.
 
 Note:
  - no check that source is a file or symlink (e.g. not a directory) is done
+ - works across filesystems
  - destination is a file path, not a directory path, and it is expected not to
  exist already
 
 Returns, for convenience, the new path.
+
+See also our `rename*/*` functions.
 """.
 -spec move_file( any_file_path(), any_file_path() ) -> any_file_path().
 move_file( SourceFilePath, DestinationFilePath ) ->
@@ -6586,8 +6602,8 @@ version thereof, whose filename, established based on usual conventions, is
 returned: the name of the input file without its extension.
 
 This function works in pair with `compress/2`, and as such expects that each
-compressed file contains exactly one file, bear the same filename except the
-compressor extension.
+compressed file contains exactly one file, which bears the same filename except
+the compressor extension.
 
 Typically, when a format `MY_FORMAT` is specified, converts a compressed file
 name `foo.extension_of(MY_FORMAT)` into an uncompressed version of it named
@@ -6597,7 +6613,7 @@ So, for example, `decompress("foo.xz", xz)` will generate a `"foo"` file.
 
 If a file with that name already exists, it will be overwritten.
 
-The compressed file remains as is.
+The original, compressed file remains as is.
 """.
 -spec decompress( file_name(), compression_format() ) -> file_name().
 decompress( ZipFilename, _CompressionFormat=zip ) ->
