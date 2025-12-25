@@ -1659,8 +1659,9 @@ shutdown_node() ->
 
 
 -doc """
-Shutdowns specified node (specified as a string or an atom), and returns only
-when it cannot be ping'ed anymore: it is a reliable and synchronous operation.
+Shutdowns the specified node (specified as a string or an atom), and returns
+only when it cannot be ping'ed anymore: it is a reliable and synchronous
+operation.
 
 Throws an exception if not able to terminate it.
 """.
@@ -1709,8 +1710,8 @@ shutdown_node( NodeName ) when is_atom( NodeName ) ->
 
 
 -doc """
-Waits until specified node is unavailable, for the specified number of attempts
-between which the specified duration will be waited .
+Waits until the specified node is unavailable, for the specified number of
+attempts between which the specified duration will be waited.
 """.
 -spec wait_unavailable( atom_node_name(), count(), milliseconds() ) -> void().
 wait_unavailable( NodeName, _AttemptCount=0, _Duration )
@@ -2049,8 +2050,8 @@ send_file( FilePath, RecipientPid ) ->
 
 
 -doc """
-Receives specified file out of band (through a dedicated TCP socket, not thanks
-to Erlang messages), the emitter being supposed to use `send_file/2`.
+Receives the specified file out of band (through a dedicated TCP socket, not
+thanks to Erlang messages), the emitter being supposed to use `send_file/2`.
 
 The file will be written in current directory, and the default TCP port will be
 used.
@@ -2064,9 +2065,9 @@ receive_file( EmitterPid ) ->
 
 
 -doc """
-Receives specified file out of band (through a dedicated TCP socket, not thanks
-to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use `send_file/2`.
+Receives the specified file out of band (through a dedicated TCP socket, not
+thanks to Erlang messages) into specified pre-existing directory, the emitter
+being supposed to use `send_file/2`.
 
 The default TCP port will be used.
 
@@ -2079,9 +2080,9 @@ receive_file( EmitterPid, TargetDir ) ->
 
 
 -doc """
-Receives specified file out of band (through a dedicated TCP socket, not thanks
-to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use `send_file/2`.
+Receives the specified file out of band (through a dedicated TCP socket, not
+thanks to Erlang messages) into specified pre-existing directory, the emitter
+being supposed to use `send_file/2`.
 
 The specified TCP port will be used for that.
 """.
@@ -2121,9 +2122,9 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 
 
 -doc """
-Receives specified file out of band (through a dedicated TCP socket - not thanks
-to Erlang messages) into specified pre-existing directory, the emitter being
-supposed to use `send_file/2`.
+Receives the specified file out of band (through a dedicated TCP socket - not
+thanks to Erlang messages) into specified pre-existing directory, the emitter
+being supposed to use `send_file/2`.
 
 A TCP port in the specified range (min included, max excluded) will be used for
 that (useful to comply with some firewall rules).
@@ -2159,7 +2160,7 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 
 
 
-% Finds next available TCP port for listening in specified range.
+% Finds next available TCP port for listening in the specified range.
 listen_to_next_available_port( _CurrentTCPPort=MaxTCPPort, MinTCPPort,
                                MaxTCPPort ) ->
     throw( { no_available_listen_tcp_port, MinTCPPort, MaxTCPPort } );
