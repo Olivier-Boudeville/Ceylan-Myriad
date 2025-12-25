@@ -311,6 +311,7 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
           get_bin_textual_timestamp/0,
           get_user_friendly_textual_timestamp/1,
           get_french_textual_timestamp/0, get_french_textual_timestamp/1,
+          get_textual_duration_since/1,
           get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
           get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
           get_textual_timestamp_with_dashes/1,
@@ -2323,6 +2324,17 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
     % Milliseconds:
     duration_to_french_string( 1000 * Duration ).
+
+
+
+-doc """
+Returns an (English), smart textual description of the duration between the two
+specified timestamps, using the first one as starting time and the second one as
+stopping time.
+""".
+-spec get_textual_duration_since( timestamp() ) -> ustring().
+get_textual_duration_since( Timestamp ) ->
+    get_textual_duration( Timestamp, _Now=get_timestamp() ).
 
 
 
