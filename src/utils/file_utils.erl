@@ -1,4 +1,4 @@
-% Copyright (C) 2008-2025 Olivier Boudeville
+% Copyright (C) 2008-2026 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -31,7 +31,7 @@
 Gathering of various facilities regarding **files and other filesystem
 elements**.
 
-See `file_utils_test.erl` for the corresponding test.
+See the `file_utils_test` module for the corresponding test.
 """.
 
 
@@ -607,6 +607,7 @@ for further information)
     % (which are plain strings):
     %
   | 'include'.
+
 
 
 -export_type([ path/0, bin_path/0, any_path/0,
@@ -4389,7 +4390,7 @@ Note:
  - destination is a file path, not a directory path, and it is expected not to
  exist already
 
-Returns, for convenience, the new path.
+Returns, for convenience (chaining), the new path.
 
 See also our `rename*/*` functions.
 """.
@@ -4400,7 +4401,8 @@ move_file( SourceFilePath, DestinationFilePath ) ->
     %                         [ SourceFilePath, DestinationFilePath ] ),
 
     %copy_file( SourceFilePath, DestinationFilePath ),
-    %remove_file( SourceFilePath ).
+    %remove_file( SourceFilePath ),
+    %DestinationFilePath.
 
     % Simpler, better than above, yet does not works across filesystems:
     case file:rename( SourceFilePath, DestinationFilePath ) of
@@ -4412,7 +4414,8 @@ move_file( SourceFilePath, DestinationFilePath ) ->
             %trace_utils:info_fmt( "Moving across filesystems '~ts' to '~ts'.",
             %                      [ SourceFilePath, DestinationFilePath ] ),
             copy_file( SourceFilePath, DestinationFilePath ),
-            remove_file( SourceFilePath );
+            remove_file( SourceFilePath ),
+            DestinationFilePath;
 
         { error, _Reason=eacces } ->
             throw( { move_file_failed,
