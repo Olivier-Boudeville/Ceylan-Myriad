@@ -20,7 +20,7 @@
 			install-src install-include install-examples install-test          \
 			install-doc info-install info-install-locations                    \
 			info-install-content create-myriad-checkout create-app-file        \
-			rebar3-application rebar3-upgrade-lock                             \
+			rebar3-application rebar3-upgrade-lock rebar3-bump-lock            \
 			set-rebar-conf set-rebar-conf-for-hex                              \
 			rebar3-release rebar3-development-release                          \
 			rebar3-production-release rebar3-hide-unsupported-sources          \
@@ -655,6 +655,10 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 #
 rebar3-upgrade-lock: create-app-file
 	@$(MYRIAD_REBAR_EXEC) upgrade --all
+
+
+rebar3-bump-lock: rebar3-upgrade-lock
+	@git add -u rebar.lock && git commit -m "Prerequisite versions bumped."
 
 
 # If making a rebar application or release, a symlink suffices, yet not if
