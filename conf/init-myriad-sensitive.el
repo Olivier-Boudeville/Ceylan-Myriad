@@ -6,7 +6,7 @@
 ;; Derives from init-myriad-base.el.
 
 
-;;(message "Entering myriad-security settings.")
+(message "Entering myriad-security settings.")
 
 
 ;; Not wanting to dismiss the startup screen at each Emacs launch:
