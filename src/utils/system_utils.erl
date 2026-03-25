@@ -1344,8 +1344,8 @@ read_port( Port, Data ) ->
 
 
 -doc """
-Our version of io:get_line/1, as an external program so that the VM can be run
-with -noinput (and thus so that {text,term}_ui can be used with the same VM
+Our version of `io:get_line/1`, as an external program so that the VM can be run
+with `-noinput` (and thus so that `{text,term}_ui` can be used with the same VM
 settings).
 """.
 -spec get_line( ustring() ) -> ustring().
@@ -1355,8 +1355,8 @@ get_line( Prompt ) ->
 
 
 -doc """
-Our version of io:get_line/1, as an external program so that the VM can be run
-with -noinput (and thus so that {text,term}_ui can be used with the same VM
+Our version of `io:get_line/1`, as an external program so that the VM can be run
+with `-noinput` (and thus so that `{text,term}_ui` can be used with the same VM
 settings).
 """.
 -spec get_line( ustring(), executable_path() ) -> ustring().
@@ -1390,7 +1390,7 @@ get_line( Prompt, GetLineScriptPath ) ->
 
 
 -doc """
-Returns the path to the Myriad helper script for get_line/1 operations.
+Returns the path to the Myriad helper script for `get_line/1` operations.
 """.
 -spec get_line_helper_script() -> executable_path().
 get_line_helper_script() ->
@@ -1423,7 +1423,7 @@ Returns a default, standard, safe/secure environment for "porcelain"-like
 executions, that is executions that are, as much as possible, reproducible in
 various runtime contexts (typically: with locale-independent outputs).
 
-To be used with run_{command,executable}/n.
+To be used with `run_{command,executable}/*`.
 """.
 -spec get_standard_environment() -> environment().
 get_standard_environment() ->
@@ -2113,31 +2113,55 @@ environment_to_string( Environment ) ->
 Returns the version information of the current Erlang interpreter (actually the
 one of the whole environment, including the VM) being used.
 
-Returns a full version name (e.g. `"R13B04"`) or, if not available, a shorter
-one (e.g. `"R11B"`).
+Returns a full version name (e.g.`"28.3"`) or, if ever not available, a shorter
+one (e.g. `"28"`). May return in some cases strings like `17.0-rc1`.
+
+This function used to return vintage version names like `"R13B04"` or `"R11B"`.
 """.
 -spec get_interpreter_version() -> ustring().
 get_interpreter_version() ->
 
-    % Older versions (pre-R13A?) did not support the otp_release tag:
+    % Best course of action is to read the content of the
+    % ${ERL_INSTALL_ROOT}/releases/${ERL_MAJOR_VERSION}/OTP_VERSION file:
+    %
+    % As older versions (pre-R13A?) did not support the otp_release tag; and for
+    % example V=17 Newer release (e.g. 17.0-rc1) did not comply to the
+    % traditional scheme:
+    %
+    % (and erlang:system_info(version) would return the ERTS version, like
+    % "16.2", whereas erlang:system_info(system_version) would return the full
+    % slogan line of the interpreter)
+    %
     try erlang:system_info( otp_release ) of
 
-        StringVersion ->
+        OTPRelease ->
+            OTPVersionPath = text_utils:format( "~ts/releases/~ts/OTP_VERSION",
+                [ code:root_dir(), OTPRelease ] ),
 
-            try list_to_integer( StringVersion ) of
+            case file_utils:is_existing_file( OTPVersionPath ) of
 
-                V ->
-                    % For example V=17 Newer release (e.g. 17.0-rc1) does not
-                    % comply to the traditional scheme, applying it for
-                    % uniformity and maybe a bit of nostalgia:
-                    %
-                    lists:flatten( io_lib:format( "R~BB", [ V ] ) )
+                true ->
+                    %trace_utils:debug_fmt( "Returning the content of '~ts'.",
+                    %                       [ OTPVersionPath ] ),
+                    Str = text_utils:binary_to_string(
+                        file_utils:read_whole( OTPVersionPath ) ),
 
-            catch
+                    try
 
-                _:_ ->
-                    % For example StringVersion="R13B04":
-                    StringVersion
+                        text_utils:remove_trailing_newline( Str )
+
+                    catch _:_ ->
+                        % Best effort:
+                         Str
+
+
+                    end;
+
+
+                % Surprising:
+                false ->
+                    %trace_utils:debug_fmt( "Returning otp_release version." ),
+                    OTPRelease
 
             end
 
@@ -2145,8 +2169,10 @@ get_interpreter_version() ->
 
         _:_ ->
             % Here we revert to another (older) solution:
+            %
+            % (e.g. {"Erlang/OTP","28"})
             { _OTPInfos, StringVersion } = init:script_id(),
-            % For example StringVersion="R11B"
+            %trace_utils:debug_fmt( "Returning script_id version." ),
             StringVersion
 
     end.
@@ -2197,7 +2223,7 @@ get_application_version( ApplicationName ) ->
 
 
 
--doc "Returns the size, in bytes, of a word of this Virtual Machine.".
+-doc "Returns the size, in bytes, of a word of this (Erlang) Virtual Machine.".
 -spec get_size_of_vm_word() -> byte_size().
 get_size_of_vm_word() ->
     erlang:system_info( wordsize ).
@@ -2205,7 +2231,8 @@ get_size_of_vm_word() ->
 
 
 -doc """
-Returns a textual description of the size of a VM word.
+Returns a textual description of the size of a word of this (Erlang) Virtual
+Machine.
 
 Cannot crash.
 """.
