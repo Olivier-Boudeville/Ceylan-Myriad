@@ -177,7 +177,7 @@ See `text_utils_test.erl` for the corresponding test.
           ellipse/1, ellipse/2, ellipse_fmt/2, ellipse_fmt/3,
           tail/1, tail/2,
 
-          ensure_newline_terminated/1,
+          ensure_newline_terminated/1, remove_trailing_newline/1,
 
           get_default_bullet/0, get_bullet_for_level/1,
           format_text_for_width/2, format_text_for_width/3,
@@ -5720,6 +5720,18 @@ ensure_newline_terminated( Str ) ->
             lists:reverse( [ $\n | RevStr ] )
 
     end.
+
+
+
+-doc """
+Removes the newline expected to be found at the end of the specified string.
+
+Throws if no trailing newline is found.
+""".
+-spec remove_trailing_newline( ustring() ) -> ustring().
+remove_trailing_newline( Str ) ->
+    [ $\n | Rest ] = lists:reverse( Str ),
+    lists:reverse( Rest ).
 
 
 
