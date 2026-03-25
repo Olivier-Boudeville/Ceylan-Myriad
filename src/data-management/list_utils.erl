@@ -1862,35 +1862,37 @@ list for counterparts.
 -spec random_permute( list() ) -> list().
 random_permute( List ) ->
     % Available since R29.0:
-    rand:shuffle( List ).
+    %rand:shuffle( List ).
 
-    % Alternative version:
+    % Alternative, possibly flawed version (breaks cipher_utils_test, possibly
+    % due to different seeding):
+    %
     %Pairs = lists:keysort( _Idx=1, [ { rand:uniform(), E } || E <- List ] ),
     %{ _Rands, Elems } = lists:unzip( Pairs ),
     %Elems.
 
-    %random_permute( List, length( List ) ).
+    random_permute( List, length( List ) ).
 
 
-% random_permute( _List, _RemainingLen=0 ) ->
-%     [];
+random_permute( _List, _RemainingLen=0 ) ->
+    [];
 
-% random_permute( List, RemainingLen ) ->
+random_permute( List, RemainingLen ) ->
 
-%     % Checking is commented-out:
-%     %RemainingLen = length( List ),
+    % Checking is commented-out:
+    %RemainingLen = length( List ),
 
-%     % (using remove_element_at/2 should be quicker than using
-%     % proplists:delete/2, as we stop at the first matching element found)
-%     %
-%     Index = random_utils:get_uniform_value( RemainingLen ),
+    % (using remove_element_at/2 should be quicker than using
+    % proplists:delete/2, as we stop at the first matching element found)
+    %
+    Index = random_utils:get_uniform_value( RemainingLen ),
 
-%     %io:format( "Index=~p, ", [ Index ] ),
+    %io:format( "Index=~p, ", [ Index ] ),
 
-%     % We put the drawn element at head, and recurse in the remaining list:
-%     [ get_element_at( List, Index )
-%         | random_permute( remove_element_at( List, Index ),
-%                           RemainingLen-1 ) ].
+    % We put the drawn element at head, and recurse in the remaining list:
+    [ get_element_at( List, Index )
+        | random_permute( remove_element_at( List, Index ),
+                          RemainingLen-1 ) ].
 
 
 
