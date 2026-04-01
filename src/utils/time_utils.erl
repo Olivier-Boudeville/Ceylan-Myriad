@@ -55,7 +55,9 @@ See `time_utils_test.erl` for the corresponding test.
 % Day management support:
 -export([ is_bank_holiday/2, get_bank_holidays_for/2,
           find_common_bank_holidays/3,
-          get_daylight_saving_time/1, get_day_in_year/1, get_day_rank/1 ]).
+          get_dst_offset/1, get_dst_transitions/1,
+          get_last_sunday/2, get_last_sunday/3,
+          get_day_in_year/1, get_day_rank/1 ]).
 
 
 % Week management support:
@@ -94,7 +96,7 @@ Such numerical values are useful to operate based on ranges.
 
 
 
--doc "User-friendly atom-based version of day_index/0.".
+-doc "User-friendly atom-based version of `day_index/0`.".
 -type week_day() :: 'monday'     % 1
                   | 'tuesday'    % 2
                   | 'wednesday'  % 3
@@ -340,11 +342,16 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 
 
 -doc """
+
 Used to be `calendar:datetime/0`, now uses our types.
 
 A timestamp shall preferably be canonical (e.g. with a canonical month).
 
 For example: `{{2022,11,7}, {13,14,53}}`.
+
+Implicitly relative to a timezone and possibly DST (Daylight saving time).
+
+Often expressed relatively to the user, local time.
 """.
 -type timestamp() :: { date(), time() }.
 
@@ -739,11 +746,26 @@ month_to_string( MonthIndex ) ->
 -doc """
 Returns the duration of the specified month.
 
-Here February lasts always 28 days (as if the year was not a leap one).
+Here, as no year is specified, February lasts always 28 days (as if the year was
+not a leap one).
 """.
 -spec get_month_duration( canonical_month() ) -> days().
+%get_month_duration( MonthIndex ) ->
+%    lists:nth( MonthIndex, get_month_durations() ).
+get_month_duration( _MonthIndex=2 ) ->
+    28;
+
 get_month_duration( MonthIndex ) ->
-    lists:nth( MonthIndex, get_month_durations() ).
+
+    case MonthIndex div 2 of
+
+        0 ->
+            30;
+
+        _One ->
+            31
+
+    end.
 
 
 
@@ -754,10 +776,10 @@ Takes into account leap years.
 """.
 -spec get_month_duration( canonical_month(), year() ) -> days().
 % February is the exception in leap years:
-get_month_duration( MonthIndex=2, Year ) ->
+get_month_duration( _MonthIndex=2, Year ) ->
 
-    % 28:
-    BaseDayCount = lists:nth( MonthIndex, get_month_durations() ),
+    % A base of 28 for February:
+    BaseDayCount = 28,
 
     case is_leap_year( Year ) of
 
@@ -770,7 +792,7 @@ get_month_duration( MonthIndex=2, Year ) ->
     end;
 
 get_month_duration( MonthIndex, _Year ) ->
-    lists:nth( MonthIndex, get_month_durations() ).
+    get_month_duration( MonthIndex ).
 
 
 
@@ -796,7 +818,8 @@ get_month_durations( Year ) ->
 -doc """
 Returns the list of the usual duration of months.
 
-Here February lasts always 28 days (instead of 29 for leap years).
+Here, as no year is specified, February lasts always 28 days (instead of 29 for
+leap years).
 """.
 -spec get_month_durations() -> days().
 get_month_durations() ->
@@ -825,8 +848,8 @@ Returns the rank in year of the specified day, in `[1,365]`.
 
 For example, for the tenth of February: `get_day_rank({2, 10}) = 41.`.
 
-Cannot take into account leap years; prefer using `get_day_in_year/1` whenever
-possible.
+As no year is specified, cannot take into account leap years; prefer using
+`get_day_in_year/1` whenever possible.
 """.
 -spec get_day_rank( date_in_year() ) -> day().
 get_day_rank( { Month, Day } ) ->
@@ -844,7 +867,7 @@ sum_over_months( Month, _MonthDurs=[ M | T ], Acc ) ->
 
 
 -doc """
-Tells whether, for specified country, the specified date is a bank holiday.
+Tells whether, for the specified country, the specified date is a bank holiday.
 """.
 -spec is_bank_holiday( date(), country() ) -> boolean().
 is_bank_holiday( _Date={ Y, M, D }, Country ) ->
@@ -928,9 +951,8 @@ find_common_bank_holidays_helper( CurrentYear, StopYear, Country, AccSet ) ->
 
 
 -doc """
-Returns the (signed) number of hours to offset the UTC in order to obtain the
-local time (typically the Central European Summer Time, UTC+1/UTC+2), for the
-corresponding date.
+Returns the (signed) number of hours to offset any time reference unaware of
+Daylight Saving Time (DST) so that it complies with it.
 
 Since 1996, European Summer Time has been observed between 01:00 UTC (02:00 CET
 and 03:00 CEST) on the last Sunday of March, and 01:00 UTC on the last Sunday of
@@ -940,44 +962,32 @@ For most of the dates, this function is rather cheap. It is an approximation, in
 the sense that the parameter should be a full timestamp (hence with a time), not
 simply a date.
 """.
--spec get_daylight_saving_time( date() ) -> hours().
-get_daylight_saving_time( _Date={ _Y, M, _D } ) when M < 3 ->
+-spec get_dst_offset( date() ) -> hours().
+get_dst_offset( _Date={ _Y, M, _D } ) when M < 3 ->
+    0;
+
+get_dst_offset( _Date={ _Y, M, _D } ) when M > 10 ->
+    0;
+
+get_dst_offset( _Date={ _Y, M, _D } ) when M > 3 andalso M < 10 ->
     1;
 
-get_daylight_saving_time( _Date={ _Y, M, _D } ) when M > 10 ->
-    1;
-
-get_daylight_saving_time( _Date={ _Y, M, _D } ) when M > 3 andalso M < 10 ->
-    2;
-
-% In March or October thus, both with 31 days; maybe in the safe beginning of
-% them:
+% From here M is 3 or 10, i.e. in March or October, both having 31 days; maybe
+% in the safe beginning of them:
 %
 % (at worst, 31 is a Saturday, 30 is Friday, 29 Thursday, 28 Wed, 27 Tues, 26
 % Mon, 25 Sun)
 %
-get_daylight_saving_time( _Date={ _Y, _M=3, D } ) when D < 25 ->
+get_dst_offset( _Date={ _Y, _M=3, D } ) when D < 25 ->
+    0;
+
+get_dst_offset( _Date={ _Y, _M=10, D } ) when D < 25 ->
     1;
 
-get_daylight_saving_time( _Date={ _Y, _M=10, D } ) when D < 25 ->
-    2;
+% Finest cases needed here, for March:
+get_dst_offset( _Date={ Y, M=3, D } ) ->
 
-% Finest cases needed here, first for March:
-get_daylight_saving_time( _Date={ Y, _M=3, D } ) ->
-
-    % Determining the last weekday, in [Monday=1, ..., Sunday=7]:
-    LastSunday = case calendar:day_of_the_week( Y, 3, 31 ) of
-
-        _Sunday=7 ->
-            31;
-
-        % For example if the 31st of March is a Saturday (6), then 31-6=31-7+1
-        % is a Sunday:
-        %
-        OtherWeekday ->
-            31 - OtherWeekday
-
-    end,
+    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
 
     % Not having the hour here, yet as the DST limit is very early this Sunday,
     % we consider that on average we must be already past it:
@@ -985,29 +995,17 @@ get_daylight_saving_time( _Date={ Y, _M=3, D } ) ->
     case D < LastSunday of
 
         true ->
-            1;
+            0;
 
         false ->
-            2
+            1
 
     end;
 
 % Same for October:
-get_daylight_saving_time( _Date={ Y, _M=10, D } ) ->
+get_dst_offset( _Date={ Y, M=10, D } ) ->
 
-    % Determining the last weekday, in [Monday=1, ..., Sunday=7]:
-    LastSunday = case calendar:day_of_the_week( Y, 10, 31 ) of
-
-        _Sunday=7 ->
-            31;
-
-        % For example if the 31st of October is a Saturday (6), then 31-6=31-7+1
-        % is a Sunday:
-        %
-        OtherWeekday ->
-            31 - OtherWeekday
-
-    end,
+    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
 
     % Not having the hour here, yet as the DST limit is very early this Sunday,
     % we consider that on average we must be already past it:
@@ -1015,12 +1013,85 @@ get_daylight_saving_time( _Date={ Y, _M=10, D } ) ->
     case D <  LastSunday of
 
         true ->
-            2;
+            1;
 
         false ->
-            1
+            0
 
     end.
+
+
+
+-doc """
+Returns the day (thus in [1,31]) corresponding to the last Sunday of the
+specified month of the specified year.
+""".
+get_last_sunday( Month, Year ) ->
+    % We need to know the number of the last day of this month:
+    get_last_sunday( Month, Year, get_month_duration( Month, Year ) ).
+
+
+
+-doc """
+Returns the day (thus in [1,31]) corresponding to the last Sunday of the
+specified month - having the specified number of days - of the specified year.
+""".
+get_last_sunday( Month, Year, DayCount ) ->
+    % Determining the last weekday, in [Monday=1, ..., Sunday=7]:
+    case calendar:day_of_the_week( Year, Month, DayCount ) of
+
+        _Sunday=7 ->
+            31;
+
+        % For example if the 31st is a Saturday (6), then 31-6 = 31-7+1 is a
+        % Sunday:
+        %
+        OtherWeekday ->
+            31 - OtherWeekday
+
+    end.
+
+
+
+-doc """
+Returns, for the specified year, the timestamp (in local, non-DST time) of the
+transition from Winter Time to Summer Time (jump of +1 hour), and the other way
+round (Summer to Winter, jump of -1 hour), according to European conventions.
+""".
+-spec get_dst_transitions( year() ) ->
+                        { ToSummer :: timestamp(), ToWinter :: timestamp() }.
+get_dst_transitions( Year ) ->
+    % ToSummer: last Sunday of March, at 2AM it becomes 3AM (one hour is fully
+    % skipped).
+
+    DayCount = 31,
+    March = 3,
+
+    LastMarchSunday = get_last_sunday( March, Year, DayCount ),
+
+    SummerDate = { LastMarchSunday, March, Year },
+
+    % 2AM in non-DST:
+    SummerTime = { 2, 0, 0 },
+
+    ToSummer = { SummerDate, SummerTime },
+
+
+    % ToWinter: last Sunday of October, at 3AM it becomes 2AM (one hour happens
+    % twice).
+
+    October = 10,
+
+    LastOctoberSunday = get_last_sunday( October, Year, DayCount ),
+
+    WinterDate = { LastOctoberSunday, October, Year },
+
+    % 2AM in non-DST (3AM in DST):
+    WinterTime = { 2, 0, 0 },
+
+    ToWinter = { WinterDate, WinterTime },
+
+    { ToSummer, ToWinter }.
 
 
 
