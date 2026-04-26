@@ -31,14 +31,14 @@
 Gathering of various facilities for **dialog management**, for all base dialogs.
 
 Covers the 8 following dialog needs:
-- displaying a message: message_dialog()
-- offering to select a single choice among a set: single_choice_dialog()
-- offering to select multiple choices among a set: multi_choice_dialog()
-- collecting a text from the user: text_entry_dialog()
-- selecting one or more files: file_selection_dialog()
-- selecting one or more directories: directory_selection_dialog()
-- selecting a color: color_selection_dialog()
-- selecting a font: font_selection_dialog()
+- displaying a message: `message_dialog/0`
+- offering to select a single choice among a set: `single_choice_dialog/0`
+- offering to select multiple choices among a set: `multi_choice_dialog/0`
+- collecting a text from the user: `text_entry_dialog/0`
+- selecting one or more files: `file_selection_dialog/0`
+- selecting one or more directories: `directory_selection_dialog/0`
+- selecting a color: `color_selection_dialog/0`
+- selecting a font: `font_selection_dialog/0`
 """.
 
 
@@ -208,8 +208,8 @@ A dialog allowing the user to select multiple options from a set thereof.
 A style element of a file-selection dialog.
 
 Regarding selections made with filesystem-related dialogs: typing a filename
-containing wildcards (*, ?) in the filename text item and clicking on OK will
-result in only the files matching the pattern being displayed.
+containing wildcards (`*`, `?`) in the filename text item and clicking on OK
+will result in only the files matching the pattern being displayed.
 """.
 -type file_selection_dialog_style() ::
     'open_file'
@@ -225,13 +225,13 @@ result in only the files matching the pattern being displayed.
 
 
 -doc """
-A specification of matching expressions, based on wildcards (*, ?).
+A specification of matching expressions, based on wildcards (`*`, `?`).
 
-Entries are separated with semicolons (";"), and if a pipe ("|") is specified,
+Entries are separated with semicolons (`;`), and if a pipe (`|`) is specified,
 it is ignored together with all preceding characters in this entry.
 
 For example:
-"BMP and GIF files (*.bmp;*.gif)|*.bmp;*.gif|PNG files (*.png)|*.png;*.jpeg".
+`"BMP and GIF files (*.bmp;*.gif)|*.bmp;*.gif|PNG files (*.png)|*.png;*.jpeg"`.
 
 Typically useful to select which filesystem entries could be candidates for a
 selection.
@@ -375,11 +375,11 @@ A dialog allowing to select a font installed on the system, and its size.
 
 
 -doc """
-Shows the specified dialog in a modeless way; returns true if the dialog has
+Shows the specified dialog in a non-modal way; returns true if the dialog has
 been shown or hidden, or false if nothing was done because it already was in the
 requested state.
 
-Use show_modal/1 to show it in a modal way.
+Use `show_modal/1` to show it in a modal way.
 """.
 -spec show( dialog() ) -> boolean().
 show( Dialog ) ->
@@ -390,7 +390,7 @@ show( Dialog ) ->
 -doc """
 Shows the specified dialog in a modal way.
 
-Use show/1 to show it in a modeless way.
+Use `show/1` to show it in a modeless way.
 """.
 -spec show_modal( dialog() ) -> dialog_return_code().
 show_modal( Dialog ) ->
@@ -451,7 +451,7 @@ the specified ones.
 
 No entry is selected initially.
 
-A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+A bit similar in spirit to the `{,text_,term_}ui:choose_designated_item/*`
 functions.
 """.
 -spec create_for_single_choice( message(), caption(), choice_spec(),
@@ -468,12 +468,12 @@ the specified ones.
 
 Noentry  is selected initially.
 
-A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+A bit similar in spirit to the `{,text_,term_}ui:choose_designated_item/*`
 functions.
 """.
 -spec create_for_single_choice( message(), caption(), choice_spec(),
         maybe_list( single_choice_dialog_option() ), parent() ) ->
-            single_choice_dialog().
+                                            single_choice_dialog().
 create_for_single_choice( Message, Caption, ChoiceSpec, DialogOpts, Parent ) ->
     ChoiceTexts = pair:seconds( ChoiceSpec ),
     WxOpts = to_wx_single_choice_dialog_opts( DialogOpts ),
@@ -485,7 +485,7 @@ create_for_single_choice( Message, Caption, ChoiceSpec, DialogOpts, Parent ) ->
 Creates a dialog that will offer the user to select a single choice option among
 the specified ones, with the specified one being selected initially.
 
-A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+A bit similar in spirit to the `{,text_,term_}ui:choose_designated_item/*`
 functions.
 """.
 -spec create_for_single_choice( message(), caption(), choice_spec(),
@@ -718,7 +718,7 @@ create_for_file_selection( DialogOpts, Parent ) ->
 -doc """
 Returns the full path (directory and filename) of the selected file.
 
-The 'multiple_files' option should not have been specified for this dialog.
+The `multiple_files` option should not have been specified for this dialog.
 """.
 -spec get_selected_file( file_selection_dialog() ) -> file_path().
 get_selected_file( FileSelectionDialog ) ->
@@ -729,7 +729,7 @@ get_selected_file( FileSelectionDialog ) ->
 -doc """
 Returns the full path (directory and filename) of the selected files.
 
-The 'multiple_files' option should have been specified for this dialog.
+The `multiple_files` option should have been specified for this dialog.
 """.
 -spec get_selected_files( file_selection_dialog() ) -> [ file_path() ].
 get_selected_files( FileSelectionDialog ) ->
@@ -775,7 +775,8 @@ create_for_directory_selection( DialogOpts, Parent ) ->
 -doc """
 Returns the full path of the selected directory.
 
-The 'multiple_directorys' option should not have been specified for this dialog.
+The `multiple_directories` option should not have been specified for this
+dialog.
 """.
 -spec get_selected_directory( directory_selection_dialog() ) ->
                                             directory_path().
@@ -788,7 +789,7 @@ get_selected_directory( DirSelDialog ) ->
 
 % at-doc Returns the full path of the selected directories.
 %
-% The 'multiple_directories' option should have been specified for this dialog.
+% The `multiple_directories` option should have been specified for this dialog.
 %
 %-spec get_selected_paths( directory_selection_dialog() ) ->
 %           [ directory_path() ].
@@ -849,7 +850,7 @@ destruct_for_color_selection( ColSelDialog ) ->
 Creates a dialog that will offer to select one of the known fonts, together with
 its size.
 
-For example a font described as "Sans Bold 10" may be selected.
+For example a font described as `"Sans Bold 10"` may be selected.
 """.
 -spec create_for_font_selection( parent() ) -> font_selection_dialog().
 create_for_font_selection( Parent ) ->

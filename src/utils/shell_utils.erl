@@ -89,8 +89,8 @@ use thereof.
 
 
 -doc """
-Surprisingly, not a string-like, but term(); in practice, at least generally, an
-atom.
+Surprisingly, not a string-like, but `term()`; in practice, at least generally,
+an atom.
 """.
 -type variable_name() :: erl_eval:name().
 
@@ -107,7 +107,7 @@ atom.
 
 
 
-% Apparently not exported as a standalone:
+% Apparently not exported as a standalone type:
 -doc "Logical binding for a variable, as held by a shell.".
 -type binding() :: { variable_name(), variable_value() }.
 
@@ -253,7 +253,7 @@ Options that can be specified when creating a shell:
 
 
 -doc """
-The PID of a group leader process for user IO (see `lib/kernel/src/group.erl`).
+The PID of a group leader process for user I/O (see `lib/kernel/src/group.erl`).
 """.
 -type group_pid() :: pid().
 
@@ -364,7 +364,9 @@ The PID of a group leader process for user IO (see `lib/kernel/src/group.erl`).
 %  kernel/src/group.erl (not referenced in user documentation),
 %  stdlib/src/edlin.erl
 %
-%  * https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795 (using edlin)
+%  *
+%  https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795
+%  (using edlin)
 %
 %  * https://erlang.org/pipermail/erlang-questions/2008-September/038476.html
 %  * https://tryerlang.org/
@@ -440,13 +442,13 @@ The PID of a group leader process for user IO (see `lib/kernel/src/group.erl`).
 % - support fancier operations like password entering? Use case needed
 
 
-% What we are gaining with a custom shell ? Simplicity, dropping historical
+% What we are gaining with a custom shell? Simplicity, dropping historical
 % retrocompatibility, having more proper comments, specs, etc.
 
 
 % Mode of operation (common to both kinds of shells):
 %
-% A caller creates such a shell.
+% A caller creates such a shell (executed by a dedicated process).
 %
 % The shell may spontaneously send displayRequest messages (e.g. so that
 % slogan-like "Eshell V15.0 [...]" texts are displayed by the caller).
@@ -518,7 +520,7 @@ The PID of a group leader process for user IO (see `lib/kernel/src/group.erl`).
 Starts a (non-linked) Myriad shell process with default options, and returns its
 PID.
 
-A history of depth ?default_history_max_depth is enabled, and no logging is
+A history of depth `?default_history_max_depth` is enabled, and no logging is
 performed.
 """.
 -spec start_shell() -> shell_pid().
@@ -706,7 +708,7 @@ vet_options( _Opts=[], ShellState=#shell_state{
                         [ FName, FArgCount ] ) ),
 
                 % Only way found to escape erl_eval:exprs/3 normal path:
-                throw( { undef,  { FName, FArgCount } } )
+                throw( { undef, { FName, FArgCount } } )
 
         end
 
@@ -1085,7 +1087,7 @@ on_prompt_update( NewPrompt, NewBindings,
                   ShellState=#shell_state{ submission_count=SubCount } ) ->
 
     % Command identifier was incremented, as a command was processed, yet a
-    % prompt update does not result directly in an actual being processed:
+    % prompt update does not result directly in an actual entry being processed:
     %
     CorrectedSubCount = SubCount - 1,
 

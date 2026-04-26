@@ -39,11 +39,15 @@ This may be applied for example to shell commands or chat clients (like IRC).
 Allows typically to uncouple an input/output source (from the command-line, a
 dedicated GUI, a web page, etc.; typically, in MVC parlance, a component in
 charge of a View and of a Controller) from the management of the text editing by
-itself (this module) and the processing of that text (the Model, e.g. the
-processing of the corresponding entries, like done by the shell_utils
-module for shell commands).
+itself (this module) and the processing of this text (the Model, e.g. the
+processing of the corresponding entries, like done by the `shell_utils` module
+for shell commands).
 
-See the gui_shell and shell_utils modules for an example of use thereof.
+A text edit is a mere datastructure (a record), to be handled by a text manager
+(like the GUI of a shell), based on the entry processor that was specified when
+this text edit was created.
+
+See the `gui_shell` and `shell_utils` modules for an example of use thereof.
 """.
 
 
@@ -66,19 +70,15 @@ The available options when creating a text edit.
     'auto_add_trailing_dot'
 
     % Whether the entry cursor should wrap around:
- | 'wrap_cursor'.
+  | 'wrap_cursor'.
 
 
 
--doc """
-An index of a position in the text; starts at 1.
-""".
+-doc "An index of a position in the text; starts at 1.".
 -type char_pos() :: pos_integer().
 
 
--doc """
-A (signed) offset in terms of character position.
-""".
+-doc "A (signed) offset in terms of character position.".
 -type offset_char_pos() :: integer().
 
 
@@ -264,7 +264,7 @@ destruct( #text_edit{ processor_pid=ProcessorPid } ) ->
 
 -doc """
 Returns the identifier of the entry being currently edited (hence that will be
-the "next" one.
+the "next" one).
 """.
 -spec get_entry_id( text_edit() ) -> entry_id().
 get_entry_id( #text_edit{ entry_id=EntryId } ) ->
@@ -325,7 +325,7 @@ get_full_text_with_cursor( TE=#text_edit{ prefix_len=PfxLen,
 
 -doc """
 Returns the currently edited entry in a final form, ready to be submitted (hence
-with no prefix, as a binary string, with all options applied.
+with no prefix, as a binary string, with all options applied).
 """.
 -spec get_entry_for_submission( text_edit() ) -> bin_string().
 get_entry_for_submission( #text_edit{ precursor_chars=PreChars,
@@ -367,8 +367,8 @@ get_entry_for_submission( #text_edit{ precursor_chars=PreChars,
 % caller.
 %
 % Note that operations that do not modify the edited text (e.g. moving the
-% cursor) are not cannot be restored (Ctrl-z). The others have to backup in all
-% cases both the pre *and* post chars (even if only one of them is modified),
+% cursor) cannot be restored (Ctrl-z). The others have to backup in all cases
+% both the pre *and* post chars (even if only one of them is modified),
 % otherwise, as any cursor movement is possible in-between, the restore would be
 % faulty in the general case.
 
@@ -692,7 +692,7 @@ recall_previous_entry( TE=#text_edit{ hist_entry_id=HistEntryId,
                 true ->
                     % Skipping duplicate:
                     recall_previous_entry( TE#text_edit{
-                                            hist_entry_id=PrevHistEntryId } );
+                                              hist_entry_id=PrevHistEntryId } );
 
                 false ->
                     % Cursor will be just after this new recalled entry:

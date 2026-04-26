@@ -28,10 +28,14 @@
 -module(gui_text_editor).
 
 -moduledoc """
-Gathering of various facilities for **text editor**.
+Gathering of various facilities for **GUI-based text editing**.
 
-See also the corresponding gui_dialog:text_entry_dialog() dialog and the
-gui_text_editor_test.erl test.
+See also:
+- the corresponding `gui_text_editor_test` test module
+- the related `gui_dialog:text_entry_dialog/0` dialog
+- the `gui_styled_text_editor` module for more advanced text editing; note that
+  all `gui_*text_editor` modules are designed to respect the same core message
+  exchange patterns
 """.
 
 
@@ -41,7 +45,7 @@ A widget to edit a text (single line or multi-line).
 
 The current font applies to this display.
 
-The horizontal scrollbar ('horiz_scrollbar' style flag) will only be created for
+The horizontal scrollbar (`horiz_scrollbar` style flag) will only be created for
 multi-line text editors. Without an horizontal scrollbar, text lines that do not
 fit in the editor's size will be wrapped (but no newline character will be
 inserted).
@@ -50,10 +54,10 @@ Single line controls do not have a horizontal scrollbar, the text is
 automatically scrolled so that the cursor position is always visible.
 
 One can subscribe to the following events that can be emitted by a text editor:
-- onTextUpdated, if its text has been modified
-- onEnterPressed, if the Enter key is pressed whereas the text editor enabled
+- `onTextUpdated`, if its text has been modified
+- `onEnterPressed`, if the Enter key is pressed whereas the text editor enabled
   its process_enter_key option
-- onTextOverflow, if the length limit of the text in the editor is reached
+- `onTextOverflow`, if the length limit of the text in the editor is reached
 """.
 -opaque text_editor() :: wxTextCtrl: wxTextCtrl().
 
@@ -121,8 +125,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 
 
--export_type([ text_editor/0, text_editor_style/0, text_validator/0,
-               text_editor_event_type/0 ]).
+-export_type([ text_editor/0, text_editor_option/0, text_editor_style/0,
+               text_validator/0, text_editor_event_type/0 ]).
 
 
 
@@ -157,8 +161,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 % Implementation section:
 %
-% Currently based on wxTextCtrl (wxStyledTextCtrl would be another option, more
-% powerful yet more complex / expensive to integrate).
+% Based on wxTextCtrl (to rely on the richer/more advanced wxStyledTextCtrl, use
+% our gui_styled_text_editor module).
 %
 % Note that we can override the management of keys by subscribing for example to
 % onKeyPressed; see gui_shell for an example thereof.
@@ -258,7 +262,7 @@ control (i.e. position 0).
 
 If the text changed, resets the cursor position.
 
-Does not generate an onTextUpdated event.
+Does not generate an `onTextUpdated` event.
 """.
 -spec set_text( text_editor(), text() ) -> void().
 set_text( Editor, NewText ) ->
@@ -279,7 +283,7 @@ add_text( Editor, Text ) ->
 -doc """
 Clears the text in the editor.
 
-Does not generate any event (e.g. no onTextUpdated one).
+Does not generate any event (e.g. no `onTextUpdated` one).
 """.
 -spec clear( text_editor() ) -> void().
 clear( Editor ) ->
@@ -289,9 +293,7 @@ clear( Editor ) ->
 
 
 
--doc """
-Makes the line containing the specified position visible.
-""".
+-doc "Makes the line containing the specified position visible.".
 -spec show_position( text_editor(), char_pos() ) -> void().
 show_position( Editor, Pos ) ->
     % As wx insertion points are zero-based:
@@ -318,9 +320,7 @@ get_last_position( Editor ) ->
 
 
 
--doc """
-Sets the text cursor position at the specified one.
-""".
+-doc "Sets the text cursor position at the specified one.".
 -spec set_cursor_position( text_editor(), char_pos() ) -> void().
 set_cursor_position( Editor, Pos ) ->
     %trace_utils:debug_fmt( "Setting offset cursor position to ~B.", [ Pos ] ),
@@ -329,9 +329,8 @@ set_cursor_position( Editor, Pos ) ->
     wxTextCtrl:setInsertionPoint( Editor, Pos-1 ).
 
 
--doc """
-Sets the cursor position at the end of the current text.
-""".
+
+-doc "Sets the cursor position at the end of the current text.".
 -spec set_cursor_position_to_end( text_editor() ) -> void().
 set_cursor_position_to_end( Editor ) ->
     wxTextCtrl:setInsertionPointEnd( Editor ).
@@ -365,6 +364,7 @@ set_from( Editor, TE ) ->
     { FullText, CursorPos } = text_edit:get_full_text_with_cursor( TE ),
     set_text( Editor, FullText ),
     set_cursor_position( Editor, CursorPos ).
+
 
 
 

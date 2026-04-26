@@ -31,16 +31,16 @@
 A GUI component hosting an **Erlang shell**, like an Erlang interpreter (a kind
 of REPL) with which the user can interact (input/output) graphically.
 
-Refer to get_help/0 for all usage information.
+Refer to `get_help/0` for all usage information.
 
-See our shell_default_callbacks module for their detailed signatures; note the
+See our `shell_default_callbacks` module for their detailed signatures; note the
 implicit use of shell state variables.
 
 Separate histories, of arbitrary depths, for the commands and their results are
 managed.
 
 The command editing is based on a single line so, at least currently, no
-multi-line command editing is supported (no series of lines prefixed with '.. '
+multi-line command editing is supported (no series of lines prefixed with `.. `
 are displayed). As a result, the terminal dot can be added automatically if
 lacking.
 
@@ -50,7 +50,12 @@ shell answers about the corresponding outcome.
 Timestamps are determined in the context of the actual (potentially remote)
 shell (not of this widget).
 
-This graphical module relies on our shell_utils one.
+So a GUI shell corresponds to a dedicated process that relies internally on:
+- two text editors, a read-only one to display the past commands and results,
+  another for any new command being entered
+- a text edit component, to manage the actual text edition (e.g. for cursor
+  control, shortcuts, etc.), based on the actual "abstract" shell (see
+  `shell_utils`) created and used by this GUI shell.
 """.
 
 
@@ -58,7 +63,7 @@ This graphical module relies on our shell_utils one.
 -doc """
 Designates an actual GUI shell instance.
 
-Not to be mixed up with shell_utils:shell_pid().
+Not to be mixed up with `shell_utils:shell_pid/0`.
 """.
 -type gui_shell() :: widget_pid().
 
@@ -140,7 +145,7 @@ They include the ones when creating a text edit.
 %
 % A GUI shell is, in MVC parlance, the View and Controller of an actual shell
 % (see shell_utils), which is the Model at hand here. To factor the line-editing
-% logic (e.g. between different forms of shells), it has been factored in the
+% logic (e.g. between different forms of shells), it has been defined in the
 % text_edit module.
 %
 % A GUI shell corresponds, graphically, to an horizontal sizer; the top part is
@@ -171,7 +176,7 @@ They include the ones when creating a text edit.
 % would apply, not ours; for example the down arrow would set the cursor to the
 % start of text and the up arrow to its end, automatically, without generating
 % any event, whereas we want to intercept them to go through the command
-% history.
+% history).
 %
 % To restore full (cursor) control, lower-level control is needed, obtained with
 % a static text display (see gui_text_display), updated based on its
@@ -198,7 +203,7 @@ They include the ones when creating a text edit.
 %
 -record( gui_shell_state, {
 
-    % The (read-only) editor displaying the past operations:
+    % The (read-only, top) editor displaying the past operations:
     % (different from the shell's history)
     %
     past_ops_editor :: text_editor(),
@@ -207,14 +212,16 @@ They include the ones when creating a text edit.
     past_ops_text :: bin_string(),
 
 
-    % The editor used by the shell for the input commands:
+    % The (bottom) editor used by the shell for the input commands:
     %
     % (a simple text_display() would not suffice, for example no cursor would be
     % shown)
     %
     command_editor :: text_editor(),
 
-    % The width of a character with the current font of the command editor:
+    % The width of a character with the current (fixed-width) font of the
+    % command editor:
+    %
     command_char_width :: width(),
 
     % The state of a general-purpose text edition facility:
@@ -399,10 +406,12 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
                 { style, [ multiline, read_only, word_wrap ] } ],
         ParentWindow ),
 
-    % We prefer that the printouts for past operations cannot be selected:
+    % We used to prefer that the printouts for past operations cannot be
+    % selected, yet it is actually more convenient if they can:
+    %
     %gui_widget:set_enable_status( PastOpsEditor, _DoEnable=false ),
 
-    % For example Monospace 11:
+    % For example Monospace 11 (fixed width required):
     FontFamily = modern,
     %FontFamily = teletype,
 
@@ -537,6 +546,7 @@ gui_shell_main_loop( GUIShellState ) ->
             [ text_edit:to_string(
                 GUIShellState#gui_shell_state.text_edit ) ] ) ),
 
+    % Most frequent first:
     receive
 
         { onCharEntered, [ _CmdEditor, _CmdPanelId, EventContext ] } ->
@@ -1294,43 +1304,43 @@ get_help() ->
 
     % Specific to
     """
-    Keyboard shortcuts for this shell (partly Emacs-inspired):
-    - Ctrl-a or Home/Begin key: to beginning of command line
-    - Ctrl-e or End key: to end of command line
-    - Ctrl-k: clear command line from cursor
-    - Ctrl-c: clear current command (instead of killing/going in Erlang BREAK mode/starting an Emacs sequence)
-    - Ctrl-z: restore any previous editing line (i.e. not the previous command); useful for example after a faulty paste
+    The keyboard shortcuts for this Myriad shell (partly Emacs-inspired) are:
+     - Ctrl-a or Home/Begin key: to beginning of command line
+     - Ctrl-e or End key: to end of command line
+     - Ctrl-k: clear command line from cursor
+     - Ctrl-c: clear current command (instead of killing/going in Erlang BREAK mode/starting an Emacs sequence)
+     - Ctrl-z: restore any previous editing line (i.e. not the previous command); useful for example after a faulty paste
 
     Special-purpose keys:
-    - Delete: delete any character at cursor
-    - Backspace: delete any character just previous cursor
-    - Left/Right arrows: move one character left/right in the command line
-    - Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if, intentionally, the actual duplications remain stored in history)
-    - Tab: tries to auto-complete the current command; adds the longest possible single completion and, if multiple options remain, display a popup that let one of them (browsed via the Up/Down keyboard arrows, or PageUp/PageDown) be selected (via the Return/Enter keys) , or have it dismissed (via the Escape key)
-    - Return/Enter: triggers the currently edited command
+     - Delete: delete any character at cursor
+     - Backspace: delete any character just previous cursor
+     - Left/Right arrows: move one character left/right in the command line
+     - Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if, intentionally, the actual duplications remain stored in history)
+     - Tab: tries to auto-complete the current command; adds the longest possible single completion and, if multiple options remain, display a popup that let one of them (browsed via the Up/Down keyboard arrows, or PageUp/PageDown) be selected (via the Return/Enter keys) , or have it dismissed (via the Escape key)
+     - Return/Enter: triggers the currently edited command
 
     Text can be intentionally:
-    - pasted in the editor (typically with the mouse, based on either the X clipboard or the Copy/Paste system of the window manager), at the end of current command
-    - selected with the mouse in the past operations displayed (e.g. for re-use)
+     - pasted in the editor (typically with the mouse, based on either the X clipboard or the Copy/Paste system of the window manager), at the end of current command
+     - selected with the mouse in the past operations displayed (e.g. for re-use)
 
     Shell built-in commands:
-    - list_bindings() or b(): lists (as terms) the current variable bindings
-    - print_bindings(): displays the current variable bindings
-    - clear_bindings() or f() (presumably for 'forget'): clears all variable bindings
-    - clear_binding(V) or f(V): clears the binding of variable named V, if any (specified as a plain string)
+     - list_bindings() or b(): lists (as terms) the current variable bindings
+     - print_bindings(): displays the current variable bindings
+     - clear_bindings() or f() (presumably for 'forget'): clears all variable bindings
+     - clear_binding(V) or f(V): clears the binding of variable named V, if any (specified as a plain string)
 
-    - print_command_history() or hc(): displays the current history of commands
-    - print_result_history() or hr(): displays the current history of results
+     - print_command_history() or hc(): displays the current history of commands
+     - print_result_history() or hr(): displays the current history of results
 
-    - recall_command(Id) or r(Id): re-evaluates the command of the specified identifier (if it is in command history), so that, if validated by the user, it can be evaluated again
+     - recall_command(Id) or r(Id): re-evaluates the command of the specified identifier (if it is in command history), so that, if validated by the user, it can be evaluated again
 
-    - get_result(Id): returns the result corresponding to the command of specified identifier (if still in result history)
+     - get_result(Id): returns the result corresponding to the command of specified identifier (if still in result history)
 
-    - clear_commands() or fc(): clears the full (live) history of commands
-    - clear_results() or fr(): clears the full history of command results
-    - set_command_history_depth(D): sets the depth of the command history to D
-    - set_result_history_depth(D): sets the depth of the result history to D
+     - clear_commands() or fc(): clears the full (live) history of commands
+     - clear_results() or fr(): clears the full history of command results
+     - set_command_history_depth(D): sets the depth of the command history to D
+     - set_result_history_depth(D): sets the depth of the result history to D
 
-    - clear_persistent_command_history(): clears the persistent history of commands
-    - help(): this text
+     - clear_persistent_command_history(): clears the persistent history of commands
+     - help(): this text
     """.
