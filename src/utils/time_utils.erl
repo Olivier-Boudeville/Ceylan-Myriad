@@ -55,13 +55,17 @@ See `time_utils_test.erl` for the corresponding test.
 % Day management support:
 -export([ is_bank_holiday/2, get_bank_holidays_for/2,
           find_common_bank_holidays/3,
-          get_dst_offset/1, get_dst_transitions/1,
           get_last_sunday/2, get_last_sunday/3,
           get_day_in_year/1, get_day_rank/1 ]).
 
 
 % Week management support:
 -export([ get_week_day/1, week_day_to_string/1 ]).
+
+
+% DST management support:
+-export([ get_dst_conventions/0, vet_dst_convention/1, get_dst_shift/1,
+          get_dst_offset/2, get_dst_transitions/2 ]).
 
 
 % Month management support:
@@ -157,6 +161,72 @@ affect the date as well).
                        | 'now'.
 
 
+-doc """
+Describes any convention in terms of DST (Daylight Saving Time).
+
+Refer to [https://en.wikipedia.org/wiki/Daylight_saving_time_by_country] for
+details.
+""".
+% See also get_dst_conventions/0.
+-type dst_convention() ::
+
+    % In the default order of the Wikipedia table above (DST start/stop/offset):
+
+    % Second Sunday in March at 02:00 / First Sunday in November at 02:00 / 1
+    % hour.
+    %
+    'us_dst'
+
+    % Second Sunday in March at 00:00 / First Sunday in November at 01:00 / 1
+    % hour.
+    %
+  | 'cuba_dst'
+
+    % Last Sunday in March at 01:00 UTC / Last Sunday in October at 01:00 UTC /
+    % 1 hour.
+    %
+  | 'europe_dst'
+
+    % Last Sunday in March at 00:00 / Last Sunday in October at 00:00 / 1 hour.
+    %
+  | 'lebanon_dst'
+
+    % Friday before last Sunday in March at 02:00 / Last Sunday in October at
+    % 02:00 / 1 hour.
+    %
+  | 'israel_dst'
+
+    % Saturday before last Sunday in March at 02:00 / Saturday before last
+    % Sunday in October at 02:00 / 1 hour.
+    %
+  | 'palestine_dst'
+
+    % Last Friday in April at 00:00 / Last Thursday in October at 24:00 / 1
+    % hour.
+    %
+  | 'egypt_dst'
+
+    % First Saturday in September at 24:00 UTC−04:00 / First Saturday in April
+    % at 24:00 UTC−03:00 / 1 hour.
+    %
+  | 'chile_dst'
+
+    % First Sunday in October at 02:00 / First Sunday in April at 03:00 / 1
+    % hour.
+    %
+  | 'australia_dst'
+
+    % First Sunday in October at 02:00 / First Sunday in April at 02:00 / 3O
+    % minutes.
+    %
+  | 'australia_second_dst'
+
+    % Last Sunday in September at 02:00 UTC+12:00 / First Sunday in April at
+    % 03:00 UTC+13:00 / 1 hour.
+    %
+  | 'new_zealand_dst'.
+
+
 
 -doc "Also known as Gregorian milliseconds.".
 -type ms_since_year_0() :: milliseconds().
@@ -249,7 +319,7 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 
 -export_type([ day_index/0, week_day/0, date/0, extended_date/0,
                birth_date/0, user_date/0, date_in_year/0,
-               time/0, extended_time/0,
+               time/0, extended_time/0, dst_convention/0,
                ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
                ms_duration/0, ms_period/0,
 
@@ -342,18 +412,24 @@ Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
 
 
 -doc """
-
 Used to be `calendar:datetime/0`, now uses our types.
 
 A timestamp shall preferably be canonical (e.g. with a canonical month).
 
 For example: `{{2022,11,7}, {13,14,53}}`.
 
-Implicitly relative to a timezone and possibly DST (Daylight saving time).
+Implicitly relative to a timezone and possibly a DST (Daylight saving time)
+convention.
 
 Often expressed relatively to the user, local time.
 """.
 -type timestamp() :: { date(), time() }.
+
+
+
+-doc "A timestamp in UTC time (no time-zone, no DST; hence not in local time).".
+-type utc_timestamp() :: timestamp().
+
 
 
 -doc """
@@ -468,7 +544,8 @@ is `1970-01-01 00:00 UTC`.
 -type extended_duration() :: milliseconds() | float() | 'infinity'.
 
 
--export_type([ timestamp/0, timestamp_binstring/0, precise_timestamp/0,
+-export_type([ timestamp/0, utc_timestamp/0,
+               timestamp_binstring/0, precise_timestamp/0,
                time_frame/0, user_time_frame/0,
 
                finite_time_out/0, time_out/0,
@@ -951,78 +1028,6 @@ find_common_bank_holidays_helper( CurrentYear, StopYear, Country, AccSet ) ->
 
 
 -doc """
-Returns the (signed) number of hours to offset any time reference unaware of
-Daylight Saving Time (DST) so that it complies with it.
-
-Since 1996, European Summer Time has been observed between 01:00 UTC (02:00 CET
-and 03:00 CEST) on the last Sunday of March, and 01:00 UTC on the last Sunday of
-October.
-
-For most of the dates, this function is rather cheap. It is an approximation, in
-the sense that the parameter should be a full timestamp (hence with a time), not
-simply a date.
-""".
--spec get_dst_offset( date() ) -> hours().
-get_dst_offset( _Date={ _Y, M, _D } ) when M < 3 ->
-    0;
-
-get_dst_offset( _Date={ _Y, M, _D } ) when M > 10 ->
-    0;
-
-get_dst_offset( _Date={ _Y, M, _D } ) when M > 3 andalso M < 10 ->
-    1;
-
-% From here M is 3 or 10, i.e. in March or October, both having 31 days; maybe
-% in the safe beginning of them:
-%
-% (at worst, 31 is a Saturday, 30 is Friday, 29 Thursday, 28 Wed, 27 Tues, 26
-% Mon, 25 Sun)
-%
-get_dst_offset( _Date={ _Y, _M=3, D } ) when D < 25 ->
-    0;
-
-get_dst_offset( _Date={ _Y, _M=10, D } ) when D < 25 ->
-    1;
-
-% Finest cases needed here, for March:
-get_dst_offset( _Date={ Y, M=3, D } ) ->
-
-    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
-
-    % Not having the hour here, yet as the DST limit is very early this Sunday,
-    % we consider that on average we must be already past it:
-    %
-    case D < LastSunday of
-
-        true ->
-            0;
-
-        false ->
-            1
-
-    end;
-
-% Same for October:
-get_dst_offset( _Date={ Y, M=10, D } ) ->
-
-    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
-
-    % Not having the hour here, yet as the DST limit is very early this Sunday,
-    % we consider that on average we must be already past it:
-    %
-    case D <  LastSunday of
-
-        true ->
-            1;
-
-        false ->
-            0
-
-    end.
-
-
-
--doc """
 Returns the day (thus in [1,31]) corresponding to the last Sunday of the
 specified month of the specified year.
 """.
@@ -1050,48 +1055,6 @@ get_last_sunday( Month, Year, DayCount ) ->
             31 - OtherWeekday
 
     end.
-
-
-
--doc """
-Returns, for the specified year, the timestamp (in local, non-DST time) of the
-transition from Winter Time to Summer Time (jump of +1 hour), and the other way
-round (Summer to Winter, jump of -1 hour), according to European conventions.
-""".
--spec get_dst_transitions( year() ) ->
-                        { ToSummer :: timestamp(), ToWinter :: timestamp() }.
-get_dst_transitions( Year ) ->
-    % ToSummer: last Sunday of March, at 2AM it becomes 3AM (one hour is fully
-    % skipped).
-
-    DayCount = 31,
-    March = 3,
-
-    LastMarchSunday = get_last_sunday( March, Year, DayCount ),
-
-    SummerDate = { LastMarchSunday, March, Year },
-
-    % 2AM in non-DST:
-    SummerTime = { 2, 0, 0 },
-
-    ToSummer = { SummerDate, SummerTime },
-
-
-    % ToWinter: last Sunday of October, at 3AM it becomes 2AM (one hour happens
-    % twice).
-
-    October = 10,
-
-    LastOctoberSunday = get_last_sunday( October, Year, DayCount ),
-
-    WinterDate = { LastOctoberSunday, October, Year },
-
-    % 2AM in non-DST (3AM in DST):
-    WinterTime = { 2, 0, 0 },
-
-    ToWinter = { WinterDate, WinterTime },
-
-    { ToSummer, ToWinter }.
 
 
 
@@ -1153,6 +1116,200 @@ week_day_to_string( _DayIndex=7 ) ->
 week_day_to_string( DayIndex ) ->
     week_day_to_string( ( DayIndex rem 7 ) + 1 ).
 
+
+
+
+% DST section.
+
+
+-doc "Returns a list of the known DST (Daylight Saving Time) conventions.".
+-spec get_dst_conventions() -> [ dst_convention() ].
+get_dst_conventions() ->
+    % Refer to dst_convention():
+    [ us_dst, cuba_dst, europe_dst, lebanon_dst, israel_dst, palestine_dst,
+      egypt_dst, chile_dst, australia_dst, australia_second_dst,
+      new_zealand_dst ].
+
+
+
+-doc """
+Tells whether the specified term is a legit DST convention.
+
+Returns it if yes, otherwise throws an exception.
+""".
+-spec vet_dst_convention( term() ) -> dst_convention().
+vet_dst_convention( DSTConv ) ->
+    case lists:member( DSTConv, get_dst_conventions() ) of
+
+        true ->
+           DSTConv;
+
+        false ->
+            throw( { unknown_dst_convention, DSTConv } )
+
+    end.
+
+
+
+-doc """
+Returns the DST shift, i.e. the number of minutes to add when entering DST,
+corresponding to the specified convention.
+""".
+-spec get_dst_shift( dst_convention() ) -> minutes().
+get_dst_shift( _DSTConv=australia_second_dst ) ->
+    30;
+
+% Expected to be a valid convention:
+get_dst_shift( _DSTConv ) ->
+    60.
+
+
+
+-doc """
+Returns the (signed) number of minutes to offset any UTC timestamp so that it
+complies with the specified Daylight Saving Time (DST).
+
+For example, since 1996, European Summer Time has been observed between 01:00
+UTC (02:00 CET and 03:00 CEST) on the last Sunday of March, and 01:00 UTC on the
+last Sunday of October.
+
+Minutes are returned, as a few DST offsets are half hours.
+
+For most of the timestamps, this function is rather cheap.
+""".
+-spec get_dst_offset( utc_timestamp(), dst_convention() ) -> minutes().
+% Just for testing, to fake a summer->winter DST transition at 5:00 PM UTC (thus
+% 7PM in France, summer time) on that date:
+%
+%get_dst_offset( { _Date={ _Y, _M=4, _D=26 }, _Time={ Hour, _Min, _Sec } },
+%                _DSTConv=europe_dst ) ->
+%    case Hour >= 17 of
+%        true -> 0;
+%        _ -> 60
+%    end;
+
+get_dst_offset( { _Date={ _Y, M, _D }, _Time },
+                _DSTConv=europe_dst ) when M < 3 orelse M > 10 ->
+    0;
+
+get_dst_offset( { _Date={ _Y, M, _D }, _Time },
+                _DSTConv=europe_dst ) when M > 3 andalso M < 10 ->
+    60;
+
+% From here M is 3 or 10, i.e. in March or October, both having 31 days; maybe
+% in the safe beginning of them:
+%
+% (at worst, 31 is a Saturday, 30 is Friday, 29 Thursday, 28 Wed, 27 Tues, 26
+% Mon, 25 Sun)
+%
+get_dst_offset( { _Date={ _Y, _M=3, D }, _Time },
+                _DSTConv=europe_dst ) when D < 25 ->
+    0;
+
+get_dst_offset( { _Date={ _Y, _M=10, D }, _Time },
+                _DSTConv=europe_dst ) when D < 25 ->
+    60;
+
+
+% Finest cases needed here, for March:
+get_dst_offset( { _Date={ Y, M=3, D }, Time }, _DSTConv=europe_dst ) ->
+
+    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
+
+    case D of
+
+        Day when Day < LastSunday ->
+            0;
+
+        Day when Day > LastSunday ->
+            60;
+
+        _LastSunday ->
+            { Hour, _Min, _Sec } = Time,
+            case Hour of
+
+                0 ->
+                    0;
+
+                % At least 01:00 UTC:
+                _ ->
+                    60
+
+            end
+
+    end;
+
+% Same for October:
+get_dst_offset( { _Date={ Y, M=10, D }, Time }, _DSTConv=europe_dst ) ->
+
+    LastSunday = get_last_sunday( M, Y, _DayCount=31 ),
+
+    case D of
+
+        Day when Day < LastSunday ->
+            60;
+
+        Day when Day > LastSunday ->
+            0;
+
+        _LastSunday ->
+            { Hour, _Min, _Sec } = Time,
+            case Hour of
+
+                0 ->
+                    60;
+
+                % At least 01:00 UTC:
+                _ ->
+                    0
+
+            end
+
+    end.
+
+
+
+
+
+
+-doc """
+Returns, for the specified year, the UTC timestamp of the transitions from
+Winter Time to Summer Time (jump of +1 hour), and the other way round (Summer to
+Winter, jump of -1 hour), according to the specified DST convention.
+""".
+-spec get_dst_transitions( year(), dst_convention() ) ->
+        { ToSummer :: utc_timestamp(), ToWinter :: utc_timestamp() }.
+get_dst_transitions( Year, _DSTConv=europe_dst ) ->
+    % ToSummer: last Sunday of March, at 2AM it becomes 3AM (one hour is fully
+    % skipped).
+
+    DayCount = 31,
+    March = 3,
+
+    LastMarchSunday = get_last_sunday( March, Year, DayCount ),
+
+    SummerDate = { LastMarchSunday, March, Year },
+
+    % 1AM in UTC:
+    SummerTime = { 1, 0, 0 },
+
+    ToSummer = { SummerDate, SummerTime },
+
+
+    % ToWinter: last Sunday of October, at 3AM it becomes 2AM (one hour happens
+    % twice).
+
+    October = 10,
+
+    LastOctoberSunday = get_last_sunday( October, Year, DayCount ),
+
+    WinterDate = { LastOctoberSunday, October, Year },
+
+    WinterTime = SummerTime,
+
+    ToWinter = { WinterDate, WinterTime },
+
+    { ToSummer, ToWinter }.
 
 
 
