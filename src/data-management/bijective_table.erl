@@ -29,7 +29,7 @@
 
 -moduledoc """
 Datastructure allowing to perform **bidirectional conversions between two
-sets**.
+sets** (of any types).
 
 One can see it as a `[{first_type(), second_type()}]` associative table allowing
 to transform any element of a set into its (unique) corresponding element in the
@@ -40,14 +40,14 @@ case), the first type may correspond to a Myriad-specific, internal symbol,
 whereas the second type may be a foreign one (for example defined by a
 third-party library).
 
-See also const_bijective_table.erl for constant bijective tables that can be
-requested from any number (potentially extremely large) of callers very
+See also our `const_bijective_table` module for constant bijective tables that
+can be requested from any number (potentially extremely large) of callers very
 efficiently thanks to the generation (only in memory, or in file) of a
 corresponding module.
 
-Refer to:
-- bijective_table_test.erl for an usage example and testing thereof
-- const_bijective_table.erl for a constant, compile-time bijective table
+Refer to the:
+- `bijective_table_test` module for an usage example and testing thereof
+- `const_bijective_table` module for a constant, compile-time bijective table
 """.
 
 
@@ -109,7 +109,7 @@ Internally, two tables used, one for each direction of conversion.
 -doc """
 Entries that can be fed to a bijective table.
 
-Now we recommend using [ entry() ] only.
+Now we recommend using `[entry()]` only.
 """.
 -type entries() :: [ entry() ].
 
@@ -118,7 +118,7 @@ Now we recommend using [ entry() ] only.
                entry/0, entries/0 ]).
 
 
-% Shorthands:
+% Type shorthand:
 
 -type ustring() :: text_utils:ustring().
 
