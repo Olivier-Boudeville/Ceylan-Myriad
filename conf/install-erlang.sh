@@ -64,6 +64,8 @@ fi
 # As for erlang_commit_id_for_* (Git commit of the release; currently not used),
 # it is just obtained from (some) downloaded source archive.
 
+erlang_sha512_for_28_5="1c56cf3030ebe474c84d2e3deec1355e6bff4ef58994666c6e4266e4d3fb7ff50c53b107782883294f000f9a3186fc2c4c57797a11c10a1140c0d905782aebcd"
+
 erlang_sha512_for_28_4="1715354642f41abc7ee736f577179df27e66163ee7fc3b4432bf28fc6b0f26952fbf3177f84a12de7ba0316e9551eca1e5d7f66189dba494e664f1a8973d2387"
 
 erlang_sha512_for_28_3="cd1906f8ad49e6ea603c55383682559a0a3cde91cc152a6bb9805805a32c14b1c2231f76d9d42ac389366652fe45408dead32ee93fda724505e6bd2cad302940"
@@ -134,8 +136,8 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="28.4"
-erlang_sum="${erlang_sha512_for_28_4}"
+erlang_version="28.5"
+erlang_sum="${erlang_sha512_for_28_5}"
 
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
@@ -144,7 +146,7 @@ erlang_sum="${erlang_sha512_for_28_4}"
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="28.3" # "28.0.2"
+erlang_version_candidate="28.4" # "28.3"
 erlang_sum_candidate="${erlang_sha512_for_28_3}"
 #erlang_commit_id_candidate=""
 

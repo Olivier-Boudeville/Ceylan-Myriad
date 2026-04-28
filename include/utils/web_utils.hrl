@@ -28,21 +28,6 @@
 
 % Information regarding an instance hosted by the Microsoft Azure cloud
 % provider.
-%
--record( azure_instance_info, {
-
-    % The key of a Microsoft Azure instance:
-    instance_key :: web_utils:azure_instance_key(),
-
-    % The location (sometimes designated as "endpoint") of a Microsoft Azure
-    % instance:
-    %
-    instance_location :: web_utils:azure_instance_location() } ).
-
-
-
-% Information regarding an instance hosted by the Microsoft Azure cloud
-% provider.
 
 
 % Describes fully an URL, like: 'https://www.foo.org:8081/access/login'.
@@ -59,7 +44,29 @@
     host_identifier :: net_utils:host_identifier(),
 
     % For example 8081; possibly undefined.
-    port = 80 :: option( net_utils:net_port() ),
+    port = 80 :: option( net_utils:tcp_port() ),
 
     % For example 'access/login'.
     path :: web_utils:path() } ).
+
+
+
+% The default named advertised by Myriad's minimalist webserver:
+-define( default_webserver_name, "myriad_http_server" ).
+
+% The default TCP port used by Myriad's minimalist webserver:
+-define( default_webserver_port, 8000 ).
+
+
+% Information regarding an instance hosted by the Microsoft Azure cloud
+% provider.
+%
+-record( azure_instance_info, {
+
+    % The key of a Microsoft Azure instance:
+    instance_key :: web_utils:azure_instance_key(),
+
+    % The location (sometimes designated as "endpoint") of a Microsoft Azure
+    % instance:
+    %
+    instance_location :: web_utils:azure_instance_location() } ).

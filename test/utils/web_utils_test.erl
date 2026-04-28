@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the services related to **web content**.
 
-See the web_utils.erl tested module.
+See the `web_utils` tested module.
 """.
 
 
@@ -40,14 +40,62 @@ See the web_utils.erl tested module.
 
 
 
--compile( { nowarn_unused_function, [ test_local/0, test_online/0 ] } ).
+-compile( { nowarn_unused_function,
+            [ test_local_available/0, test_online/0 ] } ).
+
+
+-doc "Runs Myriad's minimalist, local HTTP `web_utils` webserver.".
+test_local() ->
+
+    ModName = text_utils:atom_to_string( ?MODULE ),
+
+    TargetTCPPort = 8080,
+
+    % So that this test fetches its own code:
+    TargetUrl = text_utils:format( "~ts.erl", [ ModName ] ),
+
+    BindIPAddressSpec = localhost,
+
+    % First the server:
+
+    SrvId = web_utils:start_server( _SrvName=ModName,
+         _BindIPAddressSpec=localhost, TargetTCPPort,
+         _SrvRootDir=".", _DocRootDir= <<".">> ),
+
+
+
+    % Then the client:
+
+    web_utils:start(),
+
+    URI = text_utils:format( "http://~ts:~B/~ts",
+                             [ BindIPAddressSpec, TargetTCPPort, TargetUrl ] ),
+
+    test_facilities:display( "As a test, fetching page '~ts' from "
+        "a test-specified instance of Myriad's minimalist webserver "
+        "expected now to run on localhost, at TCP port #~B, URI being '~ts'.",
+        [ TargetUrl, TargetTCPPort, URI ] ),
+
+    { _StatusCode=200, _HeaderMap, Body } =
+        web_utils:get( URI, _Headers=[], _HttpOptions=[] ),
+
+    trace_bridge:debug_fmt( "Body: '~ts'.", [ Body ] ),
+
+    trace_bridge:debug_fmt( "inets services: ~p, with info:~n ~p.",
+                            [ inets:services(), inets:services_info() ] ),
+
+    % Order matters:
+    web_utils:stop_server( SrvId ),
+    web_utils:stop().
+
+
 
 
 -doc """
 Just an example. A webserver is expected to run at the specified location (see
 US-Web from an example thereof).
 """.
-test_local() ->
+test_local_available() ->
 
     TargetPort = 8080,
     TargetUrl = "index.html",
@@ -108,10 +156,12 @@ run() ->
         "(outer quotes excluded in both cases).",
         [ TestString, EncodedString ] ),
 
+    test_local(),
+
     % Disabled by default, not wanting a test to fail if no Internet access:
     % test_online(),
 
     % Disabled by default, no webserver expected to be running locally:
-    %test_local(),
+    %test_local_available(),
 
     test_facilities:stop().

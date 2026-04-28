@@ -704,8 +704,8 @@ get_any_web_browser_info() ->
 Returns the family, executable path and options of any browser found that should
 be able, with such options, to load web content from the local filesystem.
 
-Another approach could be to run a minimalistic Erlang web browser (akin to
-`python3 -m http.server 8080`).
+Now the recommended approach is to launch instead a suitable local webserver,
+see `web_utils:{start,stop}_server/*`, and then use any browser of choice.
 """.
 -spec get_any_web_browser_info_for_local_access() ->
                                     coarse_fallible( web_browser_info() ).
@@ -719,6 +719,7 @@ get_any_web_browser_info_for_local_access() ->
         error ->
             error;
 
+        % Now not even always sufficient:
         { ok, ChromeFamilyExecPath } ->
             % Should be better than:
             % '--disable-web-security --user-data-dir="/tmp/chrome"':

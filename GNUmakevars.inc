@@ -152,6 +152,7 @@ endif
 #  - otp_integration: how OTP conventions (notably regarding applications) are
 #    handled
 #  - web_exchanges: http/https exchanges
+#  - webserver: the Myriad minimalist webserver
 #  - strings: notably for mismatches between plain and binary ones
 #  - binaries: how binaries are created, used, matched
 #  - lists: how lists are processed
@@ -212,6 +213,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_waited_operations
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_webserver
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
