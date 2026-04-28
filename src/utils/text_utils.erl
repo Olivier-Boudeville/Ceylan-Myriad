@@ -5021,6 +5021,7 @@ escape_single_quotes( Text ) ->
     escape_single_quotes_helper( Text, _Acc=[] ).
 
 
+% (helper)
 escape_single_quotes_helper( _Text=[], Acc ) ->
     lists:reverse( Acc );
 
@@ -5042,6 +5043,7 @@ escape_double_quotes( Text ) ->
     escape_double_quotes_helper( Text, _Acc=[] ).
 
 
+% (helper)
 escape_double_quotes_helper( _Text=[], Acc ) ->
     lists:reverse( Acc );
 
@@ -5083,8 +5085,8 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 Escapes the specified string, so that it cannot make a `io:format/2`-like call
 fail due to any control sequence found in it.
 
-Useful if ever a third-party string that may contain for example "~w" was to be
-added to a format string - which would be in the general case a bad practice.
+Useful if ever a third-party string that may contain for example `"~w"` was to
+be added to a format string - which would be in the general case a bad practice.
 """.
 -spec escape_for_format_string( ustring() ) -> ustring().
 escape_for_format_string( Text ) ->
