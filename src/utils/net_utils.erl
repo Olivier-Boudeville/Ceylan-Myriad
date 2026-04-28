@@ -88,10 +88,9 @@ See `net_utils_test.erl` for the corresponding test.
 -export([ check_port/1, check_ephemeral_port/1]).
 
 
-% Stringifications:
--export([ ipv4_to_string/1, ipv4_to_string/2,
-          ipv6_to_string/1, ipv6_to_string/2,
-          host_to_string/1 ]).
+% Stringifications and alike:
+-export([ spec_to_ip/1, ipv4_to_string/1, ipv4_to_string/2,
+          ipv6_to_string/1, host_to_string/1 ]).
 
 
 
@@ -104,19 +103,35 @@ See `net_utils_test.erl` for the corresponding test.
 
 
 -doc "An IPv4 address.".
--type ip_v4_address() :: { byte(), byte(), byte(), byte() }.
+-type ip_v4_address() :: { 0..255, 0..255, 0..255, 0..255 }.
+
+
+-doc "An IPv6 address component.".
+-type ipv6_component() :: 0..65535.
 
 
 -doc """
 An IPv6 address, using 16 bytes.
 
-For example `2001:0db8:0000:85a3:0000:0000:ac1f:8001`.
+For example corresponds to `2001:0db8:0000:85a3:0000:0000:ac1f:8001`.
 """.
--type ip_v6_address() :: <<_:16*8>>.
+% Was previously <<_:16*8>>:
+-type ip_v6_address() ::
+    { ipv6_component(), ipv6_component(), ipv6_component(), ipv6_component(),
+      ipv6_component(), ipv6_component(), ipv6_component(), ipv6_component() }.
+
+
 
 
 -doc "An IP address.".
 -type ip_address() :: ip_v4_address() | ip_v6_address().
+
+
+-doc """
+The specification of an IP address, directly as a tuple, or as a string
+(e.g. `"127.0.0.1"`), or as `localhost`".
+""".
+-type ip_address_spec() :: ip_address() | any_string() | 'localhost'.
 
 
 
@@ -280,7 +295,7 @@ A port number is a 16-bit unsigned integer, thus ranging from 0 to 65535. For
 TCP, port number 0 is reserved and cannot be used, while for UDP, the source
 port is optional and a value of zero means no port.
 """.
--type net_port() :: non_neg_integer().
+-type net_port() :: 0..65535.
 
 
 -doc """
@@ -338,7 +353,8 @@ The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
         string_host_name() | 'unknown_dns' | 'no_dns_lookup_executable_found'.
 
 
--export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
+-export_type([ ip_v4_address/0, ip_v6_address/0,
+               ip_address/0, ip_address_spec/0,
                atom_node_name/0, string_node_name/0, bin_node_name/0,
                node_name/0, node_type/0,
                atom_host_name/0, string_host_name/0, bin_host_name/0,
@@ -2408,6 +2424,36 @@ check_ephemeral_port( Other ) ->
 
 
 
+-doc "Returns the IP address corresponding to the specified specification.".
+-spec spec_to_ip( ip_address_spec() ) -> ip_address().
+spec_to_ip( Tuple ) when is_tuple( Tuple ) ->
+    % Size could be checked:
+    Tuple;
+
+spec_to_ip( localhost ) ->
+    % Loopback:
+    { 127, 0, 0, 1 }; % IPv6 : {0,0,0,0,0,0,0,1}.
+
+spec_to_ip( AnyIPStr ) ->
+    IPStr = text_utils:ensure_string( AnyIPStr ),
+    case inet:parse_address( IPStr ) of
+
+        { ok, IPTuple } ->
+            IPTuple;
+
+        { error, einval } ->
+            throw( { invalid_ip_string, AnyIPStr } )
+
+    end.
+
+
+
+
+% For :
+% - IP string (or localhost) to IP tuple, see spec_to_ip/1 above
+% - IP tuple to IP string, see also inet:ntoa/1.
+
+
 -doc "Returns a string describing the specified IPv4 address.".
 -spec ipv4_to_string( ip_v4_address() ) -> ustring().
 ipv4_to_string( { N1, N2, N3, N4 } ) ->
@@ -2419,7 +2465,7 @@ ipv4_to_string( { N1, N2, N3, N4 } ) ->
 Returns a string describing the specified IPv4 address and port.
 """.
 -spec ipv4_to_string( ip_v4_address(), net_port() ) -> ustring().
-ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
+ipv4_to_string( _IPv4={ N1, N2, N3, N4 }, Port ) ->
     text_utils:format( "~B.~B.~B.~B:~B", [ N1, N2, N3, N4, Port ] ).
 
 
@@ -2428,23 +2474,39 @@ ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 Returns a string describing the specified IPv6 address.
 """.
 -spec ipv6_to_string( ip_v6_address() ) -> ustring().
-ipv6_to_string( Ipv6Bin ) ->
-    % Later to be described as "2001:0db8:0000:85a3:0000:0000:ac1f:8001" for
-    % example:
-    %
-    text_utils:format( "~p", [ Ipv6Bin ] ).
+%ipv6_to_string( IPv6Bin ) ->
+%    % Later to be described as "2001:0db8:0000:85a3:0000:0000:ac1f:8001" for
+%    % example:
+%    %
+%    text_utils:format( "~p", [ IPv6Bin ] ).
+ipv6_to_string( _IPv6={ N1, N2, N3, N4, N5, N6, N7, N8 } ) ->
+    text_utils:format( "~B:~B:~B:~B:~B:~B:~B:~B",
+        [ ipv6_component_to_string( N1 ), ipv6_component_to_string( N2 ),
+          ipv6_component_to_string( N3 ), ipv6_component_to_string( N4 ),
+          ipv6_component_to_string( N5 ), ipv6_component_to_string( N6 ),
+          ipv6_component_to_string( N7 ), ipv6_component_to_string( N8 ) ] ).
+
+
+% (helper)
+-spec ipv6_component_to_string( ipv6_component() ) -> ustring().
+ipv6_component_to_string( C ) ->
+    text_utils:integer_to_hexabinstring( C ).
+
+    % Not needed, even less clear:
+    % text_utils:pad_string_right( BaseStr, _Width=4, _PadChar=$0 ).
 
 
 
--doc """
-Returns a string describing the specified IPv6 address and port.
-""".
--spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
-ipv6_to_string( Ipv6, Port ) ->
-    % By default eight groups of four hexadecimal digits each, separated by
-    % colons:
-    %
-    text_utils:format( "~ts:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
+% Too misleading to add directly a port:
+%% -doc """
+%% Returns a string describing the specified IPv6 address and port.
+%% """.
+%% -spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
+%% ipv6_to_string( IPv6, Port ) ->
+%%     % By default eight groups of four hexadecimal digits each, separated by
+%%     % colons:
+%%     %
+%%     text_utils:format( "~ts:~B", [ ipv6_to_string( IPv6 ), Port ] ).
 
 
 
@@ -2453,7 +2515,7 @@ ipv6_to_string( Ipv6, Port ) ->
 host_to_string( IPv4={ _N1, _N2, _N3, _N4 } ) ->
     ipv4_to_string( IPv4 );
 
-host_to_string( IPv6={ _N1, _N2, _N3, _N4, _N5, _N6 } ) ->
+host_to_string( IPv6={ _N1, _N2, _N3, _N4, _N5, _N6, _N7, _N8 } ) ->
     ipv6_to_string( IPv6 );
 
 host_to_string( Address ) ->

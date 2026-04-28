@@ -97,3 +97,4 @@
 ;; So that it can be loaded with 'require':
 (provide 'init-myriad-fully-integrated)
 (put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)

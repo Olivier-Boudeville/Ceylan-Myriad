@@ -871,7 +871,7 @@ String describing a timestamp (typically either a tick or a textual timestamp).
           get_xticks_option/1, get_yticks_option/1,
           get_x_range_option/1, get_y_range_option/1,
           get_x_ticks_option/1, get_y_ticks_option/1,
-          add_plot_index_back/2,
+          add_plot_index_back/2, get_escaped_text/1,
           generate_command_file/1, generate_data_file/2, write_row/3,
           forge_format_string_for/1 ]).
 
@@ -985,7 +985,7 @@ command of the corresponding zone.
 
 
 % To debug the generated command/data files, one can run directly gnuplot. This
-% is as simple as 'gnuplot My_test_plot.p'.
+% is as simple as 'gnuplot My_test_plot.plot'.
 
 % See http://www.gnuplot.info/docs/gnuplot.html for graph generation.
 
@@ -2638,6 +2638,31 @@ add_plot_index_back( _CurveNames=[ CName | T ], CurveEntries, Acc ) ->
                                  [ { Index, BinCName, PlotSuffix } | Acc ] )
 
     end.
+
+
+
+-doc """
+Returns the specified text (possibly a label, a title, etc.) as a plain string
+that is escaped so that it is properly rendered by gnuplot as it is (rather than
+being interpreted).
+
+For example otherwise, in a rendering, `some_thing` would put the `t` as
+subscript.
+
+Note that this applies to potentially-enhanced gnuplot text, i.e. that the
+'noenhanced' option shall not be used for them.
+""".
+-spec get_escaped_text( any_string() ) -> ustring().
+get_escaped_text( Text ) ->
+
+    % So that <<"a_b">> becomes "a\\_b", not just "a\_b":
+
+    %text_utils:escape_with( text_utils:ensure_string( Text ),
+    %                        _CharsToEscape=[ $_ ], _EscapingChar=$\ ).
+
+    % Yes, 4 anti-slashes needed, as they must visibly be escaped as well:
+    text_utils:flatten( string:replace( Text, _SearchPattern="_",
+                                        _Replacement="\\\\_", _Where=all ) ).
 
 
 

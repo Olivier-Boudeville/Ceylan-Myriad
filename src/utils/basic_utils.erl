@@ -688,7 +688,7 @@ eliminate afterwards).
           checkpoint/1,
 
           assert/1, assert_true/1, assert_false/1,
-          assert_equal/2, assert_different/2,
+          assert_equal/2, assert_different/2, assert_maybe_equal/2,
 
           display/1, display/2, display_timed/2, display_timed/3,
           display_error/1, display_error/2,
@@ -2292,6 +2292,28 @@ assert_different( Expr, Expr ) ->
 
 assert_different( _Expr1, _Expr2 ) ->
     ok.
+
+
+
+-doc """
+Asserts either that the specified (runtime) expressions compare equal, otherwise
+that the second one is equal to `undefined` (then regardless of the value of the
+first) - otherwise throws an exception.
+
+Sometimes searched as `check_maybe_equal/2`.
+""".
+-spec assert_maybe_equal( term(), option( term() ) ) -> void().
+assert_maybe_equal( Expr, Expr ) ->
+    ok;
+
+assert_maybe_equal( _Expr, _MaybeExpr=undefined ) ->
+    ok;
+
+assert_maybe_equal( Expr1, Expr2 ) ->
+    interpret_failed_assertion( "'~p' is not equal to '~p', which is not "
+        "equal to 'undefined' either", [ Expr1, Expr2 ] ),
+    throw( { assert_maybe_equal_failed, Expr1, Expr2 } ).
+
 
 
 % (helper)
