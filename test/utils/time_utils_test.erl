@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **time utils** toolbox.
 
-See the time_utils.erl tested module.
+See the `time_utils` tested module.
 """.
 
 
@@ -92,5 +92,25 @@ run() ->
     DayDifference = time_utils:get_date_difference( FirstDate, SecondDate ),
 
     { 2, 0, 0 } = time_utils:offset_time( { 1, 59, 58 }, 2 ),
+
+
+    DSTConvention = europe_dst,
+
+    DSTConvention = time_utils:vet_dst_convention( DSTConvention ),
+
+    60 = time_utils:get_dst_shift( DSTConvention ),
+
+    Year = 2026,
+
+    0 = time_utils:get_dst_offset(
+        _UTCTimestamp={ { 1, 1,Year  }, { 12, 0, 0 } }, DSTConvention ),
+
+    60 = time_utils:get_dst_offset( { { 1, 6, Year }, { 12, 0, 0 } },
+                                    DSTConvention ),
+
+    { { { 29, 3, Year }, { 1, 0, 0 } },
+      { { 25, 10, Year }, { 1, 0, 0 } } } =
+        time_utils:get_dst_transitions( Year, DSTConvention ),
+
 
     test_facilities:stop().
