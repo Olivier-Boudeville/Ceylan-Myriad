@@ -198,6 +198,8 @@ directly from a common base.
 Looks-up the specified executable program, whose name is specified as a string
 (e.g. `"gcc"`) in the current user PATH.
 
+Note that executables only available through an alias will not be found.
+
 Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`),
 or the `false` atom if it was not found.
 """.
@@ -218,13 +220,15 @@ Looks-up the specified executable program, whose name is specified as a string
 (e.g. `"gcc"`) in the current user PATH, augmented of the specified list of
 directories (whose existence is not checked), placed at first position.
 
+Note that executables only available through an alias will not be found.
+
 Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`),
 or the `false` atom if it was not found.
 
 For example: `lookup_executable("my-foo-program", [".", "/tmp"])`.
 """.
 -spec lookup_executable( executable_name(), [ directory_path() ] ) ->
-                                executable_path() | 'false'.
+                                          executable_path() | 'false'.
 lookup_executable( ExecutableName, ExtraDirs ) ->
 
     % Let's reconstruct a proper PATH-like string:
@@ -248,6 +252,8 @@ lookup_executable( ExecutableName, ExtraDirs ) ->
 -doc """
 Finds the specified executable program, whose name is specified as a string
 (e.g. `"gcc"`) in the current user PATH.
+
+Note that executables only available through an alias will not be found.
 
 Returns an absolute filename of the executable program (e.g. `"/usr/bin/gcc"`)
 or throws an exception `{executable_not_found, ExecutableName}` if it was not
