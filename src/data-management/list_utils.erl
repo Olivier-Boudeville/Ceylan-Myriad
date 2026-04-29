@@ -82,7 +82,8 @@ module, notably for its `key{find,take,...}` functions.
           remove_first_occurrence/2, remove_first_occurrences/2,
           delete_all_in/2,
           intercalate/2, append_at_end/2,
-          unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
+          unordered_compare/2, check_unordered_match/2,
+          flatten_once/1, filter_out_undefined/1 ]).
 
 
 % Less common list operations:
@@ -890,7 +891,7 @@ each.
 For example:
 ```
  L = [a,a,b,b,b,c,d,d],
-            [{b,3},{d,2},{a,2}] = list_utils:get_duplicates(L)
+ [{b,3},{d,2},{a,2}] = list_utils:get_duplicates(L)
 ```
 
 Use `lists:keysort(2, list_utils:get_duplicates(L))` to sort duplicates by
@@ -1464,6 +1465,26 @@ and 1.0 for example), possibly in a different order.
 -spec unordered_compare( list(), list() ) -> boolean().
 unordered_compare( L1, L2 ) ->
     lists:sort( L1 ) =:= lists:sort( L2 ).
+
+
+-doc """
+Checks whether the two specified lists have the same elements, possibly in a
+different order; throws if not, otherwise returns a sorted version of these two
+lists.
+""".
+-spec check_unordered_match( list(), list() ) -> list().
+check_unordered_match( L1, L2 ) ->
+    SortedL1 = lists:sort( L1 ),
+    SortedL2 = lists:sort( L2 ),
+    case SortedL1 =:= SortedL2 of
+
+        true ->
+            SortedL1;
+
+        false ->
+            throw( { unordered_match_failed, SortedL1, SortedL2 } )
+
+    end.
 
 
 
