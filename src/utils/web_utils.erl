@@ -228,7 +228,30 @@ For example `"<p>Hello!</p>"`.
 
 
 -doc "The full identifier of a webserver instance.".
--type server_id() :: { server_pid(), server_profile() }.
+-type server_id() ::
+
+    % With no server profile specified:
+    server_pid() | { BindAddress :: ip_address(), tcp_port() }
+
+    % If having specified a profile:
+  | { BindAddress :: ip_address(), tcp_port(), server_profile() }.
+
+
+
+-doc """
+A webserver option.
+
+Refer to [https://www.erlang.org/doc/apps/inets/httpd.html] for the many
+accepted server options.
+
+For example:
+- `{directory_index, ["index.html" ]}`
+- `{modules, [mod_alias, mod_get, mod_head, mod_log]}`
+- `{error_log, "error.log"}`
+- `{transfer_log, "access.log"}`
+- `{mime_types, [{"html", "text/html"}, {"txt", "text/plain"}]}`
+""".
+-type server_option() :: pair:tagged_pair().
 
 
 
@@ -379,6 +402,7 @@ For example `<<"francecentral">>`.
 
 -type ip_address_spec() :: net_utils:tcp_port().
 -type tcp_port() :: net_utils:tcp_port().
+-type ip_address() :: net_utils:ip_address().
 
 -type method() :: rest_utils:method().
 
@@ -1518,6 +1542,77 @@ start_server() ->
 
 
 -doc """
+Starts a minimalist, local HTTP webserver directly with the specified options.
+
+Useful for example to server local content, whereas browsers now refuse, based
+on CORS, any kind of access to local content (typically with: "Cross-Origin
+Request Blocked: The Same Origin Policy disallows reading the remote resource at
+file://xxx (Reason: CORS request not http)").
+
+Lowest-level start function.
+
+Akin to `python -m http.server`.
+""".
+-spec start_server( [ server_option() ] ) -> server_id().
+start_server( SrvOpts ) ->
+
+    cond_utils:if_defined( myriad_debug_webserver,
+        trace_utils:debug_fmt(
+            "Starting a webserver with the following options:~n ~p",
+            [ SrvOpts ] ) ),
+
+    % Prerequisite; no extra dependency (like Cowboy) involved:
+    % (either 'ok' or '{error,{already_started,inets}}')
+    %
+    inets:start(),
+
+    case inets:start( httpd, SrvOpts ) of
+
+        { ok, SrvPid } ->
+            case list_table:lookup_entry( _Key=profile, SrvOpts ) of
+
+                key_not_found ->
+                    % No profile was specified, so PID (or {BindAddress,
+                    % TCPPort}) will be sufficient:
+                    %
+                    SrvPid;
+
+                { value, SrvProfile } ->
+
+                    BindIPAddress = case list_table:lookup_entry( bind_address,
+                                                                SrvOpts ) of
+                        key_not_found ->
+                            any; % httpd default
+
+                        { value, Address } ->
+                            Address
+
+                    end,
+
+                    TCPPort = case list_table:lookup_entry( port, SrvOpts ) of
+
+                        key_not_found ->
+                            % Mandatory:
+                            throw( no_tcp_port_defined );
+
+                        { value, Port } ->
+                            Port
+
+                    end,
+
+                    { BindIPAddress, TCPPort, SrvProfile }
+
+            end;
+
+        { error, Reason } ->
+            throw( { webserver_start_failed, Reason, SrvOpts } )
+
+    end.
+
+
+
+
+-doc """
 Starts a minimalist, local HTTP webserver on the specified TCP port, bound to
 the specified IP address, serving the content (typically HTML/JS) found from the
 specified "document root" directory (the root of the public content exposed
@@ -1587,68 +1682,36 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
     file_utils:is_existing_directory_or_link( DocRootDir ) orelse
         throw( { non_existing_document_root, DocRootDir } ),
 
-    % No extra dependency (like Cowboy) involved:
-    inets:start(),
-
-    % Could be added:
-    % { directory_index, [ "index.html" ] },
-    % { modules, [ mod_alias, mod_get, mod_head, mod_log ]},
-    % { error_log, "error.log" },
-    % { transfer_log, "access.log" },
-    % { mime_types, [ { "html", "text/html" }, { "txt", "text/plain" } ] }
-    %
-    SrvCfg = [ { profile, SrvProfile },
-               { port, TCPPort },
-               { server_name, SrvName },
-               { server_root, SrvRootDir },
-               { document_root, DocRootDir },
-               { bind_address, BindIPAddress } ],
-
-    cond_utils:if_defined( myriad_debug_webserver,
-        trace_utils:debug_fmt( "Starting webserver configured as:~n ~p",
-                               [ SrvCfg ] ) ),
-
-    case inets:start( httpd, SrvCfg ) of
-
-        { ok, SrvPid } ->
-            { SrvPid, SrvProfile };
-
-        { error, Reason } ->
-            throw( { webserver_start_failed, Reason } )
-
-    end.
+    start_server( _SrvOpts = [ { profile, SrvProfile },
+                               { port, TCPPort },
+                               { server_name, SrvName },
+                               { server_root, SrvRootDir },
+                               { document_root, DocRootDir },
+                               { bind_address, BindIPAddress } ] ).
 
 
 
 -doc "Stops the specified minimalist, local HTTP webserver.".
 -spec stop_server( server_id() ) -> void().
-stop_server( SrvId={ _SrvPid, _SrvProfile } ) ->
+stop_server( SrvId ) ->
 
     cond_utils:if_defined( myriad_debug_webserver,
         trace_utils:debug_fmt( "Stopping webserver identified by ~w.",
                                [ SrvId ] ) ),
 
-    % Neither the PID not the profile are sufficient to stop; so:
-    %{ httpd, _SrvPid, SvcInternalCfg } =
-    %    lists:keyfind( SrvPid, _Index=2, inets:services_info() ),
+    case inets:stop( httpd, SrvId ) of
 
-    trace_bridge:warning_fmt( "Webserver ~w not actually stopped, "
-                              "to avoid an alleged inets bug.", [ SrvId ] ).
+        ok ->
+            ok;
 
-    % Profile not set in configuration:
-    %case inets:stop( httpd, SrvProfile ) of
-    %case inets:stop( httpd, default ) of
-    %case inets:stop( httpd, SvcInternalCfg ) of
-    %case inets:stop( httpd, SrvPid ) of
-    %
-    %    ok ->
-    %        ok;
-    %
-    %    { error, Reason } ->
-    %        throw( { webserver_stop_failed, SrvId, Reason } )
-    %
-    %end.
+        { error, Reason } ->
+            throw( { webserver_stop_failed, Reason, SrvId } )
 
+    end.
+
+
+
+% Cloud-related section.
 
 
 -doc """
