@@ -50,7 +50,8 @@ determine whether a given function is exported).
           declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
           get_code_path/0, get_code_path_as_string/0,
           code_path_to_string/0, code_path_to_string/1,
-          list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
+          get_beams_in_path/0, list_beams_in_path/0, interpret_beams_in_path/0,
+          get_beam_filename/1, is_beam_in_path/1,
           get_source_filename/1,
           find_module_source/1,
           ensure_compiled/1, ensure_compiled/2, ensure_compiled/3,
@@ -776,8 +777,27 @@ code_path_to_string( CodePath ) ->
 
 
 -doc """
-Lists (in alphabetical order) all modules that exist in the current code path,
-based on the BEAM files found.
+Returns a list of the (unordered, possibly with duplicates) names of all modules
+that exist in the current code path, based on the BEAM files found.
+
+Note that the sorting is more convenient for inspection yet implies that, should
+a BEAM file be listed more than once (then being available in multiple paths),
+the actual version that would be selected by the VM cannot be determined. See
+`is_beam_in_path/1` for that.
+""".
+-spec get_beams_in_path() -> [ module_name() ].
+get_beams_in_path() ->
+    % Directly inspired from:
+    % http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
+
+    [ list_to_atom( filename:basename( File, ?beam_extension ) )
+      || Path <- code:get_path(),
+         File <- filelib:wildcard( "*.beam", Path ) ].
+
+
+-doc """
+Lists (in alphabetical order, possibly with duplicates) the names of all modules
+that exist in the current code path, based on the BEAM files found.
 
 Note that the sorting is more convenient for inspection yet implies that, should
 a BEAM file be listed more than once (then being available in multiple paths),
@@ -786,15 +806,38 @@ the actual version that would be selected by the VM cannot be determined. See
 """.
 -spec list_beams_in_path() -> [ module_name() ].
 list_beams_in_path() ->
+    lists:sort( get_beams_in_path() ).
 
-    % Directly inspired from:
-    % http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
 
-    Files = [ list_to_atom( filename:basename( File, ?beam_extension ) )
-                || Path <- code:get_path(),
-                   File <- filelib:wildcard( "*.beam", Path ) ],
+-doc """
+Returns a description / interpretation of any colliding BEAM files found in the
+code path, together with an (unordered, possibly with duplicates) list of the
+name of the corresponding modules.
+""".
+-spec interpret_beams_in_path() -> { option( ustring() ), [ module_name() ] }.
+interpret_beams_in_path() ->
+    AllBeams = get_beams_in_path(),
+    MaybeStr = case list_utils:get_duplicates( AllBeams ) of
 
-    lists:sort( Files ).
+        [] ->
+            undefined;
+
+        _DupPair=[ { ModName, Count } ]  ->
+            text_utils:format(
+                "the ~ts module is present ~ts in the code path",
+                [ ModName, text_utils:repetition_to_string( Count ) ] );
+
+        DupPairs ->
+            text_utils:format(
+                "~B modules are present multiple times in the code path: ~ts",
+                [ length( DupPairs ), text_utils:strings_to_listed_string(
+                    [ text_utils:format( "~ts for ~ts",
+                        [ text_utils:repetition_to_string( Count ), ModName ] )
+                            || { ModName, Count } <- DupPairs ] ) ] )
+
+    end,
+
+    { MaybeStr, AllBeams }.
 
 
 
