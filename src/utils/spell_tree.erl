@@ -76,9 +76,18 @@ Often abbreviated as `ST`.
 
 
 -doc """
+A suffix, typically corresponding to a completion.
+
+A full candidate is obtained by concatenating a prefix to complete with one of
+its completions.
+""".
+-type suffix() :: [ uchar() ].
+
+
+-doc """
 A string being split into to parts: a prefix that is the shortest, unique,
-unambiguous prefix, sufficient to designate that string, and the remainder of
-that string.
+unambiguous prefix, sufficient to designate that string, and a suffix
+corresponding to the remainder of that string, which is the full candidate.
 
 For example the splitter for `platypus` in a given tree could be `{"plat",
 "ypus"}` (thus this tree must comprise at least another string starting with
@@ -86,15 +95,15 @@ For example the splitter for `platypus` in a given tree could be `{"plat",
 
 Often noted `"plat|ypus"`.
 """.
--type splitter() :: { UnambiguousPrefix :: prefix(), Rest :: ustring() }.
+-type splitter() :: { UnambiguousPrefix :: prefix(), Rest :: suffix() }.
 
 
--export_type([ spell_tree/0, prefix/0, splitter/0 ]).
+-export_type([ spell_tree/0, prefix/0, suffix/0, splitter/0 ]).
 
 
 -export([ create/0, create/1,
           register_string/2, register_strings/2,
-          find_completions/2, get_splitters/1, resolve/2,
+          find_candidates/2, find_completions/2, get_splitters/1, resolve/2,
           concatenate/1, bin_concatenate/1,
           to_string/1, splitter_to_string/1 ]).
 
@@ -140,9 +149,7 @@ create( ToRegisterStrs ) ->
 
 
 
--doc """
-Registers the specified string in the specified spelling tree.
-""".
+-doc "Registers the specified string in the specified spelling tree.".
 -spec register_string( ustring(), spell_tree() ) -> spell_tree().
 register_string( Str, ST={ STPrefix, IsTerminal, ChildSTs } ) ->
 
@@ -260,9 +267,7 @@ get_tree_integrating( Str, STPrefix, IsTerminal,
 
 
 
--doc """
-Registers the specified strings in the specified spelling tree.
-""".
+-doc "Registers the specified strings in the specified spelling tree.".
 -spec register_strings( [ ustring() ], spell_tree() ) -> spell_tree().
 register_strings( Strs, ST ) ->
     lists:foldl( fun register_string/2, _Acc0=ST, _List=Strs ).
@@ -270,10 +275,23 @@ register_strings( Strs, ST ) ->
 
 
 -doc """
-Returns all sorted completions found in the specified spelling tree for the
-specified string: possibly an exact match and any number of partial matches.
+Returns all sorted (full) candidates found in the specified spelling tree for
+the specified prefix: possibly an exact match and any number of partial matches.
 """.
--spec find_completions( ustring(), spell_tree() ) -> [ ustring() ].
+-spec find_candidates( prefix(), spell_tree() ) -> [ suffix() ].
+find_candidates( ToCompleteStr, ST ) ->
+    [ ToCompleteStr ++ Cmplt
+        || Cmplt <- find_completions( ToCompleteStr, ST ) ].
+
+
+-doc """
+Returns all sorted completions (i.e. only suffixes, not full candidates) found
+in the specified spelling tree for the specified prefix: possibly an exact match
+and any number of partial matches.
+
+Often it is more convenient to rely on suffixes rather than on full candidates.
+""".
+-spec find_completions( prefix(), spell_tree() ) -> [ suffix() ].
 find_completions( ToCompleteStr, ST ) ->
 
     cond_utils:if_defined( myriad_debug_spell_tree,
@@ -282,20 +300,6 @@ find_completions( ToCompleteStr, ST ) ->
 
     Cmplts = find_comps( ToCompleteStr, ST ),
     lists:sort( Cmplts ).
-
-
-    %case A of
-    %case find_comps( ToCompleteStr, ST ) of
-
-    %%     { exact_match, PartialMatches } ->
-    %%         % Still sorted by design:
-    %%         [ ToCompleteStr | lists:sort( PartialMatches ) ];
-
-    %%     { undefined, PartialMatches } ->
-    %%         lists:sort( PartialMatches )
-
-    %% end.
-
 
 
 
@@ -418,13 +422,14 @@ find_all_comps( STs, Pfx ) ->
 find_all_comps( _STs=[], _Pfx, Acc ) ->
     Acc;
 
-find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=true, ChildSTs } | T ],
-                Pfx, Acc ) ->
+find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=true, ChildSTs } | T ], Pfx,
+                Acc ) ->
     AddAcc = [ Pfx ++ STPfx | find_all_comps( ChildSTs, Pfx++STPfx ) ],
+    %AddAcc = [ STPfx | find_all_comps( ChildSTs, Pfx++STPfx ) ],
     find_all_comps( T, Pfx, AddAcc ++ Acc );
 
-find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ],
-                      Pfx, Acc ) ->
+find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ], Pfx,
+                Acc ) ->
     AddAcc = find_all_comps( ChildSTs, Pfx++STPfx ),
     find_all_comps( T, Pfx, AddAcc ++ Acc ).
 
@@ -746,14 +751,12 @@ to_string( _ST={ Prefix, IsTerminal, ChildSTs }, IndentLevel ) ->
         _ ->
             NextIndentLevel = IndentLevel + 1,
             "\n" ++ text_utils:join( _Spec=$\n,
-                [ to_string( ST, NextIndentLevel )
-                        || ST <- ChildSTs ] )
+                [ to_string( ST, NextIndentLevel ) || ST <- ChildSTs ] )
 
     end,
 
-    %text_utils:format( "~tstree for ~tsprefix '~ts'~ts",
     text_utils:format( "~ts- '~ts'~ts~ts",
-        [ IndentStr, Prefix, TermStr, ChildStr ] ).
+                       [ IndentStr, Prefix, TermStr, ChildStr ] ).
 
 
 
