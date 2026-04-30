@@ -41,7 +41,7 @@ This allows for example writing code with the autocompleter being able to:
 - suggest the functions of the `table` pseudo-module
 - to display their documentation, etc.
 
-So any change made in the module designated by the actual_table_type define
+So any change made in the module designated by the `actual_table_type` define
 shall be applied here as well.
 """.
 
@@ -104,19 +104,32 @@ shall be applied here as well.
 
 -type entry_count() :: basic_utils:count().
 
+% To resolve the verbatime types below:
+-type map_hashtable() :: map().
 
 -doc "A map-based associative table.".
--type map_hashtable() :: map().
+-type table() :: map_hashtable().
 
 
 % Opaqueness difficult to preserve:
 -doc "A map-based associative table.".
--type map_hashtable( K, V ) :: type_utils:map( K, V ).
+-type table( K, V ) :: type_utils:map( K, V ).
+
+
+-doc """
+A map-based associative table whose keys are atoms, and whose values are of the
+specified type.
+""".
+-type tagged_table( V ) :: table( atom(), V ).
+
+-doc "A map-based associative table whose keys are atoms.".
+-type tagged_table() :: tagged_table( term() ).
+
 
 
 -export_type([ key/0, value/0, entry/0, entries/0,
                entry_count/0, option_entry/0, option_entries/0,
-               map_hashtable/0, map_hashtable/2 ]).
+               table/0, table/2, tagged_table/0, tagged_table/1 ]).
 
 
 % Type shorthands:

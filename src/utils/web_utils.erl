@@ -29,11 +29,12 @@
 
 -moduledoc """
 Gathering of services for **web-related** uses, notably for **HTML generation**
-or **HTTP/HTTPS management**, and also to provide a **minimalist webserver**.
+or **HTTP/HTTPS management**, and also providing a **minimalist webserver**,
+which is HTTP 1.1 compliant (as defined in RFC 2616).
 
 See `web_utils_test.erl` for the corresponding test.
 
-See also `rest_utils.erl`.
+See also the `rest_utils` module.
 """.
 
 
@@ -142,20 +143,35 @@ Example: `{"User-Agent", "Godzilla The Mighty"}`.
 -type headers() :: headers_as_list() | headers_as_maps().
 
 
--type http_option() :: % Not exported yet: httpc:http_option().
-                       any().
+% So that it can be further refined later:
+-doc """
+The key designating a client option.
+
+Refer to the properties in <https://www.erlang.org/doc/apps/inets/httpc.html>
+for the many accepted client options.
+""".
+-type client_option_key() :: atom().
+
+-type client_option_value() :: term().
 
 
--type options_for_httpc() :: [ http_option() ].
+-doc """
+An HTTP client option.
 
--type list_options() :: [ { atom(), term() } ].
+Refer to the properties in <https://www.erlang.org/doc/apps/inets/httpc.html>
+for the many accepted client options.
 
--type map_options() :: % Not exported yet: maps:maps( atom(), term() ).
-                       table().
+For example `{autoredirect, boolean()}`.
+""".
+% Not exported yet: httpc:http_option().
+-type client_option() :: { client_option_key(), client_option_value() }.
 
--type http_options() :: options_for_httpc() | map_options().
+-type client_option_map() ::
+    table( client_option_key(), client_option_value() ).
 
--type ssl_options() :: list_options(). % map_options().
+-type client_options() :: [ client_option() ] | client_option_map().
+
+-type ssl_options() :: list_table:tagged_table(). % Cannot be a map.
 
 
 -type request_result() :: { http_status_code(), headers_as_maps(), bin_body() }
@@ -173,9 +189,33 @@ A media type (formerly known as "MIME type").
 
 For example `"audio/ogg"`.
 
-Refer to [https://en.wikipedia.org/wiki/Media_type].
+Refer to <https://en.wikipedia.org/wiki/Media_type>.
 """.
 -type media_type() :: unicode:chardata().
+
+
+-doc """
+Specifies, for a given file extension, the corresponding media type to declare.
+
+For example `{"htm","text/html"}`.
+
+See also `/etc/mime.types`.
+""".
+-type mime_mapping() :: { extension(), media_type() }.
+
+
+
+-doc "Describes a class of usage for MIME types.".
+-type mime_usage() ::
+    'text'
+  | 'javascript'
+  | 'data' % Application / Data
+  | 'images'
+  | 'audio'
+  | 'video'
+  | 'fonts'
+  | 'api' % Web / API
+  | 'base'. % for common web usages (MDN / IANA); includes all previous usages
 
 
 
@@ -197,18 +237,18 @@ For example `"<p>Hello!</p>"`.
     % 2xx successful: the request was successfully received, understood, and
     % accepted:
     %
-    | 'successful'
+  | 'successful'
 
     % 3xx redirection: further action needs to be taken in order to complete the
     % request:
     %
-    | 'redirection'
+  | 'redirection'
 
     % 4xx client error: the request contains bad syntax or cannot be fulfilled
-    | 'client_error'
+  | 'client_error'
 
     % 5xx server error: the server failed to fulfill an apparently valid request
-    | 'server_error'.
+  | 'server_error'.
 
 
 
@@ -238,11 +278,23 @@ For example `"<p>Hello!</p>"`.
 
 
 
+% So that it can be further refined later:
 -doc """
-A webserver option.
+The key designating a server option.
 
-Refer to [https://www.erlang.org/doc/apps/inets/httpd.html] for the many
-accepted server options.
+Refer to the properties in <https://www.erlang.org/doc/apps/inets/httpd.html>
+for the many accepted server options.
+""".
+-type server_option_key() :: atom().
+
+-type server_option_value() :: term().
+
+
+-doc """
+An HTTP server option.
+
+Refer to the properties in <https://www.erlang.org/doc/apps/inets/httpc.html>
+for the many accepted client options.
 
 For example:
 - `{directory_index, ["index.html" ]}`
@@ -251,7 +303,8 @@ For example:
 - `{transfer_log, "access.log"}`
 - `{mime_types, [{"html", "text/html"}, {"txt", "text/plain"}]}`
 """.
--type server_option() :: pair:tagged_pair().
+-type server_option() :: { server_option_key(), server_option_value() }.
+
 
 
 
@@ -327,14 +380,20 @@ For example `<<"francecentral">>`.
                protocol_type/0, path/0, url_info/0,
 
                body/0, string_body/0, bin_body/0, json_body/0,
-               headers/0, map_options/0,
-               http_option/0, http_options/0, ssl_options/0,
+               headers/0,
+
+               client_option_key/0, client_option_value/0,
+               client_option/0, client_option_map/0, client_options/0,
+               ssl_options/0,
+
                location/0, nonce/0,
 
                media_type/0,
                html_element/0, http_status_class/0, http_status_code/0,
 
                server_pid/0, server_profile/0, server_id/0,
+               server_option_key/0, server_option_value/0, server_option/0,
+
 
                cloud_provider/0,
                service_endpoint/0, api_endpoint/0,
@@ -375,7 +434,8 @@ For example `<<"francecentral">>`.
 
 
 % Webserver-related operations:
--export([ start_server/0, start_server/5, start_server/6, stop_server/1 ]).
+-export([ start_server/0, start_server/5, start_server/6, stop_server/1,
+          get_mime_mappings/1 ]).
 
 
 % Cloud-related operations:
@@ -399,6 +459,7 @@ For example `<<"francecentral">>`.
 -type any_directory_path() :: file_utils:any_directory_path().
 -type file_path() :: file_utils:file_path().
 -type file_name() :: file_utils:file_name().
+-type extension() :: file_utils:extension().
 
 -type ip_address_spec() :: net_utils:tcp_port().
 -type tcp_port() :: net_utils:tcp_port().
@@ -1077,29 +1138,31 @@ Sends a (synchronous) HTTP/1.1 client request (GET or POST).
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a {ssl,
-web_utils:get_ssl_verify_options()} pair.
+For HTTPS requests, we recommend that the ClientOptions include a `{ssl,
+web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
--spec request( method(), uri(), headers(), http_options(), option( bin_body() ),
-               option( content_type() ) ) -> request_result().
-request( _Method=get, Uri, Headers, HttpOptions, _MaybeBody=undefined,
+-spec request( method(), uri(), headers(), client_options(),
+               option( bin_body() ), option( content_type() ) ) ->
+                                            request_result().
+request( _Method=get, Uri, Headers, ClientOptions, _MaybeBody=undefined,
          _MaybeContentType=undefined ) ->
-    get( Uri, Headers, HttpOptions );
+    get( Uri, Headers, ClientOptions );
 
-request( _Method=get, _Uri, _Headers, _HttpOptions, MaybeBody,
+request( _Method=get, _Uri, _Headers, _ClientOptions, MaybeBody,
          MaybeContentType ) ->
     throw( { invalid_get_request, { body, MaybeBody },
              { content_type, MaybeContentType } } );
 
-request( _Method=post, Uri, Headers, HttpOptions, MaybeBody,
+request( _Method=post, Uri, Headers, ClientOptions, MaybeBody,
          MaybeContentType ) ->
-    post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
+    post( Uri, Headers, ClientOptions, MaybeBody, MaybeContentType );
 
 % Not supported (yet): head | put | trace | options | delete | patch:
-request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
+request( Method, Uri, _Headers, _ClientOptions, _MaybeBody,
+         _MaybeContentType ) ->
     throw( { invalid_method, Method, Uri } ).
 
 
@@ -1109,26 +1172,26 @@ Sends a (synchronous) HTTP/1.1 client GET request.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+For HTTPS requests, we recommend that the ClientOptions include a `{ssl,
 web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
--spec get( uri(), headers(), http_options() ) -> request_result().
-get( Uri, Headers, HttpOptions ) ->
+-spec get( uri(), headers(), client_options() ) -> request_result().
+get( Uri, Headers, ClientOptions ) ->
 
     cond_utils:if_defined( myriad_debug_web_exchanges,
         trace_bridge:debug_fmt( "[~w] GET request to URI "
             "'~ts', with following headers:~n  ~p~nand "
-            "HTTP options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
+            "HTTP options:~n  ~p.", [ self(), Uri, Headers, ClientOptions ] ) ),
 
     HeadersForHttpc = to_httpc_headers( Headers ),
 
     % Any content-type expected in headers, and no specific body for GET:
     Req = { Uri, HeadersForHttpc },
 
-    HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+    ClientOptionsForHttpc = to_httpc_options( ClientOptions ),
 
     % Wanting the resulting body (as a binary rather than as a plain string),
     % headers, and the entire status line:
@@ -1138,9 +1201,9 @@ get( Uri, Headers, HttpOptions ) ->
     cond_utils:if_defined( myriad_debug_web_exchanges,
         trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc GET "
             "request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
-            [ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+            [ self(), Req, ClientOptionsForHttpc, Options ] ) ),
 
-    case httpc:request( _Method=get, Req, HttpOptionsForHttpc, Options ) of
+    case httpc:request( _Method=get, Req, ClientOptionsForHttpc, Options ) of
 
         % For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
         { ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
@@ -1173,15 +1236,15 @@ Sends a (synchronous, body-less) HTTP/1.1 client POST request.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+For HTTPS requests, we recommend that the ClientOptions include a `{ssl,
 web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
--spec post( uri(), headers(), http_options() ) -> request_result().
-post( Uri, Headers, HttpOptions ) ->
-    post( Uri, Headers, HttpOptions, _MaybeBody=undefined ).
+-spec post( uri(), headers(), client_options() ) -> request_result().
+post( Uri, Headers, ClientOptions ) ->
+    post( Uri, Headers, ClientOptions, _MaybeBody=undefined ).
 
 
 
@@ -1194,16 +1257,16 @@ rather than string ones.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+For HTTPS requests, we recommend that the ClientOptions include a `{ssl,
 web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
--spec post( uri(), headers(), http_options(), option( body() ) ) ->
+-spec post( uri(), headers(), client_options(), option( body() ) ) ->
                                 request_result().
-post( Uri, Headers, HttpOptions, MaybeBody ) ->
-    post( Uri, Headers, HttpOptions, MaybeBody, _MaybeContentType=undefined ).
+post( Uri, Headers, ClientOptions, MaybeBody ) ->
+    post( Uri, Headers, ClientOptions, MaybeBody, _MaybeContentType=undefined ).
 
 
 
@@ -1216,21 +1279,21 @@ rather than string ones.
 
 The HTTP support (possibly with SSL if needed) must be started.
 
-For HTTPS requests, we recommend that the HttpOptions include a `{ssl,
+For HTTPS requests, we recommend that the ClientOptions include a `{ssl,
 web_utils:get_ssl_verify_options()}` pair.
 
 For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 consider relying on Gun or Shotgun.
 """.
--spec post( uri(), headers(), http_options(), option( body() ),
+-spec post( uri(), headers(), client_options(), option( body() ),
             option( content_type() ) ) -> request_result().
-post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
+post( Uri, Headers, ClientOptions, MaybeBody, MaybeContentType ) ->
 
     cond_utils:if_defined( myriad_debug_web_exchanges,
         trace_bridge:debug_fmt( "[~w] POST request to URI "
             "'~ts', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
             "Body: ~p~nContent-type: ~ts",
-            [ self(), Uri, Headers, HttpOptions, MaybeBody,
+            [ self(), Uri, Headers, ClientOptions, MaybeBody,
               MaybeContentType ] ) ),
 
     HeadersForHttpc = to_httpc_headers( Headers ),
@@ -1256,7 +1319,7 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
     end,
 
-    HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+    ClientOptionsForHttpc = to_httpc_options( ClientOptions ),
 
     % Wanting the resulting body (as a binary rather than as a plain string),
     % headers, and the entire status line:
@@ -1266,9 +1329,9 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
     cond_utils:if_defined( myriad_debug_web_exchanges,
         trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc POST "
             "request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
-            [ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+            [ self(), Req, ClientOptionsForHttpc, Options ] ) ),
 
-    case httpc:request( _Method=post, Req, HttpOptionsForHttpc, Options ) of
+    case httpc:request( _Method=post, Req, ClientOptionsForHttpc, Options ) of
 
         % For example HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
         { ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
@@ -1316,23 +1379,22 @@ from_httpc_headers( Headers ) ->
 
 
 
--doc "Returns http options that are suitable for httpc.".
--spec to_httpc_options( http_options() ) -> options_for_httpc().
-to_httpc_options( HttpOptions ) when is_list( HttpOptions ) ->
-    HttpOptions;
-
-to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
-    % We have to recursively transform maps into lists (e.g. for {ssl,Opts}):
+-doc "Returns client options that are suitable for `httpc`.".
+-spec to_httpc_options( client_options() ) -> [ client_option() ].
+to_httpc_options( ClientOptions ) when is_list( ClientOptions ) ->
+    % We have to transform maps into lists (e.g. for {ssl,Opts}):
     [ { K, case is_map( V ) of
 
                 true ->
                     maps:to_list( V );
 
-                false ->
+                _False ->
                     V
 
-           end } || { K, V } <- maps:to_list( HttpOptionMap ) ].
+           end } || { K, V } <- ClientOptions ];
 
+to_httpc_options( ClientOptionMap ) when is_map( ClientOptionMap ) ->
+    to_httpc_options( table:enumerate( ClientOptionMap ) ).
 
 
 
@@ -1352,7 +1414,7 @@ Starts, if needed, the HTTP and SSL supports as a side effect.
 -spec download_file( url(), any_directory_path() ) -> file_path().
 download_file( Url, TargetDir ) ->
     download_file( Url, TargetDir,
-                   _HttpOptions=[ { ssl, get_ssl_verify_options() } ] ).
+                   _ClientOptions=[ { ssl, get_ssl_verify_options() } ] ).
 
 
 
@@ -1361,21 +1423,21 @@ Downloads the file designated by specified URL, in the specified directory
 (under its name in URL), with specified HTTP options, and returns the
 corresponding full path of that file.
 
-Popular settings are `HttpOptions = [{ssl,get_ssl_verify_options()}]` to avoid
+Popular settings are `ClientOptions = [{ssl,get_ssl_verify_options()}]` to avoid
 any Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
 protection against "casual" eavesdroppers).
 
 For example:
 ```
 web_utils:download_file(_Url="https://foobar.org/baz.txt",
-  _TargetDir="/tmp", HttpOptions  shall result in a "/tmp/baz.txt" file.
+  _TargetDir="/tmp", ClientOptions  shall result in a "/tmp/baz.txt" file.
 ```
 
 Starts, if needed, the HTTP and SSL supports as a side effect.
 """.
--spec download_file( url(), any_directory_path(), http_options() ) ->
+-spec download_file( url(), any_directory_path(), client_options() ) ->
                                                     file_path().
-download_file( Url, TargetDir, HttpOptions ) ->
+download_file( Url, TargetDir, ClientOptions ) ->
 
     % Using only built-in modules:
 
@@ -1411,7 +1473,7 @@ download_file( Url, TargetDir, HttpOptions ) ->
     %trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
     %                        [ FilePath, Url ] ),
 
-    case httpc:request( _Method=get, _Req={ Url, _Headers=[] }, HttpOptions,
+    case httpc:request( _Method=get, _Req={ Url, _Headers=[] }, ClientOptions,
                         _Opts=[ { stream, FilePath } ] ) of
 
         { ok, saved_to_file } ->
@@ -1520,7 +1582,7 @@ get_ssl_verify_options( _Switch=disable ) ->
 -doc """
 Starts a minimalist, local HTTP webserver on the Myriad default port (see the
 `default_webserver_port` define), serving - only on the loopback, i.e. only for
-the local host - the content (typically HTML/JS) found from the current
+the local host - the content (typically HTML/CSS/JS) found from the current
 directory.
 
 Useful for example to server local content, whereas browsers now refuse, based
@@ -1549,7 +1611,8 @@ on CORS, any kind of access to local content (typically with: "Cross-Origin
 Request Blocked: The Same Origin Policy disallows reading the remote resource at
 file://xxx (Reason: CORS request not http)").
 
-Lowest-level start function.
+Lowest-level start function. At least the `port`, `server_root`, `document_root`
+and probably `mime_types` properties shall be specified in the server options.
 
 Akin to `python -m http.server`.
 """.
@@ -1614,9 +1677,10 @@ start_server( SrvOpts ) ->
 
 -doc """
 Starts a minimalist, local HTTP webserver on the specified TCP port, bound to
-the specified IP address, serving the content (typically HTML/JS) found from the
-specified "document root" directory (the root of the public content exposed
+the specified IP address, serving the content (typically HTML/CSS/JS) found from
+the specified "document root" directory (the root of the public content exposed
 through the HTTP URLs).
+
 
 The "server root" directory is the internal work directory of the webserver (for
 configuration files, logs, etc.).
@@ -1643,8 +1707,9 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
 -doc """
 Starts a minimalist, local HTTP webserver on the specified TCP port, bound to
 the specified IP address, using the specified profile, serving the content
-(typically HTML/JS) found from the specified "document root" directory (the root
-of the public content exposed through the HTTP URLs).
+(typically HTML/CSS/JS) found from the specified "document root" directory (the
+root of the public content exposed through the HTTP URLs), with basic MIME
+types.
 
 The "server root" directory is the internal work directory of the webserver (for
 configuration files, logs, etc.).
@@ -1682,12 +1747,21 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
     file_utils:is_existing_directory_or_link( DocRootDir ) orelse
         throw( { non_existing_document_root, DocRootDir } ),
 
+    MimeMappings = get_mime_mappings( base ),
+
+    % To avoid an eaddrinuse error, triggered even if a previous server on that
+    % port is already dead (the kernel releasing ports asynchronously):
+    %
+    SocketOpts = [ { reuseaddr, true } ],
+
     start_server( _SrvOpts = [ { profile, SrvProfile },
                                { port, TCPPort },
                                { server_name, SrvName },
                                { server_root, SrvRootDir },
                                { document_root, DocRootDir },
-                               { bind_address, BindIPAddress } ] ).
+                               { bind_address, BindIPAddress },
+                               { mime_types, MimeMappings },
+                               { socket_opts, SocketOpts } ] ).
 
 
 
@@ -1708,6 +1782,81 @@ stop_server( SrvId ) ->
             throw( { webserver_stop_failed, Reason, SrvId } )
 
     end.
+
+
+
+-doc """
+Returns a list of the MIME mappings that correspondin to the specified usage.
+
+Note that some mappings belong to multiple usages.
+""".
+-spec get_mime_mappings( mime_usage() ) -> [ mime_mapping() ].
+get_mime_mappings( _MimeUsage=text ) ->
+    [ { Ext, "text/plain" }
+        || Ext <- [ "txt", "text", "conf", "def", "list", "log", "in" ] ]
+      ++ [ { "html", "text/html" }, { "htm", "text/html" },
+            { "css", "text/css" }, { "csv", "text/csv" },
+           { "xml", "text/xml" }, { "md", "text/markdown" } ];
+
+get_mime_mappings( _MimeUsage=javascript ) ->
+    [ { "js", "text/javascript" }, { "mjs", "text/javascript" } ];
+
+get_mime_mappings( _MimeUsage=data ) ->
+    [ { Ext, "application/octet-stream" }
+        || Ext <- [ "bin", "exe", "dll", "deb", "dmg", "iso", "img", "msi" ] ]
+      ++ [ { "json", "application/json" }, { "jsonld", "application/ld+json" },
+           { "xml", "application/xml" }, { "pdf", "application/pdf" },
+           { "zip", "application/zip " }, { "gz", "application/gzip" },
+           { "tar", "application/x-tar " },
+           { "7z", "application/x-7z-compressed" },
+           { "rar", "application/x-rar-compressed" },
+           { "xls", "application/vnd.ms-excel" },
+           { "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+           { "doc", "application/msword" },
+           { "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+           { "ppt", "application/vnd.ms-powerpoint" },
+           { "pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+           { "wasm", "application/wasm" },
+           { "webmanifest", "application/manifest+json" } ];
+
+get_mime_mappings( _MimeUsage=images ) ->
+    [ { Ext, "image/jpeg" }
+        || Ext <- [ "jpeg", "jpg", "jpe" ] ]
+      ++ [ { "png", "image/png" }, { "gif", "image/gif" },
+           { "svg", "image/svg+xml" }, { "svgz", "image/svg+xml" },
+           { "webp", "image/webp" }, { "avif", "image/avif" },
+           { "ico", "image/vnd.microsoft.icon" }, { "bmp", "image/bmp" },
+           { "tif", "image/tiff" }, { "tiff", "image/tiff" },
+           { "apng", "image/apng" } ];
+
+get_mime_mappings( _MimeUsage=audio ) ->
+    [ { Ext, "audio/ogg" }
+        || Ext <- [ "ogg", "oga", "opus" ] ]
+    ++ [ { "mp3", "audio/mpeg" }, { "wav", "audio/wav" },
+         { "aac", "audio/aac" }, { "flac", "audio/flac" },
+         { "weba", "audio/webm" }, { "mid", "audio/midi" },
+         { "midi", "audio/midi" } ];
+
+get_mime_mappings( _MimeUsage=video ) ->
+    [ { "mp4", "video/mp4" }, { "webm", "video/webm" }, { "ogv", "video/ogg" },
+      { "mpeg", "video/mpeg" }, { "mpg", "video/mpeg" },
+      { "avi", "video/x-msvideo" }, { "mov", "video/quicktime" } ];
+
+get_mime_mappings( _MimeUsage=fonts ) ->
+    [ { "woff", "font/woff" }, { "woff2", "font/woff2 " },
+      { "ttf", "font/ttf" }, { "otf", "font/otf" } ];
+
+get_mime_mappings( _MimeUsage=api ) ->
+    [ { "wasm", "application/wasm" },
+      { "webmanifest", "application/manifest+json" },
+      { "rss", "application/rss+xml" },
+      { "graphql", "application/atom+xml" } ];
+
+
+get_mime_mappings( _MimeUsage=base ) ->
+    lists:append( [ get_mime_mappings( U )
+        || U <- [ text, javascript, data, images, audio, video,fonts, api ] ] ).
+
 
 
 

@@ -76,7 +76,7 @@ See `net_utils_test.erl` for the corresponding test.
 
 
 % Server-related functions:
--export([ is_local_service_running_at/1,
+-export([ is_local_service_running_at/1, is_local_service_running_at/2,
           is_service_running_at/2, is_service_running_at/3 ]).
 
 
@@ -2269,19 +2269,55 @@ receive_file_chunk( DataSocket, OutputFile ) ->
 
 
 -doc """
-Tells whether a service (socket) is running on the local host at the specified
-TCP port.
+Tells whether the specified TCP port of the local host is considered free for
+use.
+
+Note that at least the Linux kernel releases (TCP) ports asynchronously, so the
+port may be considered as in use (`eaddrinuse`) whereas the process that was
+using it has already terminated; then the port will be considered free again
+only after a few seconds.
+
+There is no way to easily discriminate between such asynchronous termination and
+an actual server running currently on that port.
 """.
 -spec is_local_service_running_at( tcp_port() ) -> boolean().
 is_local_service_running_at( TCPPort ) ->
+    is_local_service_running_at( TCPPort, _DoReuseAddr=false ).
+
+
+
+-doc """
+Tells whether a server can be launched on the specified TCP port of the local
+host, based on this server requesting to reuse that port or not.
+
+Note that at least the Linux kernel releases (TCP) ports asynchronously, so the
+port may be considered as in use (`eaddrinuse`) whereas the process that was
+using it has already terminated, and the port will be considered free only after
+a few seconds.
+
+There is no way to easily discriminate between such asynchronous termination and
+a server running actually on that port.
+""".
+is_local_service_running_at( TCPPort, DoReuseAddr ) ->
+
+    %trace_utils:debug_fmt( "Testing local service availability at port #~B "
+    %    "(reuse address: ~ts).", [ TCPPort, DoReuseAddr ] ),
 
     % Tries to detect such a server by creating a clashing socket:
+    SocketOpts = case DoReuseAddr of
 
-    %trace_utils:debug_fmt( "Testing local service availability at port #~B...",
-    %                       [ TCPPort ] ),
+        true ->
+            [ { reuseaddr, true } ];
+
+        false ->
+            % This test may possibly make any upcoming server fail.
+            []
+
+    end,
+
 
     % Presumably a lot quicker than attempting to connect (no time-out):
-    case gen_tcp:listen( TCPPort, _Opts=[] ) of
+    case gen_tcp:listen( TCPPort, SocketOpts ) of
 
         { ok, Socket } ->
             gen_tcp:close( Socket ),
@@ -2292,8 +2328,9 @@ is_local_service_running_at( TCPPort ) ->
 
         { error, Error } ->
             trace_utils:error_fmt( "Error when testing service availability "
-                "at local TCP port #~B: ~p", [ TCPPort, Error ] ),
-            throw( { unexpected_error, Error, TCPPort } )
+                "at local TCP port #~B (reuse address: ~ts: ~p",
+                [ TCPPort, Error, DoReuseAddr ] ),
+            throw( { unexpected_error, Error, TCPPort, DoReuseAddr } )
 
     end.
 

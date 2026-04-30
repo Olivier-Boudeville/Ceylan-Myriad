@@ -56,7 +56,7 @@ They are to provide the same API (signatures and contracts).
 
 See also: `list_utils.erl` if having to deal with tagged lists, that is: lists
 possibly containing pairs and also single atoms (e.g. see
-`list_utils:extract_{atom,pair}_*/*`.
+`list_utils:extract_{atom,pair}_*/*`).
 """.
 
 
@@ -133,8 +133,31 @@ Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 -type table( K, V ) :: list_table( K, V ).
 
 
+-doc """
+A list-based associative table whose keys are atoms, and whose values are of the
+specified type.
+""".
+-type tagged_list_table( V ) :: list_table( atom(), V ).
+
+-doc "A list-based associative table whose keys are atoms.".
+-type tagged_list_table() :: tagged_list_table( term() ).
+
+
+-doc """
+A list-based associative table whose keys are atoms, and whose values are of the
+specified type.
+""".
+-type tagged_table( V ) :: list_table( atom(), V ).
+
+-doc "A list-based associative table whose keys are atoms.".
+-type tagged_table() :: tagged_list_table( term() ).
+
+
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-               list_table/0, list_table/2, table/0, table/2 ]).
+               list_table/0, list_table/2, table/0, table/2,
+               tagged_list_table/0, tagged_list_table/1,
+               tagged_table/0, tagged_table/1 ]).
+
 
 
 % Type shorthands:
@@ -505,7 +528,7 @@ extract_entry_with_default( Key, DefaultValue, Table ) ->
 Extracts the specified entry (if any) from the specified table, that is returns
 its associated value and removes that entry from the returned table.
 
-Otherwise, that is if that entry does not exist, returns false.
+Otherwise, that is if that entry does not exist, returns `false`.
 """.
 -spec extract_entry_if_existing( key(), list_table() ) ->
                     'false' | { value(), list_table() }.
@@ -528,10 +551,13 @@ Extracts the specified entries from the specified table, that is returns their
 associated values (in-order) and removes these entries from the returned table.
 
 Each key/value pair is expected to exist already, otherwise an exception is
-raised (typically {badkey, KeyNotFound}).
+raised (typically `{badkey, KeyNotFound}`).
 
-For example: {[RedValue, GreenValue, BlueValue], ShrunkTable} =
+For example:
+```
+{[RedValue, GreenValue, BlueValue], ShrunkTable} =
    list_table:extract_entries([red, green, blue], MyTable)
+```
 """.
 -spec extract_entries( [ key() ], list_table() ) ->
                                         { [ value() ], list_table() }.

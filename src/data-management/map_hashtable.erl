@@ -116,9 +116,21 @@ applied to that pseudo-module as well.
 -type map_hashtable( K, V ) :: type_utils:map( K, V ).
 
 
+-doc """
+A map-based associative table whose keys are atoms, and whose values are of the
+specified type.
+""".
+-type tagged_map_hashtable( V ) :: map_hashtable( atom(), V ).
+
+-doc "A map-based associative table whose keys are atoms.".
+-type tagged_map_hashtable() :: tagged_map_hashtable( term() ).
+
+
+
 -export_type([ key/0, value/0, entry/0, entries/0,
                entry_count/0, option_entry/0, option_entries/0,
-               map_hashtable/0, map_hashtable/2 ]).
+               map_hashtable/0, map_hashtable/2,
+               tagged_map_hashtable/0, tagged_map_hashtable/1 ]).
 
 
 % Type shorthands:
