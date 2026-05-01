@@ -69,23 +69,46 @@ run() ->
 
     ToCompleteStr = "pl",
 
-    CompletionOutcome = spell_tree:find_completions( ToCompleteStr, MultiWST ),
+    Candidates = spell_tree:find_candidates( ToCompleteStr, MultiWST ),
 
-    test_facilities:display( "Completions determined for prefix '~ts' "
-        "in the following tree:~n ~ts are: ~p.~n",
-        [ ToCompleteStr, spell_tree:to_string( MultiWST ),
-          CompletionOutcome ] ),
+    test_facilities:display( "Candidates determined for prefix '~ts' "
+        "in the following tree:~n ~ts are:~n ~p~n",
+        [ ToCompleteStr, spell_tree:to_string( MultiWST ), Candidates ] ),
 
+    list_utils:check_unordered_match( Candidates,
+        [ "place", "platypus", "plate", "placebo" ] ),
 
-    test_facilities:display( "Testing a series of completions, all based "
-        "on the registering of:~n ~p.", [ lists:sort( AllStrs ) ] ),
 
     TestStrs = AllStrs
         ++ [ "", "t", "other", "p", "pla", "te", "er", "erica", "xyz" ],
 
-    [ test_facilities:display( "Completions determined for prefix '~ts': ~p.",
-        [ Pfx, spell_tree:find_completions( Pfx, MultiWST ) ] )
-                || Pfx <- TestStrs ],
+    test_facilities:display( "Testing a series of candidates, all based "
+        "on the registering of:~n ~p.~nPrefixes to be completed are:~n ~p",
+        [ lists:sort( AllStrs ), TestStrs ] ),
+
+
+    % Each list of candidates corresponds to the ones for the test string of the
+    % same index in TestStrs:
+    %
+    TestCandidates = [ [ "test", "testing" ], [ "testing" ],
+        [ "place", "placebo" ], [ "platypus" ], [ "porridge" ], [ "plate" ],
+        [ "placebo" ], [ "eric" ], [ "erlang" ], [ "eric" ],
+        [ "stop", "stop_other" ], [ "stop_other" ], lists:uniq( AllStrs ),
+        [ "test", "testing" ], _Other=[],
+        _P=[ "place", "platypus", "porridge", "plate", "placebo" ],
+        _Pla=[ "place", "platypus", "plate", "placebo" ],
+        _Te=[ "test", "testing" ], _Er=[ "eric", "erlang" ], _Erica=[],
+        _Xyz=[] ],
+
+    TestPairs = lists:zip( TestStrs, TestCandidates ),
+
+    [ begin
+        Cands = spell_tree:find_candidates( TStr, MultiWST ),
+        test_facilities:display(
+            "Candidates determined for prefix '~ts': ~p.",
+            [ TStr, Candidates ] ),
+          list_utils:check_unordered_match( Cands, TCorrectCands )
+      end || { TStr, TCorrectCands } <- TestPairs  ],
 
 
     Splitters = spell_tree:get_splitters( MultiWST ),

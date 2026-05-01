@@ -85,6 +85,15 @@ its completions.
 
 
 -doc """
+We have to distinguish between:
+- no match found yet (`no_match`)
+- a first match has been found (`FirstMatch`), hopefully none other is found
+- already more than one match found, resolutop, failed (`undefined`)
+""".
+-type match_info() :: option( 'no_match' | FirstMatch :: ustring() ).
+
+
+-doc """
 A string being split into to parts: a prefix that is the shortest, unique,
 unambiguous prefix, sufficient to designate that string, and a suffix
 corresponding to the remainder of that string, which is the full candidate.
@@ -98,7 +107,7 @@ Often noted `"plat|ypus"`.
 -type splitter() :: { UnambiguousPrefix :: prefix(), Rest :: suffix() }.
 
 
--export_type([ spell_tree/0, prefix/0, suffix/0, splitter/0 ]).
+-export_type([ spell_tree/0, prefix/0, suffix/0, match_info/0, splitter/0 ]).
 
 
 -export([ create/0, create/1,
@@ -274,14 +283,17 @@ register_strings( Strs, ST ) ->
 
 
 
+
 -doc """
 Returns all sorted (full) candidates found in the specified spelling tree for
 the specified prefix: possibly an exact match and any number of partial matches.
 """.
 -spec find_candidates( prefix(), spell_tree() ) -> [ suffix() ].
 find_candidates( ToCompleteStr, ST ) ->
+    % Still sorted:
     [ ToCompleteStr ++ Cmplt
         || Cmplt <- find_completions( ToCompleteStr, ST ) ].
+
 
 
 -doc """
@@ -289,7 +301,8 @@ Returns all sorted completions (i.e. only suffixes, not full candidates) found
 in the specified spelling tree for the specified prefix: possibly an exact match
 and any number of partial matches.
 
-Often it is more convenient to rely on suffixes rather than on full candidates.
+Often it is more convenient to rely just on suffixes rather than on full
+candidates.
 """.
 -spec find_completions( prefix(), spell_tree() ) -> [ suffix() ].
 find_completions( ToCompleteStr, ST ) ->
@@ -298,86 +311,131 @@ find_completions( ToCompleteStr, ST ) ->
         trace_utils:debug_fmt( "Completions requested for '~ts' in:~n ~ts",
                                [ ToCompleteStr, to_string( ST ) ] ) ),
 
-    Cmplts = find_comps( ToCompleteStr, ST ),
-    lists:sort( Cmplts ).
+    % For example ToCompleteStr="pl", and the ST records ["place", "placebo",
+    % "plate", "platypus"], we want: ["ace", "acebo", "ate", "atypus"]; ResPfx
+    % allows not including ToCompleteStr despite recursion.
+    %
+    Cmplts = find_comps( ToCompleteStr, ST, _ResPfx="" ),
+    SortedCmplts = lists:sort( Cmplts ),
+
+    trace_utils:debug_fmt( "The ~B completions for '~ts' are:~n ~p.",
+        [ length( SortedCmplts ), ToCompleteStr, SortedCmplts ] ),
+
+    SortedCmplts.
 
 
 
 % (helper)
 %
 % If starting from an empty string and a wildcard ST, get all candidates:
--spec find_comps( ustring(), spell_tree() ) -> [ ustring() ].
-find_comps( _ToCompleteStr="", _ST={ _STPfx="", _IsTerminal, ChildSTs } ) ->
-    find_all_comps( ChildSTs, _NoPfx="" );
-
-% Catch-all spelling tree prefix:
-find_comps( ToCompleteStr, _ST={ _Pfx="", _IsTerminal, ChildSTs } ) ->
+-spec find_comps( ustring(), spell_tree(), ustring() ) -> [ ustring() ].
+find_comps( _ToCompleteStr="", _ST={ _STPfx="", _IsTerminal, ChildSTs },
+            ResPfx ) ->
+    Cmplts = [ ResPfx ++ S || S <- find_all_comps( ChildSTs ) ],
 
     cond_utils:if_defined( myriad_debug_spell_tree, trace_utils:debug_fmt(
-        "Directly searching children for '~ts'.", [ ToCompleteStr ] ) ),
-
-    Cmplts = find_child_comps( ToCompleteStr, ChildSTs, _Prefix="" ),
-
-    cond_utils:if_defined( myriad_debug_spell_tree, trace_utils:debug_fmt(
-        "Match infos for '~ts': ~p.", [ ToCompleteStr, Cmplts ] ) ),
+        "Completing empty string with no prefix, "
+        "returning completions (result prefix being '~ts'):~n ~p",
+        [ ResPfx, Cmplts ] ) ),
 
     Cmplts;
 
 
+% Having a catch-all spelling tree prefix here:
+find_comps( ToCompleteStr, _ST={ _Pfx="", _IsTerminal, ChildSTs }, ResPfx ) ->
+
+    cond_utils:if_defined( myriad_debug_spell_tree, trace_utils:debug_fmt(
+        "Directly searching children for '~ts'.", [ ToCompleteStr ] ) ),
+
+    Cmplts = [ ResPfx ++ S
+            || S <- find_child_comps( ToCompleteStr, ChildSTs ) ],
+
+    cond_utils:if_defined( myriad_debug_spell_tree, trace_utils:debug_fmt(
+        "Completions for '~ts': ~p.", [ ToCompleteStr, Cmplts ] ) ),
+
+     Cmplts;
+
+
 % General case:
-find_comps( ToCompleteStr, ST={ Pfx, IsTerminal, ChildSTs } ) ->
+find_comps( ToCompleteStr, _ST={ Pfx, IsTerminal, ChildSTs }, ResPfx ) ->
+
+    cond_utils:if_defined( myriad_debug_spell_tree, trace_utils:debug_fmt(
+        "Completing '~ts' for prefix '~ts' (result prefix: '~ts').",
+        [ ToCompleteStr, Pfx, ResPfx ] ) ),
+
     case text_utils:get_common_prefix_with_suffixes( ToCompleteStr, Pfx ) of
 
-        % Matching exactly the spelling tree prefix:
+        % ToCompleteStr matching exactly the spelling tree prefix here:
+        % (so here, ToCompleteStr = Pfx = CommonPrefix, using only Pfx)
         { _CommonPrefix, _ToCompleteSuffix="", _PfxSuffix="" } ->
 
             cond_utils:if_defined( myriad_debug_spell_tree,
                 trace_utils:debug_fmt( "Exact prefix matching for '~ts'.",
-                                       [ ToCompleteStr ] ) ),
+                                       [ Pfx ] ) ),
 
             % We want the next, deeper proposals as well:
-            AllNextComps = find_all_comps( ChildSTs, Pfx ) ,
+            ChildComps = find_all_comps( ChildSTs ),
 
-            case IsTerminal of
+            AllComps = case IsTerminal of
 
                true ->
-                   [ Pfx | AllNextComps ];
+                   [ "" | ChildComps ];
 
                false ->
-                   AllNextComps
+                   ChildComps
 
-            end;
+            end,
+
+            [ ResPfx ++ S || S <- AllComps ];
 
 
-        % Child prefix is longer here, first step is to complete our suffix by
-        % this prefix:
+        % ST prefix is longer here, first step is to complete our suffix by this
+        % prefix:
         %
-        { _CommonPrefix, _ToCompleteSuffix="", _PfxSuffix } ->
+        { _CommonPrefix, _ToCompleteSuffix="", PfxSuffix } ->
             % Advancing automatically to this full (only possible) prefix:
+            FullPfx = ResPfx ++ PfxSuffix,
 
             cond_utils:if_defined( myriad_debug_spell_tree,
-                trace_utils:debug_fmt( "Advancing '~ts' to '~ts'.",
-                                       [ ToCompleteStr, Pfx ] ) ),
+                trace_utils:debug_fmt( "Advancing '~ts' to '~ts' "
+                    "(full result prefix: '~ts').",
+                    [ ToCompleteStr, Pfx, FullPfx ] ) ),
 
-            find_comps( Pfx, ST );
+            ChildComps = find_all_comps( ChildSTs ),
+
+            AllComps = case IsTerminal of
+
+               true ->
+                   [ "" | ChildComps ];
+
+               false ->
+                   ChildComps
+
+            end,
+
+            [ FullPfx ++ S || S <- AllComps ];
 
 
-        % Our suffix is longer, exploring the child ST:
-        { CommonPrefix, ToCompleteSuffix, _PfxSuffix="" } ->
+        % Here our string (e.g. ToCompleteStr="pl") matches the prefix of this
+        % ST (e.g. "p") and our string suffix is longer, exploring the child STs
+        % of this ST (based on ToCompleteSuffix="l"):
+        %
+        { _CommonPrefix, ToCompleteSuffix, _PfxSuffix="" } ->
 
             cond_utils:if_defined( myriad_debug_spell_tree,
                 trace_utils:debug_fmt(
                     "For '~ts', exploring the children of '~ts'.",
                     [ ToCompleteStr, Pfx ] ) ),
 
-            find_child_comps( ToCompleteSuffix, ChildSTs, CommonPrefix );
+            [ ResPfx ++ S
+                || S <- find_child_comps( ToCompleteSuffix, ChildSTs ) ];
 
         % Unrelated strings, no possible completion:
         { _CommonPrefix, _ToCompleteSuffix, _PfxSuffix } ->
 
             cond_utils:if_defined( myriad_debug_spell_tree,
-                trace_utils:debug_fmt( "No completion for '~ts'.",
-                                       [ ToCompleteStr ] ) ),
+                trace_utils:debug_fmt( "No completion for '~ts' in '~ts'.",
+                                       [ ToCompleteStr, Pfx ] ) ),
 
             []
 
@@ -391,57 +449,50 @@ Returns the matches found in the specified spelling trees for the specified
 string, which is assumed non-empty (hence the first matching subtree found is
 the - only - right one).
 """.
--spec find_child_comps( ustring(), [ spell_tree() ], ustring() ) ->
-                                            [ ustring() ].
-find_child_comps( _Str, _STs=[], _Pfx ) ->
+-spec find_child_comps( ustring(), [ spell_tree() ] ) -> [ ustring() ].
+find_child_comps( _Str, _STs=[] ) ->
     [];
 
-find_child_comps( Str, _STs=[ ST | T ], Pfx ) ->
-    case find_comps( Str, ST ) of
+find_child_comps( Str, _STs=[ ST | T ] ) ->
+    case find_comps( Str, ST, _ResPfx="" ) of
 
         [] ->
-            find_child_comps( Str, T, Pfx );
+            find_child_comps( Str, T );
 
         Matches  ->
-            [ Pfx ++ M || M <- Matches ]
+            Matches
 
     end.
 
 
 
 -doc """
-Returns all completion outcomes corresponding to the specified spelling trees,
-based on the specified prefix.
+Returns all completion outcomes corresponding to the specified spelling trees.
 """.
--spec find_all_comps( [ spell_tree() ], ustring() ) -> [ ustring() ].
-find_all_comps( STs, Pfx ) ->
-    find_all_comps( STs, Pfx, _Acc=[] ).
+-spec find_all_comps( [ spell_tree() ] ) -> [ ustring() ].
+find_all_comps( STs ) ->
+    L = find_all_comps( STs, _Pfx="", _Acc=[] ),
+    %trace_utils:debug_fmt( "All comps for prefix '~ts': ~p.", [ Pfx, L ] ),
+    L.
 
 
 % (helper)
+% (Pfx needed when recursing)
 find_all_comps( _STs=[], _Pfx, Acc ) ->
     Acc;
 
-find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=true, ChildSTs } | T ], Pfx,
+find_all_comps( _STs=[ _ST={ STPfx, IsTerminal, ChildSTs } | T ], Pfx,
                 Acc ) ->
-    AddAcc = [ Pfx ++ STPfx | find_all_comps( ChildSTs, Pfx++STPfx ) ],
-    %AddAcc = [ STPfx | find_all_comps( ChildSTs, Pfx++STPfx ) ],
-    find_all_comps( T, Pfx, AddAcc ++ Acc );
 
-find_all_comps( _STs=[ _ST={ STPfx, _IsTerminal=false, ChildSTs } | T ], Pfx,
-                Acc ) ->
-    AddAcc = find_all_comps( ChildSTs, Pfx++STPfx ),
+    AllSTChildComps = find_all_comps( ChildSTs, Pfx ++ STPfx, _Acc=[] ),
+
+    AddAcc = case IsTerminal of
+        true -> [ Pfx ++ STPfx | AllSTChildComps ];
+        false -> AllSTChildComps
+    end,
+
     find_all_comps( T, Pfx, AddAcc ++ Acc ).
 
-
-
--doc """
-We have to distinguish between:
-- no match found yet (`no_match`)
-- a first match has been found (`FirstMatch`), hopefully none other is found
-- already more than one match found, resolutop, failed (`undefined`)
-""".
--type match_info() :: option( 'no_match' | FirstMatch :: ustring() ).
 
 
 
