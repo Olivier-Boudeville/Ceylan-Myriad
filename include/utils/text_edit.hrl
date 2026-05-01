@@ -81,4 +81,5 @@
     current_entry :: option( text_edit:entry() ),
 
     % The PID of the underlying actual processing logic:
+    % (for example the PID of a shell instance)
     processor_pid :: text_edit:processor_pid() } ).

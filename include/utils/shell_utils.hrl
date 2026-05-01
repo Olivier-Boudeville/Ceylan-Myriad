@@ -79,7 +79,9 @@
     cmd_history_file :: option( file_utils:file() ),
 
 
-    % Records all current bindings:
+    % Records all current bindings (typically a list of pairs of variable names
+    % (as atoms) / values (terms)):
+    %
     bindings :: erl_eval:binding_struct(),
 
 
@@ -100,10 +102,20 @@
     % The function that shall be called when there is a call to a local function
     % in a shell command.
     %
-    local_fun_handler :: erl_eval:local_function_handler()
+    local_fun_handler :: erl_eval:local_function_handler(),
 
+    % Tells whether auto-completion is enabled:
+    auto_complete = 'true' :: boolean(),
 
-    % At least currently, a shell does not keep track of the process(es) using
-    % it.
+    % Useful for auto-completion:
+    known_modules :: option( [ basic_utils:module_name() ] ),
+
+    % Used by auto-completion:
+    spell_tree :: option( spell_tree:spell_tree() ),
+
+    % A shell keeps track of its creator so that it can report information to
+    % it (e.g. if clashing BEAM modules were detected):
+    %
+    creator_pid :: pid()
 
 } ).

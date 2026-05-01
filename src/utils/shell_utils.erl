@@ -35,10 +35,13 @@ This shell supports (possibly timestamped) logging, (possibly bounded) command
 and result histories, persistent command history, built-in shell commands, which
 can be overridden/enriched based on callback modules.
 
+Such a shell process concentrates only on the shell logic, not on controls or
+any interface: in MVC parlance, it is a model.
+
 It can be of course local to the current node, or remote.
 
-See `shell_utils_test` for its testing, and `gui_shell_test` for an example of
-use thereof.
+See the `shell_utils_test` module for its testing, and `gui_shell_test` for an
+example of use thereof.
 """.
 
 
@@ -202,7 +205,7 @@ interest.
 
 
 -doc """
-Options that can be specified when creating a shell:
+An option that can be specified when creating a shell:
 
 - `timestamp`: keep track also of the timestamp of the start of a command
 
@@ -218,13 +221,14 @@ Options that can be specified when creating a shell:
 
 - `{'histories', MaxCmdDepth :: option(count()), MaxResDepth ::
  option(count())}`: records a command and result histories of the specified
- maximum depths, 'undefined' meaning unlimited depth (beware to memory
- footprint)
+ maximum depths, `undefined` meaning unlimited depth (beware to memory
+ footprint); by default these depths are respectively set to
+ ?default_command_history_max_depth and ?default_result_history_max_depth
 
-- no_histories: does not record any command or result history (synonym of
+- `no_histories`: does not record any command or result history (synonym of
   `{histories,0,0}`)
 
-- persistent_command_history: the command history is stored in the filesystem
+- `persistent_command_history`: the command history is stored in the filesystem
   for convenience, so that it can be reloaded when launching new shell instances
   (then the number of the first entered command will be the next one after the
   full history); note that it is then an history common to all shell instances,
@@ -233,10 +237,13 @@ Options that can be specified when creating a shell:
   reused and then updated iff this option is selected (i.e. this option enables
   both its reading and its writing)
 
-- callback_module: to specify the name of any implementation for the shell
+- `no_autocomplete`: deactivates the auto-completion of the names of modules,
+  functions, variables, etc.
+
+- `callback_module`: to specify the name of any implementation for the shell
   callback module (see `shell_default_callbacks` for the default one)
 
-- reference_module: to specify the name of any implementation for the shell
+- `reference_module`: to specify the name of any implementation for the shell
   reference module (e.g. `gui_shell`), when information (e.g. help text) may
   have to be obtained from it
 """.
@@ -245,9 +252,10 @@ Options that can be specified when creating a shell:
  |  'log'
  | { 'log', LogPath :: any_file_path() }
  | { 'histories', MaxCmdDepth :: option( count() ),
-     MaxCmdDepth :: option( count() ), MaxResDepth :: option( count() ) }
+     MaxResDepth :: option( count() ) }
  |  'no_histories'
- | 'persistent_command_history'
+ |  'persistent_command_history'
+ |  'no_autocomplete'
  | { 'callback_module', module_name() }
  | { 'reference_module', module_name() }.
 
@@ -520,8 +528,8 @@ The PID of a group leader process for user I/O (see `lib/kernel/src/group.erl`).
 Starts a (non-linked) Myriad shell process with default options, and returns its
 PID.
 
-A history of depth `?default_history_max_depth` is enabled, and no logging is
-performed.
+A history of depth `?default_history_max_depth` is enabled, no logging is
+performed, and auto-completion is enabled.
 """.
 -spec start_shell() -> shell_pid().
 start_shell() ->
@@ -547,9 +555,12 @@ start_shell( Opts ) ->
     % Preferring checking in caller process:
     InitShellState = vet_options( Opts ),
 
+    % Closure:
+    CreatorPid = self(),
+
     ShellPid = ?myriad_spawn(
         fun() ->
-            shell_main_loop( InitShellState )
+            shell_init( InitShellState#shell_state{ creator_pid=CreatorPid } )
         end ),
 
     cond_utils:if_defined( myriad_debug_shell,
@@ -587,9 +598,12 @@ start_link_shell( Opts ) ->
     % Preferring checking in caller process:
     InitShellState = vet_options( Opts ),
 
+    % Closure:
+    CreatorPid = self(),
+
     ShellPid = ?myriad_spawn_link(
         fun() ->
-            shell_main_loop( InitShellState )
+            shell_init( InitShellState#shell_state{ creator_pid=CreatorPid } )
         end ),
 
     cond_utils:if_defined( myriad_debug_shell,
@@ -620,8 +634,10 @@ vet_options( Opt ) ->
 
 
 % (helper)
-vet_options( _Opts=[], ShellState=#shell_state{
-                                        callback_module=CallbackMod } ) ->
+vet_options( _Opts=[],
+             ShellState=#shell_state{ callback_module=CallbackMod } ) ->
+
+    % (auto-completion prepared at shell initialisation)
 
     cond_utils:if_defined( myriad_debug_shell,
         begin
@@ -853,6 +869,10 @@ vet_options( _Opts=[ persistent_command_history | T ], ShellState ) ->
                                     cmd_history_file=CmdHistFile } );
 
 
+vet_options( _Opts=[ no_autocomplete | T ], ShellState ) ->
+    vet_options( T, ShellState#shell_state{ auto_complete=false } );
+
+
 vet_options( _Opts=[ { callback_module, CallbackModule } | T ], ShellState ) ->
 
     is_atom( CallbackModule ) orelse
@@ -957,6 +977,38 @@ execute_command( CmdAnyStr, ShellPid ) ->
 
 % Implementation helpers.
 
+-doc "Initialises and runs a Myriad shell instance.".
+-spec shell_init( shell_state() ) -> no_return().
+% Better done in the shell process rather on the caller one:
+shell_init( ShellState=#shell_state{ auto_complete=true } ) ->
+
+    AllModNames = case code_utils:interpret_beams_in_path() of
+
+        { undefined, ModNames } ->
+            ModNames;
+
+        { DupStr, ModNames } ->
+            BinDupStr = text_utils:bin_format( "Warning: ~ts.", [ DupStr ] ),
+            ShellState#shell_state.creator_pid ! { reportWarning, BinDupStr },
+            ModNames
+
+    end,
+
+    % No binding yet:
+    Vocabulary = [ text_utils:atom_to_string( ModName )
+                        || ModName <- AllModNames ],
+
+    SpellTree = spell_tree:create( Vocabulary ),
+
+    NewShellState = ShellState#shell_state{ known_modules=AllModNames,
+                                            spell_tree=SpellTree },
+
+    shell_main_loop( NewShellState );
+
+shell_init( ShellState ) ->
+    shell_main_loop( ShellState ).
+
+
 
 -doc "Main loop of a Myriad shell instance.".
 % No specific initialisation needed, like 'process_flag(trap_exit, true)'.
@@ -969,6 +1021,9 @@ shell_main_loop( ShellState ) ->
     % To test commands with proper runtime information:
     %trace_utils:debug_fmt( "Shell main loop: ~ts.",
     %   [ command_history_to_string_with_ids( ShellState ) ] ),
+
+    %trace_utils:debug_fmt( "Shell main loop:~n ~ts",
+    %   [ spell_tree:to_string( ShellState#shell_state.spell_tree ) ] ),
 
 
     % WOOPER-like conventions, except that no wooper_result is sent back:
@@ -986,6 +1041,39 @@ shell_main_loop( ShellState ) ->
             ClientPid ! CmdOutcome,
 
             shell_main_loop( ProcShellState );
+
+
+        { getCompletionInfo, SymbolPrefixBin, CallerPid } ->
+            MaybeComplInfo = case ShellState#shell_state.auto_complete of
+
+                true ->
+                    BinCmplts = case ShellState#shell_state.spell_tree of
+
+                        % Surprising:
+                        undefined ->
+                            { SymbolPrefixBin, [] };
+
+                        SpellTree ->
+
+                            SymbolPrefixStr =
+                                text_utils:binary_to_string( SymbolPrefixBin ),
+
+                            CmplStrs = spell_tree:find_completions(
+                                _ToCompleteStr=SymbolPrefixStr, SpellTree ),
+
+                            text_utils:strings_to_binaries( CmplStrs )
+
+                    end,
+                    { SymbolPrefixBin, BinCmplts };
+
+                false ->
+                    undefined
+
+            end,
+
+            CallerPid ! { notifyCompletionInfo, MaybeComplInfo },
+
+            shell_main_loop( ShellState );
 
 
         % Mostly useless:
@@ -1104,10 +1192,20 @@ on_prompt_update( NewPrompt, NewBindings,
                           binding_struct(), shell_state() ) ->
                                 { command_outcome(), shell_state() }.
 on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
-                    ShellState=#shell_state{ submission_count=SubCount } ) ->
+                    ShellState=#shell_state{ submission_count=SubCount,
+                                             spell_tree=SpellTree } ) ->
+
+    % We have to register all known bindings at each command, short of knowing
+    % the new ones:
+    %
+    BindingNames = [ text_utils:atom_to_string( AtomName )
+        || { AtomName, _Value } <- erl_eval:bindings( NewBindings ) ],
+
+    NewSpellTree = spell_tree:register_strings( BindingNames, SpellTree ),
 
     % submission_count already incremented:
-    ProcShellState = ShellState#shell_state{ bindings=NewBindings },
+    ProcShellState = ShellState#shell_state{ bindings=NewBindings,
+                                             spell_tree=NewSpellTree },
 
     ResHistShellState = update_result_history( CmdResValue, ProcShellState ),
 
@@ -1162,7 +1260,8 @@ process_command_custom( CmdBinStr, ShellState=#shell_state{
                                             bindings=Bindings } ) ->
 
     cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
-        "Processing command '~ts'.", [ CmdBinStr ] ) ),
+        "Processing command '~ts', with bindings ~w.",
+        [ CmdBinStr, Bindings ] ) ),
 
     NewCmdId = SubCount + 1,
 
@@ -1514,8 +1613,14 @@ shell_state_to_string( #shell_state{ submission_count=SubCount,
                                      cmd_history=CmdHistory,
                                      res_history=ResHistory,
                                      bindings=BindingStruct,
-                                     callback_module=CallbackMod },
+                                     callback_module=CallbackMod,
+                                     auto_complete=DoAutoComplete },
                        _Verbose=true ) ->
+
+    AutoCompStr = case DoAutoComplete of
+        true -> "enabled";
+        false -> "disabled"
+    end,
 
     CmdHistStr = case CmdHistMaxDepth of
 
@@ -1550,15 +1655,15 @@ shell_state_to_string( #shell_state{ submission_count=SubCount,
     end,
 
     text_utils:format( "Myriad shell ~w, relying on the ~ts callback module, "
-        "with ~ts and ~B commands already submitted, with ~ts and ~ts",
+        "with ~ts and ~B commands already submitted, with auto-completion ~ts, "
+        "~ts and ~ts",
         [ self(), CallbackMod, bindings_to_string( BindingStruct ), SubCount,
-          CmdHistStr, ResHistStr ] );
+          AutoCompStr, CmdHistStr, ResHistStr ] );
 
 
-shell_state_to_string( #shell_state{
-                                submission_count=SubCount,
-                                bindings=BindingStruct },
-                              _Verbose=false ) ->
+shell_state_to_string( #shell_state{ submission_count=SubCount,
+                                     bindings=BindingStruct },
+                       _Verbose=false ) ->
     text_utils:format( "Myriad shell with ~B bindings, and ~B commands already "
         "submitted",
         [ length( erl_eval:bindings( BindingStruct ) ), SubCount ] ).

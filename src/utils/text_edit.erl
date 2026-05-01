@@ -28,8 +28,8 @@
 -module(text_edit).
 
 -moduledoc """
-Provides facilities to edit any kind of text made of a series of entries
-generically, with cursor control, shortcuts, etc.
+Provides facilities to **edit any kind of text made of a series of entries**
+generically, with cursor control, shortcuts, completions, etc.
 
 At least currently, this consists in managing a (single) entry (logical line)
 thanks to higher-level operations.
@@ -100,8 +100,8 @@ The number of an entry (in their history), which is an identifier thereof.
 -type entry_id() :: count().
 
 
--doc "A text that could be suffixed to the current entry.".
--type completion() :: bin_string().
+%-doc "A text that could be suffixed to the current entry.".
+%-type completion() :: bin_string().
 
 
 -doc "The PID of a process in charge of managing each validated entry.".
@@ -142,7 +142,7 @@ The number of an entry (in their history), which is an identifier thereof.
 -export([ create/4, create/5, filter_options/1,
           recall_previous_entry/1, recall_next_entry/1,
           delete_current_char/1, delete_previous_char/1,
-          get_completions/1,
+          get_completion_info/1,
           to_string/1,
           destruct/1 ]).
 
@@ -187,7 +187,7 @@ and no prefix.
 """.
 -spec create( processor_pid(), entry_id(), boolean(), boolean() ) ->
                                             text_edit().
-create( ProcessorPid, NextEntryId, AutoAddTrailingDot, WrapCursor  ) ->
+create( ProcessorPid, NextEntryId, AutoAddTrailingDot, WrapCursor ) ->
     create( ProcessorPid, NextEntryId, AutoAddTrailingDot, WrapCursor,
             _Prefix="" ).
 
@@ -293,7 +293,7 @@ get_cursor_position( #text_edit{ prefix_len=PfxLen,
 
 
 -doc "Returns the currently edited entry (with no prefix taken into account).".
--spec get_entry( text_edit() ) -> text().
+-spec get_entry( text_edit() ) -> ustring(). % More precise than text().
 get_entry( #text_edit{ precursor_chars=PreChars,
                        postcursor_chars=PostChars } ) ->
     lists:reverse( PreChars ) ++ PostChars.
@@ -302,12 +302,12 @@ get_entry( #text_edit{ precursor_chars=PreChars,
 -doc "Returns the currently edited entry (with no prefix), as a binary string.".
 -spec get_bin_entry( text_edit() ) -> bin_string().
 get_bin_entry( TE ) ->
-    text_utils:ensure_binary( get_entry( TE ) ).
+    text_utils:string_to_binary( get_entry( TE ) ).
 
 
 
 -doc "Returns the current, full (prefix included) edited text.".
--spec get_full_text( text_edit() ) -> text().
+-spec get_full_text( text_edit() ) -> ustring(). % More precise than text().
 get_full_text( TE=#text_edit{ prefix=Pfx } ) ->
     Pfx ++ get_entry( TE ).
 
@@ -446,8 +446,11 @@ shifting the cursor to the end of this addition, and removing all the text that
 was on the right of that cursor.
 """.
 -spec append_string_truncate( ustring(), text_edit() ) -> text_edit().
-append_string_truncate( SuffixStr, TE=#text_edit{ precursor_chars=PreChars,
-                                        postcursor_chars=PostChars } ) ->
+append_string_truncate( SuffixStr,
+                        TE=#text_edit{ precursor_chars=PreChars,
+                                       postcursor_chars=PostChars } ) ->
+
+    %trace_utils:debug_fmt( "Appending-truncate '~ts'.", [ SuffixStr ] ),
 
     NewPreChars = lists:reverse( SuffixStr ) ++ PreChars,
 
@@ -791,21 +794,45 @@ delete_previous_char( #text_edit{ precursor_chars=[] } ) ->
 
 delete_previous_char( TE=#text_edit{ precursor_chars=S=[ _Prev | Others ],
                                      postcursor_chars=PostChars } ) ->
-    TE#text_edit{ precursor_chars=Others,
-                  prev_precursor_chars=S,
-                  prev_postcursor_chars=PostChars }.
+    NewTE = TE#text_edit{ precursor_chars=Others,
+                          prev_precursor_chars=S,
+                          prev_postcursor_chars=PostChars },
+
+    trace_utils:debug_fmt( "Delete previous char: from '~ts' to '~ts'.",
+                           [ to_string( TE ), to_string( NewTE ) ] ),
+
+    NewTE.
 
 
 
 -doc """
-Returns an updated text edit, completed as much as possible, together with any
-list of extra completions spotted.
+Returns either `undefined` or any current symbol prefix obtained from the
+specified text editor, together with the completions identified by its
+corresponding processor.
 """.
--spec get_completions( text_edit() ) ->
-                { text_edit(), option( [ completion() ] ) }.
-get_completions( TextEdit ) ->
-    { TextEdit, [ "aa", "bb", "cc" ] }.
-    %{ TextEdit, [ "ssssssss" ] }.
+-spec get_completion_info( text_edit() ) -> option(
+        { SymbolPrefixBin :: bin_string(), CmplBins :: [ bin_string() ] } ).
+get_completion_info( TextEdit=#text_edit{ processor_pid=ProcPid } ) ->
+
+    % TMP:
+    SymbolPrefixBin = get_bin_entry( TextEdit ),
+
+    ProcPid ! { getCompletionInfo, SymbolPrefixBin, self() },
+
+    receive
+
+        % Can be 'undefined' (e.g. a shell with auto-completion deactivated), or
+        % for example {<<"pl">>, [<<"ate">>, <<"acebo">>]}:
+        %
+        { notifyCompletionInfo, MaybeComplInfo } ->
+
+            trace_utils:debug_fmt(
+                "Processor-originating completion info:~n ~p",
+                [ MaybeComplInfo ] ),
+
+            MaybeComplInfo
+
+    end.
 
 
 

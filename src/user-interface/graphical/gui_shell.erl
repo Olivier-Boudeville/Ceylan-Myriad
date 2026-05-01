@@ -94,7 +94,7 @@ They include the ones when creating a text edit.
 
 
 % Silencing:
--export([ text_state_to_string/1 ]).
+-export([ apply_text_and_set_cursor/2, text_state_to_string/1 ]).
 
 
 
@@ -226,6 +226,16 @@ They include the ones when creating a text edit.
 
     % The state of a general-purpose text edition facility:
     text_edit :: text_edit(),
+
+    % Stores any prefix of a symbol being auto-completed: as the full symbols
+    % are to be displayed in the autocompletion menu, selecting an entry will
+    % return it, whereas only its suffix is wanted to be added to the text
+    % editor, as the editor has already its prefix in its buffer.
+    %
+    current_symbol_prefix :: option( bin_string() ),
+
+    % No direct reference to any actual shell instance, as it is owned by the
+    % text editor just above.
 
     % Tells whether a closing parenthesis should be automatically added whenever
     % an opening one is typed:
@@ -541,10 +551,10 @@ get_prefix_info( CmdId ) ->
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
 gui_shell_main_loop( GUIShellState ) ->
 
-    cond_utils:if_defined( myriad_debug_gui_shell,
-        trace_utils:debug_fmt( "GUI shell main loop editing '~ts'.",
-            [ text_edit:to_string(
-                GUIShellState#gui_shell_state.text_edit ) ] ) ),
+    %cond_utils:if_defined( myriad_debug_gui_shell,
+    %    trace_utils:debug_fmt( "GUI shell main loop editing '~ts'.",
+    %        [ text_edit:to_string(
+    %            GUIShellState#gui_shell_state.text_edit ) ] ) ),
 
     % Most frequent first:
     receive
@@ -638,15 +648,46 @@ gui_shell_main_loop( GUIShellState ) ->
 
             %trace_utils:debug_fmt( "Selected label item: '~ts'.", [ Label ] ),
 
-            gui_text_editor:add_text(
-                GUIShellState#gui_shell_state.command_editor, Label ),
+            PrefixStr = text_utils:binary_to_string(
+                GUIShellState#gui_shell_state.current_symbol_prefix ),
 
-            gui_shell_main_loop( GUIShellState );
+            % Not expected to be 'undefined':
+            SuffixStr = text_utils:get_any_suffix( PrefixStr, _TestStr=Label ),
+
+            CmdEditor = GUIShellState#gui_shell_state.command_editor,
+
+            gui_text_editor:add_text( CmdEditor, SuffixStr ),
+
+            TextEdit = GUIShellState#gui_shell_state.text_edit,
+
+            AugmentedTextEdit = text_edit:append_string( SuffixStr, TextEdit ),
+
+            trace_utils:debug_fmt(
+                "By selecting '~ts', moving from '~ts' to '~ts'.",
+                [ SuffixStr, text_edit:to_string( TextEdit ),
+                  text_edit:to_string( AugmentedTextEdit ) ] ),
+
+            apply_text_and_set_cursor( AugmentedTextEdit, CmdEditor ),
+
+            gui_shell_main_loop( GUIShellState#gui_shell_state{
+                                   text_edit=AugmentedTextEdit,
+                                   current_symbol_prefix=undefined } );
 
 
         acquireFocus ->
             gui_widget:set_focus(
                 GUIShellState#gui_shell_state.command_editor ),
+
+            gui_shell_main_loop( GUIShellState );
+
+
+        % Typically used by the internal shell instance to report warning
+        % information, for example if duplicate BEAMs are detected:
+        %
+        { reportWarning, BinText } ->
+
+            gui_text_editor:add_text(
+              GUIShellState#gui_shell_state.past_ops_editor, BinText ),
 
             gui_shell_main_loop( GUIShellState );
 
@@ -997,34 +1038,49 @@ position (ignoring the characters on its right).
                                             gui_shell_state().
 handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
 
-    { NewTextEdit, Completions } = text_edit:get_completions( TextEdit ),
+    case text_edit:get_completion_info( TextEdit ) of
 
-    cond_utils:if_defined( myriad_debug_gui_shell,
-        trace_utils:debug_fmt( "Completions are: ~p", [ Completions ] ) ),
+        % No auto-completion service available, nothing to do:
+        undefined ->
+            GUIShellState;
 
-    case Completions of
 
         % Nothing suggested, nothing to do:
-        [] ->
-            GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
+        { _SymbolPrefixBin, _CmplBins=[] } ->
+             GUIShellState;
 
-        [ SingleCompletion ] ->
+
+        % A single completion is directly added:
+        { _SymbolPrefixBin, [ SingleCompletionBin ] } ->
+
+            SingleCompletionStr = text_utils:binary_to_string(
+                SingleCompletionBin ),
+
+            % As the prefix is already registered:
             CompletedTextEdit = text_edit:append_string_truncate(
-                SingleCompletion, NewTextEdit ),
+                SingleCompletionStr, TextEdit ),
 
             apply_text_and_cursor_to_end( CompletedTextEdit, CmdEditor ),
-            GUIShellState#gui_shell_state{ text_edit=CompletedTextEdit };
+            GUIShellState;
 
-        _ ->
-            CompMenu = gui_menu:create(),
+
+        % Having multiple completions opens a choice menu:
+        { SymbolPrefixBin, CmplBins } ->
+
+            %cond_utils:if_defined( myriad_debug_gui_shell,
+            %    trace_utils:debug_fmt( "Completions are:~n ~p",
+            %    [ CmplBins ] ) ),
+
+           CompMenu = gui_menu:create(),
 
             gui:subscribe_to_events( { onItemSelected, CompMenu } ),
 
-            % For testing:
-            %[ gui_menu:add_item(M, text_utils:integer_to_string( I ) )
-            %   || I <- lists:seq(1, 15 )  ],
-
-            [ gui_menu:add_item( CompMenu, C ) || C <- Completions],
+            % As we want full candidates (not just their completion) to appear
+            % in the menu:
+            %
+            [ gui_menu:add_item( CompMenu,
+                text_utils:bin_concatenate( SymbolPrefixBin, C ) )
+                    || C <- CmplBins ],
 
             % wxTextCtrl:positionToXY/2 is of no use here, as PositionToCoords()
             % is not implemented in wx; and with wxWidgets it does not seem
@@ -1046,7 +1102,10 @@ handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
             gui_menu:activate_as_popup( CompMenu, CmdEditor,
                                         { XPopup, YPopup } ),
 
-            GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
+            GUIShellState#gui_shell_state{
+                current_symbol_prefix=SymbolPrefixBin }
+
+            % Follow-up triggered by the receiving of an onItemSelected message.
 
     end.
 
