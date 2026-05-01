@@ -318,8 +318,9 @@ find_completions( ToCompleteStr, ST ) ->
     Cmplts = find_comps( ToCompleteStr, ST, _ResPfx="" ),
     SortedCmplts = lists:sort( Cmplts ),
 
-    trace_utils:debug_fmt( "The ~B completions for '~ts' are:~n ~p.",
-        [ length( SortedCmplts ), ToCompleteStr, SortedCmplts ] ),
+    cond_utils:if_defined( myriad_debug_spell_tree,
+        trace_utils:debug_fmt( "The ~B completions for '~ts' are:~n ~p.",
+            [ length( SortedCmplts ), ToCompleteStr, SortedCmplts ] ) ),
 
     SortedCmplts.
 
