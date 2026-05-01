@@ -3546,6 +3546,11 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 Returns the (longest, possibly empty) common prefix to the two specified
 strings, and any remainder of the two strings once their common prefix has been
 removed (thus their respective suffixes).
+
+For example:
+```
+{_CommonPrefix="hel", _FirstSuffix="lo", _SecondSuffix="icopter"} =
+    text_utils:get_common_prefix_with_suffixes("hello", "helicopter").
 """.
 -spec get_common_prefix_with_suffixes( ustring(), ustring() ) ->
         { CommonPrefix :: ustring(), FirstSuffix :: ustring(),
@@ -3578,16 +3583,16 @@ For example:
 - `get_any_suffix("ab", "xyz") = undefined`
 """.
 -spec get_any_suffix( ustring(), ustring() ) -> option( ustring() ).
-% Illegal pattern: get_any_suffix( RefStr, _TestStr=RefStr++Suffix  ) ->
-get_any_suffix( _RefStr=[], TestStr ) ->
+% Illegal pattern: get_any_suffix( PfxStr, _TestStr=PfxStr++Suffix ) ->
+get_any_suffix( _PfxStr=[], TestStr ) ->
     TestStr;
 
 % Matching character:
-get_any_suffix( _RefStr=[ C | TRefStr ], _TestStr=[ C | TTestStr ] ) ->
-    get_any_suffix( TRefStr, TTestStr );
+get_any_suffix( _PfxStr=[ C | TPfxStr ], _TestStr=[ C | TTestStr ] ) ->
+    get_any_suffix( TPfxStr, TTestStr );
 
 % Non-matching character:
-get_any_suffix( _RefStr, _TestStr ) ->
+get_any_suffix( _PfxStr, _TestStr ) ->
     undefined.
 
 
