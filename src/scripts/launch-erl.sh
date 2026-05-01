@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2025 Olivier Boudeville
+# Copyright (C) 2008-2026 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
@@ -900,6 +900,8 @@ fi
 
 if [ $use_run_erl -eq 0 ]; then
 
+	# (not the current default)
+
 	# Uncomment to see the actual runtime settings:
 
 	# Log to text file:
@@ -940,10 +942,12 @@ else
 	# Not using run_erl here, direct launch (the current default):
 
 	# Log to text file:
-	#echo "$0 running final command (with '${to_execute}'): ${command}" > launch-erl-command.txt
+	#echo "$0 running final command:" > launch-erl-command.txt
+	#echo "${erl} ${to_execute} ${command}" >> launch-erl-command.txt
 
 	# Log to console:
-	#echo; echo "##### $0 running final command (with '${to_execute}'): '${command}'"
+	#echo; echo "##### $0 running final command:\n ${erl} ${to_execute} ${command}"
+	#echo "${erl} ${to_execute} ${command}"
 
 	# We used to define above a final_command variable that comprised ${erl},
 	# yet on Windows, no matter the quoting that we tried, we did not succeed in
