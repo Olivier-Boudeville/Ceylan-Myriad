@@ -50,5 +50,6 @@ jobs:
         # Note that each Myriad BEAM file is then present twice in the code
         # path, in the build tree and in _build/default/lib/myriad/ebin/, and
         # some of our tests will detect it; so we wipe the latter:
-        /bin/rm -f _build/default/lib/myriad/ebin/*.beam
+        # (not as _build/default/lib/myriad/ebin/*.beam)
+        /bin/rm -f ebin/*.beam
         make test NODE_NAMING="--sn"
