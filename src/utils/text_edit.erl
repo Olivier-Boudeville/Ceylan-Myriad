@@ -82,6 +82,13 @@ The available options when creating a text edit.
 -type offset_char_pos() :: integer().
 
 
+-doc """
+Any character that may be understood as a paired bracket, typically among `( ),
+[ ], { }, < >`.
+""".
+-type bracket_char() :: uchar().
+
+
 -type prefix_info() :: { ustring(), length() }.
 
 
@@ -128,10 +135,9 @@ The number of an entry (in their history), which is an identifier thereof.
 
 
 
-
 -export_type([ text_edit/0, text_edit_option/0,
 
-               char_pos/0, offset_char_pos/0, prefix_info/0,
+               char_pos/0, offset_char_pos/0, bracket_char/0, prefix_info/0,
                entry/0, entry_str/0, entry_id/0,
 
                processor_pid/0, process_result/0, process_error_reason/0,
@@ -163,6 +169,9 @@ The number of an entry (in their history), which is an identifier thereof.
           set_cursor_to_start_of_line/1, set_cursor_to_end_of_line/1,
           kill_from_cursor/1, restore_previous_line/1, clear/1, process/1 ]).
 
+
+% Miscellaneous:
+-export([ get_maybe_closing_bracket/1 ]).
 
 
 % Type shorthands:
@@ -843,3 +852,22 @@ to_string( #text_edit{ entry_id=EntryId,
                        postcursor_chars=PostChars } ) ->
     text_utils:format( "text edit #~B whose text with cursor is '~ts|~ts'",
                        [ EntryId, lists:reverse( PreChars ), PostChars ] ).
+
+
+% Miscellaneous section.
+
+-spec get_maybe_closing_bracket( uchar() ) -> option( bracket_char() ).
+get_maybe_closing_bracket( _Char=$( ) ->
+    $);
+
+get_maybe_closing_bracket( _Char=$[ ) ->
+    $];
+
+get_maybe_closing_bracket( _Char=${ ) ->
+    $};
+
+% Not closing '<' (for binaries such as <<"Hello">>), as used also as a test
+% operator ("a<b").
+
+get_maybe_closing_bracket( _Char ) ->
+    undefined.

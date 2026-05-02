@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various facilities for **keyboard management**.
 
-See also the gui_keyboard_test module.
+See also the `gui_keyboard_test` module.
 """.
 
 
@@ -178,7 +178,7 @@ See also the gui_keyboard_test module.
 
 -doc """
 Designates a button at a given location of the keyboard when it is considered as
-a ~104-button joystick.
+a **~104-button joystick**.
 
 A scancode is a "button code", it designates a location of a button on any
 keyboard, regardless of the character labelled on the user's actual keyboard.
@@ -189,21 +189,27 @@ non-printable special keys (e.g. the Home key, the Insert one).
 
 A modifier generates a scancode just by itself, as it is a button by itself.
 
-Refer to the corresponding MYR_SCANCODE_* defines.
+As a scancode designates a button rather than any specific character, (the value
+of) a scancode cannot be translated in an (Erlang) char.
+
+Refer to the corresponding `MYR_SCANCODE_*` defines.
 """.
 -type scancode() :: uint32().
 
 
 
 -doc """
-Designates a layout-dependent (Unicode) character code, that is the key
-corresponding to a given character, wherever that key may be on the user's
+Designates a layout-dependent (Unicode) character code, that is the **key
+corresponding to a given character**, wherever that key may be on the user's
 actual keyboard (which notably depends on its layout of choice).
 
 A modifier does not generate a keycode just by itself, as it is taken into
 account whenever generating a keycode.
 
-Refer to the corresponding MYR_K_* keycode defines.
+Refer to the corresponding `MYR_K_*` keycode defines.
+
+At least generally, (the value of) a keycode is the same as the corresponding
+(Erlang) char (for example `?MYR_K_a = $a`).
 """.
 -type keycode() :: uint32().
 
@@ -248,15 +254,15 @@ will be reported at the end, when the key is released).
     % So that parent windows can intercept keys received by focused (child)
     % windows:
     %
-    | 'onCharEnteredHook'
+  | 'onCharEnteredHook'
 
     % Event just about the physical key of interest (regardless of any
     % modifier):
     %
-    | 'onKeyPressed' % Does not take into account modifiers (use onCharEntered
-                     % to do so); for some reason, associated Unicode characters
-                     % are uppercased; so hitting the 'a' key returns the 'A'
-                     % uchar (not the 'a' one).
+  | 'onKeyPressed' % Does not take into account modifiers (use onCharEntered to
+                   % do so); for some reason, associated Unicode characters are
+                   % uppercased; so hitting the 'a' key returns the 'A' uchar
+                   % (not the 'a' one).
 
     | 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
 
@@ -287,7 +293,7 @@ Often used to detect keys being pressed (transitions from up to down).
 
           get_maybe_uchar/1,
 
-          get_scancode/1, get_keycode/1, get_code_pair/1,
+          get_scancode/1, get_keycode/1, get_code_pair/1, get_unicode/1,
 
           is_modifier_pressed/1,
           is_control_pressed/1, is_shift_pressed/1, is_super_pressed/1,
@@ -498,7 +504,7 @@ myr_keycode_to_wx( MyrKeycode ) ->
 Returns the backend keyboard event included in the specified (keyboard-related)
 event context.
 
-Generally for internal use only; prefer relying on the event_context_to_*/1
+Generally for internal use only; prefer relying on the `event_context_to_*/1`
 functions.
 """.
 -spec get_backend_event( event_context() ) -> backend_keyboard_event().
@@ -516,8 +522,8 @@ referenced in the specified backend keyboard event.
 Works for any printable key, including non-Latin-1 characters that can be
 entered when using national keyboard layouts.
 
-Returns 'undefined' when the key corresponds to a non-printable character
-(e.g. PRINTSCREEN or SCROLLLOCK).
+Returns `undefined` when the key corresponds to a non-printable character
+(e.g. `PRINTSCREEN` or `SCROLLLOCK`).
 """.
 -spec get_maybe_uchar( backend_keyboard_event() ) -> option( uchar() ).
 get_maybe_uchar( _WxKey=#wxKey{ uniChar=0 } ) ->
@@ -536,7 +542,7 @@ event.
 So scancodes are location-dependent, do not depend on the current keyboard
 layout and do not specifically correspond to a given character.
 
-See also the corresponding MYR_SCANCODE_* scancode defines.
+See also the corresponding `MYR_SCANCODE_*` scancode defines.
 """.
 -spec get_scancode( backend_keyboard_event() ) -> scancode().
 get_scancode( _WxKey=#wxKey{ rawFlags=Scancode } ) ->
@@ -546,7 +552,7 @@ get_scancode( _WxKey=#wxKey{ rawFlags=Scancode } ) ->
 
 -doc """
 Returns the keycode corresponding to the character referenced in the specified
-backend keyboard event.
+backend keyboard event, without taking any modifier into account.
 
 Keycodes depend on the current keyboard layout and are location-independent
 (they designate a logical key, wherever it actually is on the keyboard); they
@@ -554,11 +560,11 @@ should be used to handle special characters (non-printable special keys such as
 cursor arrows keys, HOME, INS, etc.) when no relevant Unicode character applies.
 
 For Latin-1 keys, these values happen to match, for compatibility reasons, the
-ones returned by get_unicode_char/1 (the keycode of non-special keys is an ASCII
-code, which means it will depend on the current keyboard layout); yet this does
-not work for Unicode characters in general.
+ones returned by `get_unicode_char/1` (the keycode of non-special keys is an
+ASCII code, which means it will depend on the current keyboard layout); yet this
+does not work for Unicode characters in general.
 
-See also the corresponding MYR_K_* keycode defines.
+See also the corresponding `MYR_K_*` keycode defines.
 """.
 -spec get_keycode( backend_keyboard_event() ) -> keycode().
 get_keycode( _WxKey=#wxKey{ keyCode=Keycode } ) ->
@@ -574,6 +580,18 @@ specified backend keyboard event.
 get_code_pair( _WxKey=#wxKey{ rawFlags=Scancode,
                               keyCode=Keycode } ) ->
     { Scancode, Keycode }.
+
+
+
+-doc """
+Returns the Unicode character corresponding to the key referenced in the
+specified backend keyboard event.
+
+Like `get_keycode/1`, but taking modifiers into account.
+""".
+-spec get_unicode( backend_keyboard_event() ) -> uchar().
+get_unicode( WxKey ) ->
+    wxKeyEvent:getUnicodeKey( WxKey ).
 
 
 
@@ -602,7 +620,7 @@ is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LSUPER ) > 0 ->
 
 
 -doc """
-Returns whether the Control key is pressed for the specified keyboard event.
+Returns whether the `Control` key is pressed for the specified keyboard event.
 """.
 -spec is_control_pressed( backend_keyboard_event() ) -> boolean().
 is_control_pressed( #wxKey{ controlDown=IsCtrlDown } ) ->
@@ -610,7 +628,7 @@ is_control_pressed( #wxKey{ controlDown=IsCtrlDown } ) ->
 
 
 -doc """
-Returns whether the Shift key is pressed for the specified keyboard event.
+Returns whether the `Shift` key is pressed for the specified keyboard event.
 """.
 -spec is_shift_pressed( backend_keyboard_event() ) -> boolean().
 is_shift_pressed( #wxKey{ shiftDown=IsShiftDown } ) ->
@@ -618,7 +636,7 @@ is_shift_pressed( #wxKey{ shiftDown=IsShiftDown } ) ->
 
 
 -doc """
-Returns whether the Super (a.k.a. Windows, Meta) key is pressed for the
+Returns whether the `Super` (a.k.a. Windows, Meta) key is pressed for the
 specified keyboard event.
 """.
 -spec is_super_pressed( backend_keyboard_event() ) -> boolean().
@@ -631,10 +649,10 @@ is_super_pressed( #wxKey{ metaDown=IsMetaDown } ) ->
 -doc """
 Returns the Unicode char corresponding to the printable character (if any)
 referenced in the specified event context corresponding to the receiving of a
-keyboard-related event message (onCharEntered, onKeyPressed, etc.), thus
+keyboard-related event message (`onCharEntered`, `onKeyPressed`, etc.), thus
 expected to include a backend keyboard event.
 
-Refer to get_maybe_uchar/1 for further details.
+Refer to `get_maybe_uchar/1` for further details.
 """.
 -spec event_context_to_maybe_uchar( event_context() ) -> option( uchar() ).
 event_context_to_maybe_uchar( EventContext ) ->
@@ -646,10 +664,10 @@ event_context_to_maybe_uchar( EventContext ) ->
 -doc """
 Returns the keycode corresponding to the character referenced in the specified
 event context corresponding to the receiving of a keyboard-related event message
-(onCharEntered, onKeyPressed, etc.), thus expected to include a backend keyboard
-event.
+(`onCharEntered`, `onKeyPressed`, etc.), thus expected to include a backend
+keyboard event.
 
-Refer to get_keycode/1 for further details.
+Refer to `get_keycode/1` for further details.
 """.
 -spec event_context_to_keycode( event_context() ) -> keycode().
 event_context_to_keycode( EventContext ) ->
@@ -662,10 +680,10 @@ event_context_to_keycode( EventContext ) ->
 Returns the scancode corresponding to the key (interpreted as a "button code"
 rather than as any character) referenced in the specified event context
 corresponding to the receiving of a keyboard-related event message
-(onCharEntered, onKeyPressed, etc.), thus expected to include a backend keyboard
-event.
+(`onCharEntered`, `onKeyPressed`, etc.), thus expected to include a backend
+keyboard event.
 
-Refer to get_scancode/1 for further details.
+Refer to `get_scancode/1` for further details.
 """.
 -spec event_context_to_scancode( event_context() ) -> scancode().
 event_context_to_scancode( EventContext ) ->
@@ -677,8 +695,8 @@ event_context_to_scancode( EventContext ) ->
 -doc """
 Returns the scancode/keycode pair corresponding to the key referenced in the
 specified event context corresponding to the receiving of a keyboard-related
-event message (onCharEntered, onKeyPressed, etc.), thus expected to include a
-backend keyboard event.
+event message (`onCharEntered`, `onKeyPressed`, etc.), thus expected to include
+a backend keyboard event.
 """.
 -spec event_context_to_code_pair( event_context() ) -> code_pair().
 event_context_to_code_pair( EventContext ) ->
@@ -689,7 +707,7 @@ event_context_to_code_pair( EventContext ) ->
 
 -doc """
 Returns a textual description of the specified key event, of type
-backend_keyboard_event()
+`backend_keyboard_event/0`.
 """.
 -spec key_event_to_string( backend_keyboard_event() ) -> ustring().
 key_event_to_string( _WxKey=#wxKey{ type=WxKeyEventType,

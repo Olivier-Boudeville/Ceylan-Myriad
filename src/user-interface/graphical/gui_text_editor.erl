@@ -141,7 +141,7 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 % Operations related to text editors:
 -export([ create/1, create/2, destruct/1,
           set_default_font/2, set_default_background_color/2,
-          set_text/2, add_text/2, clear/1,
+          get_text/1, set_text/2, add_text/2, clear/1,
           show_position/2, show_text_end/1, get_last_position/1,
           set_cursor_position/2, set_cursor_position_to_end/1,
           get_cursor_position/1, offset_cursor_position/2,
@@ -253,6 +253,13 @@ set_default_background_color( Editor, AnyColor ) ->
     Res = wxTextCtrl:setDefaultStyle( Editor, Attr ),
     wxTextAttr:destroy( Attr ),
     Res.
+
+
+
+-doc "Returns the current text of the specified editor.".
+-spec get_text( text_editor() ) -> text().
+get_text( Editor ) ->
+    wxTextCtrl:getValue( Editor ).
 
 
 

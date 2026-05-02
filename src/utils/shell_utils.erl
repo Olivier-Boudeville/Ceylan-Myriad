@@ -159,15 +159,18 @@ More precise than `text_edit:process_result/0`.
 -doc """
 The information returned once a command is processed.
 
-A specialisation of `text_edit:process_outcome/0`.
+A specialisation and enrichment of `text_edit:process_outcome/0`.
 """.
 -type command_outcome() ::
 
-    { 'success', command_result(), ThisCmdId :: command_id(),
+    { 'processing_success', command_result(), ThisCmdId :: command_id(),
       MaybeTimestampBinStr :: option( timestamp_binstring() ) }
 
-  | { 'error', command_error(),
-      MaybeTimestampBinStr :: option( timestamp_binstring() ) }.
+  | { 'processing_error', command_error(), ThisCmdId :: command_id(),
+      NewCurrentEntryId :: entry_id(),
+      MaybeTimestampBinStr :: option( timestamp_binstring() ) }
+
+  | { 'entry_update', command() }.
 
 
 
@@ -200,7 +203,6 @@ interest.
 """.
 % Deemed clearer than 'void':
 -type builtin_state_only() :: builtin_command_result( 'ok' ).
-
 
 
 
@@ -962,13 +964,24 @@ execute_command( CmdAnyStr, ShellPid ) ->
 
     ShellPid ! { processEntry, CmdBinStr, self() },
 
-    % Blocking, so no ShellPid needs to be pattern-matched to correlate answers:
+    % Blocking, so that no ShellPid needs to be pattern-matched to correlate
+    % answers:
+    %
     receive
 
-        % Filtering could be done, see gui_shell:handle_command_validation/3 for
-        % a reference:
-        %
-        CmdOutcome ->
+        % At least a bit of filtering should be done, to only receive
+        % command_outcome() messages (see process_command_custom/2 for a
+        % reference), and not others (like {reportWarning, BinStr}):
+
+        CmdOutcome={ processing_success, _CmdResValue, _CmdId,
+                      _MaybeTimestampBinStr } ->
+            CmdOutcome;
+
+        CmdOutcome={ processing_error, _ReasonBinStr, _CmdId,
+                     _MaybeTimestampBinStr } ->
+            CmdOutcome;
+
+        CmdOutcome={ entry_update, _NewPrompt } ->
             CmdOutcome
 
     end.

@@ -27,7 +27,7 @@
 
 
 % These keyboard keycodes (i.e. gui_keyboard:keycode()) are directly coming from
-% Loic Hoguin's esdl2 (see [1]:
+% Loïc Hoguin's esdl2 (see [1]:
 % https://github.com/ninenines/esdl2/blob/master/include/sdl_keycode.hrl), which
 % are themselves deriving in turn from Sam Lantinga's libSDL2 (see [2]:
 % https://github.com/libsdl-org/SDL/blob/main/src/events/SDL_keyboard.c).

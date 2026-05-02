@@ -79,10 +79,10 @@ They include the ones when creating a text edit.
     % Whether initially the shell shall have the event focus:
   | 'focused'
 
-    % Whether a closing parenthesis should be automatically added whenever an
+    % Whether a closing bracket should be automatically added whenever an
     % opening one is typed:
     %
-  | 'auto_parenthesis'.
+  | 'auto_pair_brackets'.
 
 
 
@@ -240,7 +240,7 @@ They include the ones when creating a text edit.
     % Tells whether a closing parenthesis should be automatically added whenever
     % an opening one is typed:
     %
-    auto_parenthesis = 'false' :: boolean() } ).
+    auto_pair_brackets = 'false' :: boolean() } ).
 
 
 -doc "The (internal) state of a GUI shell instance.".
@@ -348,7 +348,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 
     { AutoParen, OtherParenOpts } =
             case list_utils:extract_element_if_existing(
-                    _ParenElem=auto_parenthesis, OtherFocusOpts ) of
+                    _ParenElem=auto_pair_brackets, OtherFocusOpts ) of
 
         % Option not defined:
         false ->
@@ -510,7 +510,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
                                        past_ops_editor=PastOpsEditor,
                                        past_ops_text=HistBinText,
                                        text_edit=NewTextEdit,
-                                       auto_parenthesis=AutoParen },
+                                       auto_pair_brackets=AutoParen },
 
     gui_shell_main_loop( InitShellState ).
 
@@ -562,6 +562,9 @@ gui_shell_main_loop( GUIShellState ) ->
         { onCharEntered, [ _CmdEditor, _CmdPanelId, EventContext ] } ->
 
             BackendKeyEvent = gui_keyboard:get_backend_event( EventContext ),
+
+            trace_utils:debug_fmt( "Received backend key event ~w.",
+                                   [ BackendKeyEvent ] ),
 
             NewGUIShellState =
                     case gui_keyboard:is_control_pressed( BackendKeyEvent ) of
@@ -667,7 +670,7 @@ gui_shell_main_loop( GUIShellState ) ->
                 [ SuffixStr, text_edit:to_string( TextEdit ),
                   text_edit:to_string( AugmentedTextEdit ) ] ),
 
-            apply_text_and_set_cursor( AugmentedTextEdit, CmdEditor ),
+            apply_text_and_cursor_to_end( AugmentedTextEdit, CmdEditor ),
 
             gui_shell_main_loop( GUIShellState#gui_shell_state{
                                    text_edit=AugmentedTextEdit,
@@ -921,6 +924,13 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
                 NewTextEdit ->
                     apply_text_and_set_cursor( NewTextEdit, CmdEditor ),
+
+                    %trace_utils:debug_fmt(
+                    %    "After backspace, text edit has '~ts', "
+                    %    "command editor has '~ts'.",
+                    %    [ text_edit:get_entry( NewTextEdit ),
+                    %      gui_text_editor:get_text( CmdEditor) ] ),
+
                     GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
             end;
@@ -992,41 +1002,49 @@ handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
 -spec handle_any_other_key( backend_keyboard_event(), text_editor(),
             text_edit(), gui_shell_state() ) -> gui_shell_state().
 handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
-        GUIShellState=#gui_shell_state{ auto_parenthesis=AutoParen } ) ->
+        GUIShellState=#gui_shell_state{ auto_pair_brackets=AutoBracket } ) ->
 
-    %trace_utils:debug_fmt( "Other key event: ~p", [ BackendKeyEvent ] ),
+    % As modifiers have to be taken into account, beyond the keycode:
+    UnicodeKey = gui_keyboard:get_unicode( BackendKeyEvent ),
 
-    NewTextEdit = case gui_keyboard:get_keycode( BackendKeyEvent ) of
+    trace_utils:debug_fmt( "Other key event: ~p, Unicode is ~w",
+                           [ BackendKeyEvent, UnicodeKey ] ),
 
-        ?MYR_K_LEFTPAREN when AutoParen ->
-            add_parentheses( CmdEditor, TextEdit );
 
-        Keycode ->
-            AddTextEdit = text_edit:add_char( Keycode, TextEdit ),
-            gui_text_editor:set_from( CmdEditor, AddTextEdit ),
+    % In all cases we add first this character:
+    AddTextEdit = text_edit:add_char( UnicodeKey, TextEdit ),
+
+    NewTextEdit = case AutoBracket of
+
+        true ->
+             case text_edit:get_maybe_closing_bracket( UnicodeKey ) of
+
+                % Normal char, not an opening bracket:
+                undefined ->
+                     AddTextEdit;
+
+                 ClosingBracketChar ->
+                     % As we want the closing bracket to appear *after* the
+                     % cursor:
+                     %
+                     CloseTextEdit = text_edit:add_char_after(
+                         ClosingBracketChar, AddTextEdit ),
+
+                     %trace_utils:debug_fmt( "Resulting in ~ts",
+                     %    [ text_edit:to_string( CloseTextEdit ) ] ),
+
+                     CloseTextEdit
+
+             end;
+
+        _False ->
             AddTextEdit
 
     end,
 
+    gui_text_editor:set_from( CmdEditor, NewTextEdit ),
+
     GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
-
-
-
--doc "Handles any non-specifically managed key.".
--spec add_parentheses( text_editor(), text_edit() ) -> text_edit().
-add_parentheses( CmdEditor, TextEdit ) ->
-
-    % As we want the closing parenthesis to appear after the cursor:
-    OpenTextEdit = text_edit:add_char( $(, TextEdit ),
-    CloseTextEdit = text_edit:add_char_after( $), OpenTextEdit ),
-
-    %trace_utils:debug_fmt( "Resulting in ~ts",
-    %                       [ text_edit:to_string( CloseTextEdit ) ] ),
-
-    gui_text_editor:set_from( CmdEditor, CloseTextEdit ),
-
-    CloseTextEdit.
-
 
 
 
