@@ -33,7 +33,7 @@ Unit tests for the **shell-related** facilities.
 Note that, if run interactively, this test will use a text user interface that
 may cause problems on some terminals when terminating.
 
-See the shell_utils.erl tested module.
+See the `shell_utils` tested module.
 """.
 
 
@@ -139,6 +139,7 @@ test_shell( ShellPid ) ->
     SortRes = [ 1, 2, 3 ],
 
 
+
     % Therefore typed as "--interactive-shell":
     case cmd_line_utils:get_command_arguments_for_option(
             _Option='-interactive-shell' ) of
@@ -159,7 +160,9 @@ test_shell( ShellPid ) ->
         onShellTerminated ->
             ok
 
-    end.
+    end,
+
+    basic_utils:check_no_pending_message().
 
 
 
@@ -194,7 +197,7 @@ run() ->
     ShellOpts = get_test_shell_opts(),
 
     test_facilities:display( "Testing the Myriad custom shell, "
-        "based on following options:~n ~p.", [ ShellOpts ] ),
+        "based on the following options:~n ~p", [ ShellOpts ] ),
 
     ShellPid = shell_utils:start_link_shell( ShellOpts ),
 

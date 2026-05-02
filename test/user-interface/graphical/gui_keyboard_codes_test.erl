@@ -30,7 +30,7 @@
 -moduledoc """
 Testing of the **MyriadGUI keyboard scancodes and keycodes**.
 
-See the gui_keyboard.erl tested module.
+See the `gui_keyboard` tested module.
 """.
 
 
@@ -323,9 +323,7 @@ list_scancode_pairs() ->
 
 
 
--doc """
-Lists all known keycodes: name of their define, then (decimal) value.
-""".
+-doc "Lists all known keycodes: name of their define, then (decimal) value.".
 -spec list_keycode_pairs() -> { ustring(), keycode() }.
 list_keycode_pairs() ->
     [
@@ -616,5 +614,21 @@ run() ->
           text_utils:strings_to_string( lists:sort( [
             text_utils:format( "  ~ts: ~B", [ KeyDesc, Keycode ] )
                 || { KeyDesc, Keycode } <- list_keycode_pairs() ] ) ) ] ),
+
+    % No wx counterpart discussed:
+
+    trace_utils:info_fmt( "Taking 'a' as an example, "
+        "as a key on a US QWERTY keyboard it has for scancode "
+        "MYR_SCANCODE_A=~B, as an on-keyboard character it has for "
+        "keycode MYR_K_a=~B (i.e. '~ts'), corresponding to "
+        "its Erlang char (integer), which is $a=~B.",
+        [ ?MYR_SCANCODE_A, ?MYR_K_a, [ ?MYR_K_a ], $a ] ),
+
+    trace_utils:info_fmt( "Taking now the left parenthesis as an example, "
+        "it has no scancode or WXK_* constant "
+        "(as it does not designate a specified key on a US QWERTY keyboard), "
+        "it has for MyriadGUI keycode MYR_K_LEFTPAREN=~B (i.e. '~ts'), "
+        " corresponding to its Erlang char (integer), which is $(=~B.",
+        [ ?MYR_K_LEFTPAREN, [ ?MYR_K_LEFTPAREN ], $( ] ),
 
     test_facilities:stop().
