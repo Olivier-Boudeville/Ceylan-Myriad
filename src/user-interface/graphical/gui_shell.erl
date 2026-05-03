@@ -79,10 +79,10 @@ They include the ones when creating a text edit.
     % Whether initially the shell shall have the event focus:
   | 'focused'
 
-    % Whether a closing bracket should be automatically added whenever an
+    % Whether a closing delimiter should be automatically added whenever an
     % opening one is typed:
     %
-  | 'auto_pair_brackets'.
+  | 'auto_pair_delimiters'.
 
 
 
@@ -237,10 +237,10 @@ They include the ones when creating a text edit.
     % No direct reference to any actual shell instance, as it is owned by the
     % text editor just above.
 
-    % Tells whether a closing parenthesis should be automatically added whenever
+    % Tells whether a closing delimiter should be automatically added whenever
     % an opening one is typed:
     %
-    auto_pair_brackets = 'false' :: boolean() } ).
+    auto_pair_delimiters = 'false' :: boolean() } ).
 
 
 -doc "The (internal) state of a GUI shell instance.".
@@ -348,7 +348,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 
     { AutoParen, OtherParenOpts } =
             case list_utils:extract_element_if_existing(
-                    _ParenElem=auto_pair_brackets, OtherFocusOpts ) of
+                    _ParenElem=auto_pair_delimiters, OtherFocusOpts ) of
 
         % Option not defined:
         false ->
@@ -510,7 +510,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
                                        past_ops_editor=PastOpsEditor,
                                        past_ops_text=HistBinText,
                                        text_edit=NewTextEdit,
-                                       auto_pair_brackets=AutoParen },
+                                       auto_pair_delimiters=AutoParen },
 
     gui_shell_main_loop( InitShellState ).
 
@@ -563,8 +563,8 @@ gui_shell_main_loop( GUIShellState ) ->
 
             BackendKeyEvent = gui_keyboard:get_backend_event( EventContext ),
 
-            trace_utils:debug_fmt( "Received backend key event ~w.",
-                                   [ BackendKeyEvent ] ),
+            %trace_utils:debug_fmt( "Received backend key event ~w.",
+            %                       [ BackendKeyEvent ] ),
 
             NewGUIShellState =
                     case gui_keyboard:is_control_pressed( BackendKeyEvent ) of
@@ -647,34 +647,24 @@ gui_shell_main_loop( GUIShellState ) ->
         { onItemSelected, [ AutoCompPopupMenu, LabelId, _EventContext ] } ->
 
             % Label of the selected item:
-            Label = wxMenu:getLabel( AutoCompPopupMenu, LabelId ),
+            LabelStr = text_utils:ensure_string(
+                wxMenu:getLabel( AutoCompPopupMenu, LabelId ) ),
 
-            %trace_utils:debug_fmt( "Selected label item: '~ts'.", [ Label ] ),
+            %trace_utils:debug_fmt( "Selected label item: '~ts'.",
+            %                       [ LabelStr ] ),
 
             PrefixStr = text_utils:binary_to_string(
                 GUIShellState#gui_shell_state.current_symbol_prefix ),
 
             % Not expected to be 'undefined':
-            SuffixStr = text_utils:get_any_suffix( PrefixStr, _TestStr=Label ),
+            SuffixStr = text_utils:get_any_suffix( PrefixStr,
+                                                   _TestStr=LabelStr ),
 
-            CmdEditor = GUIShellState#gui_shell_state.command_editor,
+            NewGUIShellState =
+                apply_completion_suffix( SuffixStr, GUIShellState ),
 
-            gui_text_editor:add_text( CmdEditor, SuffixStr ),
-
-            TextEdit = GUIShellState#gui_shell_state.text_edit,
-
-            AugmentedTextEdit = text_edit:append_string( SuffixStr, TextEdit ),
-
-            trace_utils:debug_fmt(
-                "By selecting '~ts', moving from '~ts' to '~ts'.",
-                [ SuffixStr, text_edit:to_string( TextEdit ),
-                  text_edit:to_string( AugmentedTextEdit ) ] ),
-
-            apply_text_and_cursor_to_end( AugmentedTextEdit, CmdEditor ),
-
-            gui_shell_main_loop( GUIShellState#gui_shell_state{
-                                   text_edit=AugmentedTextEdit,
-                                   current_symbol_prefix=undefined } );
+            gui_shell_main_loop( NewGUIShellState#gui_shell_state{
+                                    current_symbol_prefix=undefined } );
 
 
         acquireFocus ->
@@ -718,13 +708,35 @@ gui_shell_main_loop( GUIShellState ) ->
 
 
 
+-doc "Applies the specified completion suffix.".
+-spec apply_completion_suffix( ustring(), gui_shell_state() ) ->
+                                        gui_shell_state().
+apply_completion_suffix( SuffixStr, GUIShellState=#gui_shell_state{
+                                        command_editor=CmdEditor,
+                                        text_edit=TextEdit } ) ->
+
+    gui_text_editor:add_text( CmdEditor, SuffixStr ),
+
+    TextEdit = GUIShellState#gui_shell_state.text_edit,
+
+    AugmentedTextEdit = text_edit:append_string( SuffixStr, TextEdit ),
+
+    %trace_utils:debug_fmt( "By selecting '~ts', moving from '~ts' to '~ts'.",
+    %                       [ SuffixStr, text_edit:to_string( TextEdit ),
+    %                         text_edit:to_string( AugmentedTextEdit ) ] ),
+
+    apply_text_and_cursor_to_end( AugmentedTextEdit, CmdEditor ),
+
+    GUIShellState#gui_shell_state{ text_edit=AugmentedTextEdit }.
+
+
+
 -doc "Handles a key with a Control modifier.".
 -spec handle_ctrl_modified_key( backend_keyboard_event(),
                                 gui_shell_state() ) -> gui_shell_state().
 handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
                                                 command_editor=CmdEditor,
                                                 text_edit=TextEdit } ) ->
-
     Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
 
     %cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
@@ -798,7 +810,8 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
             %trace_utils:debug_fmt( "Ignoring unmatched control character ~p.",
             %                       [ Other ] ),
 
-            GUIShellState
+            handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
+                                  GUIShellState )
 
     end.
 
@@ -1002,22 +1015,22 @@ handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
 -spec handle_any_other_key( backend_keyboard_event(), text_editor(),
             text_edit(), gui_shell_state() ) -> gui_shell_state().
 handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
-        GUIShellState=#gui_shell_state{ auto_pair_brackets=AutoBracket } ) ->
+        GUIShellState=#gui_shell_state{ auto_pair_delimiters=AutoBracket } ) ->
 
     % As modifiers have to be taken into account, beyond the keycode:
-    UnicodeKey = gui_keyboard:get_unicode( BackendKeyEvent ),
+    UnicodeChar = gui_keyboard:get_maybe_uchar( BackendKeyEvent ),
 
-    trace_utils:debug_fmt( "Other key event: ~p, Unicode is ~w",
-                           [ BackendKeyEvent, UnicodeKey ] ),
+    %trace_utils:debug_fmt( "Other key event: ~p, Unicode is ~w",
+    %                       [ BackendKeyEvent, UnicodeChar ] ),
 
 
     % In all cases we add first this character:
-    AddTextEdit = text_edit:add_char( UnicodeKey, TextEdit ),
+    AddTextEdit = text_edit:add_char( UnicodeChar, TextEdit ),
 
     NewTextEdit = case AutoBracket of
 
         true ->
-             case text_edit:get_maybe_closing_bracket( UnicodeKey ) of
+             case text_edit:get_maybe_closing_delimiter( UnicodeChar ) of
 
                 % Normal char, not an opening bracket:
                 undefined ->
@@ -1071,15 +1084,8 @@ handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
         % A single completion is directly added:
         { _SymbolPrefixBin, [ SingleCompletionBin ] } ->
 
-            SingleCompletionStr = text_utils:binary_to_string(
-                SingleCompletionBin ),
-
-            % As the prefix is already registered:
-            CompletedTextEdit = text_edit:append_string_truncate(
-                SingleCompletionStr, TextEdit ),
-
-            apply_text_and_cursor_to_end( CompletedTextEdit, CmdEditor ),
-            GUIShellState;
+            SuffixStr = text_utils:binary_to_string( SingleCompletionBin ),
+            apply_completion_suffix( SuffixStr, GUIShellState );
 
 
         % Having multiple completions opens a choice menu:
@@ -1089,7 +1095,7 @@ handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
             %    trace_utils:debug_fmt( "Completions are:~n ~p",
             %    [ CmplBins ] ) ),
 
-           CompMenu = gui_menu:create(),
+            CompMenu = gui_menu:create(),
 
             gui:subscribe_to_events( { onItemSelected, CompMenu } ),
 
