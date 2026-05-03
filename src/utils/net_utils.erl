@@ -56,9 +56,9 @@ See `net_utils_test.erl` for the corresponding test.
           generate_valid_node_name_from/1,
           get_complete_node_name/1, get_complete_node_name/3,
           get_hostname_from_node_name/1,
-          launch_epmd/0, launch_epmd/1,
+          launch_epmd/0, launch_epmd/1, get_epmd_port/0,
           enable_distribution_mode/2, enable_preferred_distribution_mode/2,
-          secure_distribution/1,
+          secure_distribution/1, get_distribution_port/0,
           get_cookie/0, set_cookie/1, set_cookie/2,
           shutdown_node/0, shutdown_node/1 ]).
 
@@ -1373,14 +1373,23 @@ launch_epmd( Port ) when is_integer( Port ) ->
     end.
 
 
+-doc "Returns the EPMD port used by this VM.".
+-spec get_epmd_port() -> epmd_port().
+get_epmd_port() ->
+    case os:getenv( "ERL_EPMD_PORT" ) of
+        false -> ?default_epmd_port;
+        Str -> list_to_integer( Str )
+    end.
+
+
 
 -doc """
 Enables the distribution on the current node, supposedly not already distributed
 (otherwise the operation will fail).
 
-Note: an EPMD instance is expected to be already running; see launch_epmd/{0,1}
-in this module for that; apparently no race condition happens, hence initially
-no need for a wait-and-retry mechanism was seen here.
+Note: an EPMD instance is expected to be already running; see
+`launch_epmd/{0,1}` in this module for that; apparently no race condition
+happens, hence initially no need for a wait-and-retry mechanism was seen here.
 
 Otherwise following messages might be output:
  - `Protocol: "inet_tcp": register/listen error: econnrefused`
@@ -1388,7 +1397,7 @@ Otherwise following messages might be output:
         {failed_to_start_child,net_kernel,{'EXIT',nodistribution}}},...`
 
 In some cases yet (first time an Erlang program is run after boot?), a
-distribution_enabling_failed exception is raised, like in:
+`distribution_enabling_failed` exception is raised, like in:
 
 ```
 {"init terminating in do_boot",{{nocatch,{distribution_enabling_failed,
@@ -1618,6 +1627,25 @@ secure_distribution( NodeName ) ->
             throw( { cannot_secure_distribution, NodeName, ErrorReason } )
 
     end.
+
+
+
+-doc """
+Returns the distribution port used by this VM, i.e. the TCP port that it uses to
+communicate with other VMs.
+
+Uses the specified EPMD server for that, based on its port.
+""".
+-spec get_distribution_port() -> tcp_port().
+get_distribution_port() ->
+
+    NodeNameWithHostStr = atom_to_list( node() ),
+
+    [ NodeShortName, Host] = string:tokens( NodeNameWithHostStr, _Delimit="@" ),
+
+    { port, DistPort, _Version } = erl_epmd:port_please( NodeShortName, Host ),
+
+    DistPort.
 
 
 
