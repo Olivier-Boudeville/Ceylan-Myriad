@@ -83,10 +83,10 @@ The available options when creating a text edit.
 
 
 -doc """
-Any character that may be understood as a paired bracket, typically among `( ),
-[ ], { }, < >`.
+Any character that may be understood as an opening delimiter to be paired with a
+closing one, typically among: (, [ , {, ' and ".
 """.
--type bracket_char() :: uchar().
+-type delimiter() :: uchar().
 
 
 -type prefix_info() :: { ustring(), length() }.
@@ -137,7 +137,7 @@ The number of an entry (in their history), which is an identifier thereof.
 
 -export_type([ text_edit/0, text_edit_option/0,
 
-               char_pos/0, offset_char_pos/0, bracket_char/0, prefix_info/0,
+               char_pos/0, offset_char_pos/0, delimiter/0, prefix_info/0,
                entry/0, entry_str/0, entry_id/0,
 
                processor_pid/0, process_result/0, process_error_reason/0,
@@ -171,7 +171,7 @@ The number of an entry (in their history), which is an identifier thereof.
 
 
 % Miscellaneous:
--export([ get_maybe_closing_bracket/1 ]).
+-export([ get_maybe_closing_delimiter/1 ]).
 
 
 % Type shorthands:
@@ -807,8 +807,8 @@ delete_previous_char( TE=#text_edit{ precursor_chars=S=[ _Prev | Others ],
                           prev_precursor_chars=S,
                           prev_postcursor_chars=PostChars },
 
-    trace_utils:debug_fmt( "Delete previous char: from '~ts' to '~ts'.",
-                           [ to_string( TE ), to_string( NewTE ) ] ),
+    %trace_utils:debug_fmt( "Delete previous char: from '~ts' to '~ts'.",
+    %                       [ to_string( TE ), to_string( NewTE ) ] ),
 
     NewTE.
 
@@ -854,20 +854,31 @@ to_string( #text_edit{ entry_id=EntryId,
                        [ EntryId, lists:reverse( PreChars ), PostChars ] ).
 
 
+
 % Miscellaneous section.
 
--spec get_maybe_closing_bracket( uchar() ) -> option( bracket_char() ).
-get_maybe_closing_bracket( _Char=$( ) ->
+
+-doc """
+Returns any closing delimiter corresponding to any specified opening one.
+""".
+-spec get_maybe_closing_delimiter( uchar() ) -> option( delimiter() ).
+get_maybe_closing_delimiter( _Char=$( ) ->
     $);
 
-get_maybe_closing_bracket( _Char=$[ ) ->
+get_maybe_closing_delimiter( _Char=$[ ) ->
     $];
 
-get_maybe_closing_bracket( _Char=${ ) ->
+get_maybe_closing_delimiter( _Char=${ ) ->
     $};
 
 % Not closing '<' (for binaries such as <<"Hello">>), as used also as a test
 % operator ("a<b").
 
-get_maybe_closing_bracket( _Char ) ->
+get_maybe_closing_delimiter( _Char=$' ) ->
+    $';
+
+get_maybe_closing_delimiter( _Char=$" ) ->
+    $";
+
+get_maybe_closing_delimiter( _Char ) ->
     undefined.
