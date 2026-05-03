@@ -35,10 +35,11 @@ We name this library MyriadGUI (shortened here, whenever it is not ambiguous, in
 'gui'), a part of Ceylan-Myriad.
 
 The purpose of MyriadGUI is to wrap, complement and improve what we consider the
-best set of gui backends available (previously: gs alone; now: wx, with OpenGL),
-for classical applications and interactive multimedia ones (e.g. video games).
+best set of gui backends available (previously: `gs` alone; now: `wx`, with
+OpenGL), for classical applications and interactive multimedia ones (e.g. video
+games).
 
-wx is the standard Erlang binding to WxWidgets (<https://www.wxwidgets.org/>).
+`wx` is the standard Erlang binding to WxWidgets (<https://www.wxwidgets.org/>).
 
 See `gui_test.erl` for the corresponding test.
 """.
@@ -254,7 +255,7 @@ See `gui_test.erl` for the corresponding test.
 
 
 -doc """
-A pixel-wise (tuple-based) GUI point (as point2:point2() would allow for
+A pixel-wise (tuple-based) GUI point (as `point2:point2/0` would allow for
 floating-point coordinates).
 """.
 -type point() :: point2:integer_point2().
@@ -265,9 +266,9 @@ floating-point coordinates).
 
 
 -doc """
-Dimensions in pixels, as {IntegerWidth,IntegerHeight}.
+Dimensions in pixels, as `{IntegerWidth, IntegerHeight}`.
 
-Note that in general size() shall be preferred to this type, notably to
+Note that in general `size/0` shall be preferred to this type, notably to
 designate an attribute of a graphical element - except for example for textures
 or to express dimensions in general.
 """.
@@ -358,8 +359,8 @@ pattern.
 
 
 -doc """
-MyriadGUI-translated version of a native wx type, that is of the
-wx_native_object_type(); for example 'window', instead of 'wxWindow'.
+MyriadGUI-translated version of a native `wx` type, that is of the
+`wx_native_object_type/0` type; for example `window`, instead of `wxWindow`.
 """.
 -type wx_object_type() :: 'object'
                         | 'event_handler'
@@ -399,8 +400,8 @@ wx_native_object_type(); for example 'window', instead of 'wxWindow'.
 
 -doc """
 Reference to a GUI object (often designated as "widget" here), somewhat akin to
-a PID (e.g. ``{wx_ref, 35, wxFrame, []}`` or ``{myriad_object_ref, myr_canvas,
-12}``).
+a PID (e.g. `{wx_ref, 35, wxFrame, []}` or `{myriad_object_ref, myr_canvas,
+12}`).
 """.
 -type gui_object() :: wx_object() | myriad_object_ref().
 
@@ -449,21 +450,21 @@ Options for the subscription to events.
 Note that, with MyriadGUI, by default most types of events are propagated to
 parent handlers; it allows notably the GUI backend to update the state of the
 widget hierarchy accordingly (otherwise for example the user code subscribing to
-onResized events would prevent the corresponding resizes to be properly taken
+`onResized` events would prevent the corresponding resizes to be properly taken
 into account by the backend).
 
 However it may result in race conditions for example when shutting the
-application after the receiving of a onWindowClosed message, as the backend
+application after the receiving of a `onWindowClosed` message, as the backend
 would be destroying the application GUI resources concurrently to any
 corresponding user-defined event handler; this is why the subscription to some
 event types implies that by default their events are trapped.
 
-Use the 'trap_event' option or the trap_event/1 function to prevent any default
-event propagation to happen, so that the user code is the sole manager of such
-events (e.g. of the application termination). Once finished it may propagate the
-event, to force its sequential processing.
+Use the `trap_event` option or the `trap_event/1` function to prevent any
+default event propagation to happen, so that the user code is the sole manager
+of such events (e.g. of the application termination). Once finished it may
+propagate the event, to force its sequential processing.
 
-Conversely, use the 'propagate_event' option or the propagate_event/1 function
+Conversely, use the `propagate_event` option or the `propagate_event/1` function
 to force event propagation despite an event type implying that by default these
 events are trapped.
 
@@ -510,9 +511,9 @@ for further information regarding event propagation.
 
 
 -doc """
-Mapped internally to 'none', 'verbose', 'trace', etc.
+Mapped internally to `none`, `verbose`, `trace`, etc.
 
-See convert_debug_level/1.
+See `convert_debug_level/1`.
 """.
 -type debug_level_opt() :: 'none' | 'calls' | 'life_cycle'.
 
@@ -526,7 +527,7 @@ See convert_debug_level/1.
 -type error_message() :: term().
 
 
--doc "MyriadGUI-level type for a wx_object(), that is a #wx_ref record.".
+-doc "MyriadGUI-level type for a `wx_object/0`, that is a `#wx_ref` record.".
 -opaque wx_object() :: wx:wx_object().
 
 
@@ -903,7 +904,7 @@ Starts the MyriadGUI subsystem, with all optional services; returns the
 information regarding its environment.
 
 Note that OpenGL-related options are to be specified if wanting to create a GL
-canvas afterwards (see gui_opengl:create_canvas{1,2}).
+canvas afterwards (see `gui_opengl:create_canvas{1,2}`).
 """.
 -spec start() -> gui_env_info().
 start() ->
@@ -917,7 +918,7 @@ services while setting specified debug level; returns the information regarding
 its environment.
 
 Note that OpenGL-related options are to be specified if wanting to create a GL
-canvas afterwards (see gui_opengl:create_canvas{1,2}).
+canvas afterwards (see `gui_opengl:create_canvas{1,2}`).
 """.
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
@@ -1113,53 +1114,53 @@ set_debug_level( DebugLevel ) ->
 -doc """
 Subscribes the current, calling process to the specified kind(s) of events,
 resulting in corresponding MyriadGUI callback messages being received by this
-caller whenever such events occur, typically like ``{onWindowClosed,
-[WindowGUIObject, WindowId, EventContext]}``.
+caller whenever such events occur, typically like `{onWindowClosed,
+[WindowGUIObject, WindowId, EventContext]}`.
 
 The MyriadGUI convention is to send to the subscribers a message as a
 pair, whose:
 
 - first element corresponds to the type of event having happened, as an atom
-(e.g. 'onWindowClosed', 'onResized', 'onShown', etc.; refer to
-gui_event:event_type())
+(e.g. `onWindowClosed`, `onResized`, `onShown`, etc.; refer to
+`gui_event:event_type/0`)
 - second element is a list whose elements depend on the type of this event
 
 In any case, this list respects the following structure:
-[EmitterGUIObject, EmitterId, ..., EventContext]; indeed it begins with:
-- first the reference onto the actual event emitter, as a gui_object()
+`[EmitterGUIObject, EmitterId, ..., EventContext]`; indeed it begins with:
+- first the reference onto the actual event emitter, as a `gui_object/0`
 - second the identifier of that emitter (any user-specified name, otherwise the
-lower-level backend one), as a gui_id:id()
-- ends with an event context record (see gui_event:event_context())
+lower-level backend one), as a `gui_id:id/0`
+- ends with an event context record (see `gui_event:event_context/0`)
 concentrating all available information (in a backkend-specific way), should it
 be needed
 
 In-between, there may be additional key information for that type of event that
-are inserted (like the new dimensions for a onResized event, in order to have it
+are inserted (like the new dimensions for a `onResized` event, in order to have it
 readily available instead of having to peek in the associated backend event
 context).
 
 So typical messages may be:
-- {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
-- {onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}
+- `{onWindowClosed, [WindowGUIObject, WindowId, EventContext]}`
+- `{onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}`
 
-Refer to the documentation of the gui_event:gui_event/0 type for further
+Refer to the documentation of the `gui_event:gui_event/0` type for further
 details.
 
 By default (especially for non-command events), subscribing to an event type
 implies that the corresponding events will still be transmitted upward in the
 widget hierarchy, so that other event handlers can apply; if wanting to disable
 this propagation - so that this event is considered to be processed for good by
-the current handler - either specify here the 'trap_event' subscription option
-or, later, in the corresponding event handler, call the trap_event/1 function.
+the current handler - either specify here the `trap_event` subscription option
+or, later, in the corresponding event handler, call the `trap_event/1` function.
 
 Note that trapping non-command events may prevent GUI updates that are to be
 done by the backend.
 
-For unsubscribing, refer to unsubscribe_from_events/1.
+For unsubscribing, refer to `unsubscribe_from_events/1`.
 
 Note also that, at least when creating the main frame, if having subscribed to
-onShown and onResized, on its creation first a onResized event will be received
-by the subscriber (typically for a 20x20 size), then a onShown event.
+`onShown` and `onResized`, on its creation first a `onResized` event will be
+received by the subscriber (typically for a 20x20 size), then a `onShown` event.
 """.
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) ->
@@ -1170,10 +1171,9 @@ subscribe_to_events( SubscribedEvents ) ->
 -doc """
 Subscribes the specified process to the specified kind of events, resulting in
 corresponding MyriadGUI callback messages being received whenever such events
-occur, like:
-   {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
+occur, like `{onWindowClosed, [WindowGUIObject, WindowId, EventContext]}`.
 
-Refer to subscribe_to_events/1 for further information.
+Refer to `subscribe_to_events/1` for further information.
 """.
 -spec subscribe_to_events( event_subscription_spec(), event_subscriber() ) ->
                                             void().
@@ -1215,7 +1215,7 @@ subscribe_to_events( SubscribedEvent, SubscriberDesignator )
 
 -doc """
 Unsubscribes the current, calling process from the specified kind of events
-(event type and emitter), like {onWindowClosed, MyFrame}.
+(event type and emitter), like `{onWindowClosed, MyFrame}`.
 """.
 -spec unsubscribe_from_events( event_unsubscription_spec() ) -> void().
 unsubscribe_from_events( UnsubscribedEvents ) ->
@@ -1225,7 +1225,7 @@ unsubscribe_from_events( UnsubscribedEvents ) ->
 
 -doc """
 Subscribes the specified process from the specified kind of events (event type
-and emitter), like {onWindowClosed, MyFrame}.
+and emitter), like `{onWindowClosed, MyFrame}`.
 """.
 -spec unsubscribe_from_events( event_unsubscription_spec(),
                                event_subscriber() ) -> void().
@@ -1368,14 +1368,14 @@ as a button click or menu item selection must only be processed by one handler;
 this trap_event/1 function may then be useful, if the corresponding event type
 does not already imply trapping and if the 'trap_event' option was not already
 specified when subscribing to this event type. See also
-https://howtos.esperide.org/Erlang.html#using-wx for more clarifications about
+<https://howtos.esperide.org/Erlang.html#using-wx> for more clarifications about
 when trapping events is of use.
 
 Note: to be called from an event handler, i.e. at least from a process that set
 the wx environment.
 
-See propagate_event/1 for the opposite operation (forcing the propagation of an
-event).
+See `propagate_event/1` for the opposite operation (forcing the propagation of
+an event).
 """.
 -spec trap_event( gui_event_object() ) -> void().
 trap_event( GUIEventObject ) ->
@@ -1396,13 +1396,13 @@ Otherwise, if the propagation is simply enabled once for all at subscription
 time, then the user code is triggered asynchronously (through the receiving of a
 message), resulting in the built-in handlers to operate in parallel to this user
 handler. This may be a problem for example when terminating, as the
-onWindowClosed event would be propagated in the backend, leading to resources
+`onWindowClosed` event would be propagated in the backend, leading to resources
 being deallocated, whereas the user handler is still performing its tasks - that
 may rely on these resources. A better option is to have the user handler perform
 its shutdown operations, then unblock the closing mechanisms by propagating it
 in the backend thanks to this function.
 
-Refer to trap_event/1, the opposite operation, for more propagation-related
+Refer to `trap_event/1`, the opposite operation, for more propagation-related
 information.
 """.
 -spec propagate_event( gui_event_object() ) -> void().
@@ -1426,7 +1426,7 @@ May improve performance of the command processing, by grabbing the backend
 thread so that no event processing will be done before the complete batch of
 commands is invoked.
 
-Example: Result = gui:batch(fun() -> do_init(Config) end).
+Example: `Result = gui:batch(fun() -> do_init(Config) end)`.
 """.
 -spec batch( function() ) -> term().
 batch( GUIFun ) ->
@@ -1499,7 +1499,7 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 Requests the destruction of the specified instance (that will be done from the
 MyriadGUI main loop).
 
-At least currently, does not return anything and remains asynchronous.
+At least currently, does not return anything, and remains asynchronous.
 """.
 -spec execute_instance_destruction( myriad_object_type(),
                                     myriad_instance_id() ) -> void().
@@ -1521,8 +1521,8 @@ execute_instance_destruction( ObjectType, InstanceId ) ->
 Sets the current process as the controller of the specified GUI object handle.
 
 Useful when "subclassing" a type of GUI object with application-level
-behaviours, so that its instances are user-defined gen_server ones; refer to the
-(wx-specified) `wx_object` module).
+behaviours, so that its instances are user-defined `gen_server` ones; refer to
+the (wx-specified) `wx_object` module).
 """.
 -spec set_as_controller( gui_object() ) -> gui_object().
 set_as_controller( Object ) ->
@@ -1535,8 +1535,8 @@ Sets the process of specified PID as the controller of the specified GUI object
 handle.
 
 Useful when "subclassing" a type of GUI object with application-level
-behaviours, so that its instances are user-defined gen_server ones; refer to the
-(wx-specified) `wx_object` module).
+behaviours, so that its instances are user-defined `gen_server` ones; refer to
+the (wx-specified) `wx_object` module).
 """.
 -spec set_controller( gui_object(), pid() ) -> gui_object().
 set_controller( Object, ControllerPid ) ->
@@ -1605,7 +1605,7 @@ get_backend_environment() ->
 Sets the specified backend environment for the calling process, so that it can
 make use of the corresponding backend.
 
-Typically obtained from get_backend_environment/0 once called from a main
+Typically obtained from `get_backend_environment/0` once called from a main
 process.
 """.
 -spec set_backend_environment( backend_environment() ) -> void().
@@ -1621,7 +1621,7 @@ set_backend_environment( WxEnv ) ->
 Fetches (from the MyriadGUI environment) the PID of the process in charge of
 running the main MyriadGUI loop.
 
-Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
+Note that it is sometimes inlined in other `gui_*` modules (e.g. `gui_canvas`).
 """.
 -spec get_main_loop_pid() -> loop_pid().
 get_main_loop_pid() ->
@@ -1633,7 +1633,7 @@ get_main_loop_pid() ->
 Fetches from the specified environment the PID of the process in charge of
 running the main MyriadGUI loop.
 
-Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
+Note that it is sometimes inlined in other `gui_*` modules (e.g. `gui_canvas`).
 """.
 -spec get_main_loop_pid( gui_env_designator() ) -> loop_pid().
 get_main_loop_pid( GUIEnvDesignator ) ->
@@ -1648,8 +1648,8 @@ running the MyriadGUI identifier allocation process.
 Allows, as much as possible, to resolve this PID locally, without any message
 sending.
 
-Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas,
-gui_id).
+Note that it is sometimes inlined in other `gui_*` modules (e.g. `gui_canvas`,
+`gui_id`).
 """.
 -spec get_id_allocator_pid() -> id_allocator_pid().
 get_id_allocator_pid() ->
@@ -1664,8 +1664,8 @@ running the MyriadGUI identifier allocation process.
 Allows, as much as possible, to resolve this PID locally, without any message
 sending.
 
-Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas,
-gui_id).
+Note that it is sometimes inlined in other `gui_*` modules (e.g. `gui_canvas`,
+`gui_id`).
 """.
 -spec get_id_allocator_pid( gui_env_designator() ) -> id_allocator_pid().
 get_id_allocator_pid( GUIEnvDesignator ) ->
@@ -1679,7 +1679,7 @@ get_id_allocator_pid( GUIEnvDesignator ) ->
 
 
 -doc """
-To be called by the 'gui_generated.beam' automatic make target in order to
+To be called by the `gui_generated.beam` automatic make target in order to
 generate, here, a (single) module to share the MyriadGUI base constants.
 """.
 -spec generate_support_modules() -> no_return().

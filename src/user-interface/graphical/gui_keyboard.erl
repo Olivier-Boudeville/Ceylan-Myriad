@@ -264,7 +264,7 @@ will be reported at the end, when the key is released).
                    % uppercased; so hitting the 'a' key returns the 'A' uchar
                    % (not the 'a' one).
 
-    | 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
+  | 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
 
 
 

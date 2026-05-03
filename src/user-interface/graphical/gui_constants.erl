@@ -29,7 +29,7 @@
 
 -moduledoc """
 Module defining most of the **MyriadGUI constants**, notably so that higher
-level MyriadGUI atom-designated values and backend-specific (wx) ones can be
+level MyriadGUI atom-designated values and backend-specific (`wx`) ones can be
 translated, generally both ways.
 
 Called by `gui:generate_support_modules/0`.
