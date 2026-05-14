@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **specialised 3x3 matrix** facilities.
 
-See the matrix3 tested module.
+See the `matrix3` tested module.
 """.
 
 
@@ -160,7 +160,11 @@ run() ->
 
 
     10.0 = matrix3:get_element( _RowC=3, _ColC=2, SubMatrix ),
-    SubSetMatrix = matrix3:set_element( RwC=3, ClC=1, 21.0, SubMatrix ),
+
+    RwC = 3, 
+    ClC = 1,
+
+    SubSetMatrix = matrix3:set_element( RwC, ClC, 21.0, SubMatrix ),
     21.0 = matrix3:get_element( RwC, ClC, SubSetMatrix ),
 
     TransposedCoordMatrix = matrix3:from_coordinates( 1.0, 5.0,  9.0,

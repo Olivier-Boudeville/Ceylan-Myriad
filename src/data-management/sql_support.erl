@@ -64,10 +64,10 @@ See `sql_support_test.erl` for the corresponding test.
 % - a catalog is a *database instance*, and may have multiple schemas
 %
 % - a *schema* is a table namespace defined in the context of a database
-% instance, and may have multiple tables
+% instance, and which may have multiple tables
 %
-% - a *table* gathers *records* (i.e. rows), structured according to *fields*
-% (i.e. columns)
+% - a *table* gathers *records* (i.e. rows), structured according to
+% *fields* (i.e. columns)
 
 
 % Binary extraction:
@@ -109,7 +109,7 @@ See `sql_support_test.erl` for the corresponding test.
 -doc """
 Designates the hostname on which a target database server instance is running.
 
-For example "baz.foobar.org."
+For example `"baz.foobar.org"`.
 """.
 -type database_host_name() :: net_utils:string_host_name().
 
@@ -128,7 +128,7 @@ For example 5432.
 
 
 -doc """
-The name of the target database instance. For example "acme_stock_db".
+The name of the target database instance. For example `"acme_stock_db"`.
 
 A database instance is also designated as a catalog.
 """.
@@ -154,7 +154,7 @@ A database instance is also designated as a catalog.
 A schema describes the organisation of the tables of a database. It defines a
 namespace of tables, and security boundaries.
 
-For example "customer_schema".
+For example `"customer_schema"`.
 """.
 -type schema_name() :: ustring().
 
@@ -195,7 +195,7 @@ A table of a database contains records comprising the same number of fields.
 
 % Mostly meaningless:
 -doc """
-A record (also called a 'row' or a 'tuple') represents a single, implicitly
+A record (also called a "row" or a "tuple") represents a single, implicitly
 structured data item in a table.
 """.
 -type record_name() :: ustring().
@@ -203,7 +203,7 @@ structured data item in a table.
 
 
 -doc """
-A field (also designated as 'column' or 'attribute') represents a set of data
+A field (also designated as "column" or "attribute") represents a set of data
 values of a particular type, one value for each record of the table.
 """.
 -type field_name() :: ustring().
@@ -211,7 +211,7 @@ values of a particular type, one value for each record of the table.
 
 
 -doc """
-A field (also designated as 'column' or 'attribute') represents a set of data
+A field (also designated as "column" or "attribute") represents a set of data
 values of a particular type, one value for each record of the table.
 """.
 -type bin_field_name() :: ustring().
@@ -219,7 +219,7 @@ values of a particular type, one value for each record of the table.
 
 
 -doc """
-A field (also designated as 'column' or 'attribute') represents a set of data
+A field (also designated as "column" or "attribute") represents a set of data
 values of a particular type, one value for each record of the table.
 """.
 -type any_field_name() :: field_name() | bin_field_name().
@@ -232,7 +232,7 @@ values of a particular type, one value for each record of the table.
 
 
 -doc """
-The name of a user of a database server. For example "john_smith".
+The name of a user of a database server. For example `"john_smith"`.
 """.
 -type database_user_name() :: ustring().
 
@@ -300,7 +300,7 @@ A number of database operations, typically performed in the context of a query.
 
 
 -doc "An actual record (a row).".
--type record() :: type_utils:tuple( field_value() ).
+-type row_record() :: type_utils:tuple( field_value() ).
 
 
 
@@ -313,8 +313,8 @@ values.
 
 
 -doc """
-The value of a field in a returned record, that may be 'null', that is
-translated here as 'undefined' (hence the maybe).
+The value of a field in a returned record, that may be `null`, that is
+translated here as `undefined` (hence the maybe).
 """.
 -type field_value() :: option( read_binary() ).
 
@@ -333,7 +333,7 @@ translated here as 'undefined' (hence the maybe).
 -doc """
 A database timestamp.
 
-For example "2021-11-08 13:33:52.895374".
+For example `"2021-11-08 13:33:52.895374"`.
 """.
 -type timestamp() :: ustring().
 
@@ -346,7 +346,7 @@ For example "2021-11-08 13:33:52.895374".
 
 
 -doc "The result of a select operation.".
--type select_result() :: { [ field_description() ], [ record() ] }.
+-type select_result() :: { [ field_description() ], [ row_record() ] }.
 
 
 
@@ -390,7 +390,7 @@ The result of a delete operation, that is the number of operations performed.
 
                query_string/0, operation_count/0, field_description/0,
 
-               record/0, read_binary/0, field_value/0,
+               row_record/0, read_binary/0, field_value/0,
                user_name/0, user_id/0, timestamp/0,
 
                query_result/0, query_format/0, query_values/0,
@@ -415,7 +415,7 @@ The result of a delete operation, that is the number of operations performed.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 -type base_status() :: basic_utils:base_status().
@@ -814,7 +814,7 @@ list_table_names( Conn, DbInstanceName, SchemaName ) ->
 
 -doc """
 Returns the actual binary that is stored in a database data field, from the one
-directly read (with is prefixed and in hexadecimal character).
+directly read (with is prefixed, and expressed in hexadecimal digits).
 
 Refer to the 'Binary extraction' section above for further details.
 """.
