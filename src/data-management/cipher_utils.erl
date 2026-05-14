@@ -32,7 +32,7 @@ Gathering of various **cipher-related facilities**.
 
 We focus on symmetric ciphering here.
 
-See `cipher_utils_test.erl` for testing.
+See the `cipher_utils_test` module for testing.
 """.
 
 
@@ -86,16 +86,14 @@ Just for testing.
 
 
 
--doc """
-The specified offset value is added to all bytes of the file.
-""".
+-doc "The specified offset value is added to all bytes of the file.".
 -type offset_transform() :: { 'offset', integer() }.
 
 
 
 -doc """
 The stream content is replaced by a compressed version thereof, using one of the
-supported formats (see compress_format/0).
+supported formats (see `compress_format/0`).
 """.
 -type compress_transform() :: { 'compress', compression_format() }.
 
@@ -111,9 +109,9 @@ the supported formats (see `compress_format/0`).
 
 -doc """
 Based on the specified seed and on the specified range R, a series of strictly
-positive values is uniformly drawn in [1,R]; these values are offsets relative
+positive values is uniformly drawn in `[1,R]`; these values are offsets relative
 to the last random insertion (initial one is 0); at each position determined
-thanks to offsets, a random value in [0,255] is inserted.
+thanks to offsets, a random value in `[0,255]` is inserted.
 """.
 -type insert_random_transform() :: { 'insert_random', seed(), count() }.
 
@@ -151,7 +149,7 @@ uniformly shuffled.
 
 -doc "Reverse operation of `shuffle_transform/0`.".
 -type reciprocal_shuffle_transform() ::
-        { 'reciprocal_shuffle', seed(), count() }.
+    { 'reciprocal_shuffle', seed(), count() }.
 
 
 
@@ -202,7 +200,7 @@ The Mealy table is implemented (easier to build) as a fixed-size array, one
 element per possible state (corresponding to a column of the 2D array).
 
 Each element of this table is itself an array, having as many elements as the
-size of the input alphabet, hence 256 of them, in [0,255].
+size of the input alphabet, hence 256 of them, in `[0,255]`.
 
 Each element of these inner arrays corresponds to the aforementioned cell.
 """.
@@ -250,9 +248,7 @@ reverse transformations.
 -type any_transform() :: cipher_transform() | decipher_transform().
 
 
--doc """
-User may specify either some licit transform, or possibly mistakes.
-""".
+-doc "User may specify either some licit transform, or possibly mistakes.".
 -type user_specified_transform() :: any().
 
 
@@ -283,6 +279,7 @@ User may specify either some licit transform, or possibly mistakes.
 
 -type compression_format() :: file_utils:compression_format().
 -type file_path() :: file_utils:file_path().
+
 
 
 
@@ -1030,7 +1027,7 @@ generate_filename() ->
 -doc """
 Generates a Mealy table for the specified number of states.
 
-Relies on the current random state.
+Relies on any existing random state, otherwise will create a default one.
 """.
 -spec generate_mealy_table( count() ) -> mealy_table().
 generate_mealy_table( StateCount ) ->
@@ -1043,16 +1040,18 @@ generate_mealy_table( StateCount ) ->
 Generates a Mealy table for the specified number of states and alphabet size.
 
 We manage index to designate symbols of the alphabet; for example, if the
-alphabet is [alpha, beta, gamma], then the alpha symbol is coded by 1, the beta
-one by 2, etc.
+alphabet is `[alpha, beta, gamma]`, then the alpha symbol is coded by 1, the
+beta one by 2, etc.
 
-Relies on the current random state.
+Relies on any existing random state, otherwise will create a default one.
 """.
 -spec generate_mealy_table( count(), count() ) -> mealy_table().
 generate_mealy_table( StateCount, AlphabetSize ) ->
 
-    io:format( "Generating a Mealy table for ~B states and "
-               "an alphabet of ~B symbols.~n", [ StateCount, AlphabetSize ] ),
+    trace_utils:debug_fmt( "Generating a Mealy table for ~B states and "
+        "an alphabet of ~B symbols.", [ StateCount, AlphabetSize ] ),
+
+    random_utils:ensure_random_state(),
 
     Table = array:new( StateCount ),
 
