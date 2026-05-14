@@ -59,7 +59,9 @@ When supported, `undefined` means transparent.
 
 -doc """
 A color, as designated by an atom (e.g. `aliceblue`); possibly a logical
-color. See `get_colors/0` for a list thereof.
+color.
+
+See `get_colors/0` for a list thereof.
 """.
 -type color_by_name() :: atom().
 
