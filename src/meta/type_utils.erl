@@ -38,7 +38,7 @@ We define here a type as a (potentially infinite) set of values.
 
 See `type_utils_test.erl` for the corresponding test.
 
-See also `meta_utils` for all topics regarding metaprogramming,
+See also the `meta_utils` module for all topics regarding metaprogramming,
 parse-transforms, etc.
 """.
 
@@ -982,9 +982,9 @@ more information.
 
 
 -doc """
-Designates a record instance, to discriminate from a mere tuple.
+Designates a tuple-based record instance, to discriminate from a mere tuple.
 """.
--type record() :: tuple().
+-type tuple_based_record() :: tuple().
 
 
 -doc """
@@ -1132,7 +1132,7 @@ Describes an error met when coercing a string to a value of a given type.
 
                positive_float/0, non_negative_float/0,
 
-               record/0,
+               tuple_based_record/0,
                tuploid/0, tuploid/1,
                pair/0, triplet/0, tuple/1, tuple/2,
                map/2,
@@ -1605,15 +1605,26 @@ describe_type_of( _Term=[ I ] ) when is_integer( I ) ->
 describe_type_of( _Term=[ _ ] )  ->
     "a single-element list";
 
-describe_type_of( Term ) when is_list( Term ) ->
-    Len = length( Term ),
-    case text_utils:is_string( Term ) of
+describe_type_of( L ) when is_list( L ) ->
+    % Otherwise length/1 will fail:
+    case list_utils:is_proper_list( L ) of
 
         true ->
-            text_utils:format( "a plain string of ~B characters", [ Len ] );
+            Len = length( L ),
+            case text_utils:is_string( L ) of
+
+                true ->
+                    text_utils:format( "a plain string of ~B characters",
+                                       [ Len ] );
+
+                false ->
+                    text_utils:format( "a list of ~B elements", [ Len ] )
+
+            end;
 
         false ->
-            text_utils:format( "a list of ~B elements", [ Len ] )
+            % Sometimes created on purpose:
+            "an improper list"
 
     end;
 
