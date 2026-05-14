@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the `cipher_utils` toolbox.
 
-See the cipher_utils.erl tested module.
+See the `cipher_utils` tested module.
 """.
 
 
