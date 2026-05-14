@@ -32,7 +32,7 @@ Gathering of various **random-related** facilities, based on probability
 distributions, either as Myriad built-in ones (uniform, exponential, Gaussian,
 etc.) or user-defined, arbitrary ones.
 
-See `random_utils_test.erl` for the corresponding test.
+See the `random_utils_test` module for the corresponding test.
 """.
 
 
@@ -107,12 +107,17 @@ See `random_utils_test.erl` for the corresponding test.
 
 
 
-% Service usage, state and seeding:
+% Service usage, state, algorithm and seeding:
 -export([ start_random_source/3, start_random_source/1, can_be_seeded/0,
           reset_random_source/1, stop_random_source/0,
 
           get_random_module_name/0,
-          get_random_state/0, set_random_state/1,
+
+          get_maybe_random_state/0, get_random_state/0,
+          set_random_state/1, set_random_state/2,
+          ensure_random_state/0, ensure_random_state/1,
+
+          get_algorithm/0,
 
           get_random_seed/0, check_random_seed/1 ]).
 
@@ -126,11 +131,15 @@ See `random_utils_test.erl` for the corresponding test.
 
 
 % Functions related to uniform sampling:
--export([ get_uniform_value/0, get_uniform_value/1, get_uniform_value/2,
+-export([ get_uniform_value/0, get_uniform_value_with/1,
+          get_uniform_value/1, get_uniform_value_with/2,
+          get_uniform_value/2, get_uniform_value_with/3,
           get_uniform_values/2, get_uniform_values/3,
 
           get_uniform_floating_point_value/1,
+          get_uniform_floating_point_value_with/2,
           get_uniform_floating_point_value/2,
+          get_uniform_floating_point_value_with/3,
 
           get_boolean/0, one_of/1, get_random_subset/2 ]).
 
@@ -191,6 +200,8 @@ See `random_utils_test.erl` for the corresponding test.
           get_sample_from/1, get_samples_from/2 ]).
 
 
+-doc "An algorithm used for the generation of random numbers.".
+-type algorithm() :: rand:alg(). % Thus atom().
 
 
 -doc """
@@ -1707,7 +1718,8 @@ Could be named normal_2p_pdf() as well.
 
 
 
--export_type([ seed_element/0, seed/0, random_state/0, alias_table/0,
+-export_type([ algorithm/0,
+               seed_element/0, seed/0, random_state/0, alias_table/0,
                sample/0, sample/1, float_sample/0, positive_float_sample/0,
                sample_count/0,
 
@@ -1948,62 +1960,154 @@ Could be named normal_2p_pdf() as well.
 
 %-doc """
 %Returns a random float uniformly distributed between 0.0 (included) and 1.0
-%(excluded), updating the random state in the process dictionary.
+%(excluded), using and updating the random state in the process dictionary.
 %""".
 -spec get_uniform_value() -> float().
 
 
 %-doc """
-%Returns an integer random value generated from an uniform distribution.
+%Returns a random float uniformly distributed between 0.0 (included) and 1.0
+%(excluded), based on the specified random state, whose updated version is
+% returned as well.
+%
+%""".
+-spec get_uniform_value_with( random_state() ) -> { float(), random_state() }.
+
+
+
+%-doc """
+%Returns a random integer value generated from an uniform distribution, using
+%and updating the random state in the process dictionary.
 %
 %Given an integer `N >= 1`, returns a random integer uniformly distributed
-%between 1 and N (both included), updating the random state in the process
-%dictionary.
+%between 1 and N (both included).
 %""".
 -spec get_uniform_value( pos_integer() ) -> pos_integer().
 
 
 %-doc """
-%Returns an integer random value generated from an uniform distribution in
-%`[Nmin,Nmax]` (i.e. both bounds included), updating the random state in the
-%process dictionary.
+%Returns a random integer value generated from an uniform distribution, based on
+%the specified random state, whose updated version is returned as well.
+%
+%Given an integer `N >= 1`, returns a random integer uniformly distributed
+%between 1 and N (both included).
+%""".
+-spec get_uniform_value_with( pos_integer(), random_state() ) ->
+                                { pos_integer(), random_state() }.
+
+
+
+
+%-doc """
+%Returns a random integer value generated from an uniform distribution in
+%`[Nmin,Nmax]` (i.e. both bounds included), using and updating the random state
+%in the process dictionary.
 %""".
 -spec get_uniform_value( integer(), integer() ) -> integer().
 
 
 %-doc """
+%Returns a random integer value generated from an uniform distribution in
+%`[Nmin,Nmax]` (i.e. both bounds included) based on the specified random state,
+%whose updated version is returned as well.
+%""".
+-spec get_uniform_value_with( integer(), integer(), random_state() ) ->
+                                { integer(), random_state() }.
+
+
+
+%-doc """
 %Returns a floating-point random value in `[0.0,N[` generated from an uniform
-%distribution.
+%distribution, using and updating the random state in the process dictionary.
 %
 %Given a number (integer or float) N (positive or not), returns a random
 %floating-point value uniformly distributed between 0.0 (included) and N
-%(excluded), updating the random state in the process dictionary.
+%(excluded).
 %""".
 -spec get_uniform_floating_point_value( number() ) -> float().
 
 
 %-doc """
+%Returns a floating-point random value in `[0.0,N[` generated from an uniform
+%distribution based on the specified random state, whose updated version is
+%returned as well.
+%
+%Given a number (integer or float) N (positive or not), returns a random
+%floating-point value uniformly distributed between 0.0 (included) and N
+%(excluded).
+%""".
+-spec get_uniform_floating_point_value_with( number(), random_state() ) ->
+                                { float(), random_state() }.
+
+
+
+%-doc """
 %Returns a floating-point random value in `[Nmin, Nmax[` generated from an
-%uniform distribution.
+%uniform distribution, using and updating the random state in the process
+%dictionary.
 %
 %Given two numbers (integer or float) Nmin and Nmax (each being positive or
 %not), returns a random floating-point value uniformly distributed between Nmin
-%(included) and Nmax (excluded), updating the random state in the process
-%dictionary.
+%(included) and Nmax (excluded).
 %""".
 -spec get_uniform_floating_point_value( number(), number() ) -> float().
 
 
-%-doc "Returns the name of the module managing the random generation.".
--spec get_random_state() -> option( random_state() ).
+%-doc """
+%Returns a floating-point random value in `[Nmin, Nmax[` generated from an
+%uniform distribution based on the specified random state, whose updated version
+%is returned as well.
+%
+%Given two numbers (integer or float) Nmin and Nmax (each being positive or
+%not), returns a random floating-point value uniformly distributed between Nmin
+%(included) and Nmax (excluded).
+%""".
+-spec get_uniform_floating_point_value_with( number(), number(),
+                        random_state() ) -> { float(), random_state() }.
+
 
 
 %-doc """
-%Returns the random state of the current process (it is useful for example for
-%process serialisations).
+% Returns any random state of the current process (it is useful for example
+% for process serialisations).
+%
+% `undefined` may be returned, typically whenever no seeding was done.
+%
+%""".
+-spec get_maybe_random_state() -> option( random_state() ).
+
+
+%-doc """
+% Returns the random state of the current process (it is useful for example
+% for process serialisations).
+%
+% Not having such a state is considered an error; it typically happens whenever
+% no seeding was done.
+%
+%""".
+-spec get_random_state() -> random_state().
+
+
+%-doc """
+% Sets the random state of this process, using the default Myriad generation
+% algorithm (it is useful for example for process serialisations).
 %""".
 -spec set_random_state( random_state() ) -> void().
 
+
+%-doc """
+% Sets the random state of this process, using the specified generation
+% algorithm (it is useful for example for process serialisations).
+%""".
+-spec set_random_state( algorithm(), random_state() ) -> void().
+
+
+
+%-doc """
+% Returns the default algorithm currently used by this module for random
+% generation.
+%""".
+-spec get_algorithm() -> algorithm().
 
 
 
@@ -2024,7 +2128,7 @@ get_uniform_values_helper( N, Count, Acc ) ->
 
 -doc "Generates a list of `Count` elements uniformly drawn in `[Nmin,Nmax]`.".
 -spec get_uniform_values( integer(), integer(), sample_count() ) ->
-            [ integer() ].
+                                                [ integer() ].
 get_uniform_values( Nmin, Nmax, Count ) ->
     get_uniform_values_helper( Nmin, Nmax, Count, _Acc=[] ).
 
@@ -2083,7 +2187,7 @@ start_random_source( _AnyOtherSeeding ) ->
 -doc """
 Tells whether this random source can be seeded.
 
-`crypto` cannot be seeded, but `rand` can.
+`crypto` cannot be seeded (but `rand` can).
 """.
 can_be_seeded() ->
     false.
@@ -2104,8 +2208,7 @@ stop_random_source() ->
 
 -doc """
 Returns a random float uniformly distributed between 0.0 (included) and 1.0
-(excluded), updating the random state in the process dictionary.
-
+(excluded), using and updating the random state in the process dictionary.
 """.
 % (spec already specified, for all random settings)
 get_uniform_value() ->
@@ -2113,13 +2216,23 @@ get_uniform_value() ->
     throw( not_available ).
 
 
+-doc """
+Returns a random float uniformly distributed between 0.0 (included) and 1.0
+(excluded), based on the specified random state, whose updated version is
+returned as well.
+""".
+% (spec already specified, for all random settings)
+get_uniform_value_with( _RandomState ) ->
+    throw( not_available ).
+
+
 
 -doc """
-Returns an integer random value generated from an uniform distribution.
+Returns a random integer value generated from an uniform distribution, using and
+updating the random state in the process dictionary.
 
-Given an integer `N >= 1`, returns a random integer uniformly distributed
-between `1` and `N` (both included), updating the random state in the process
-dictionary.
+Given an integer N >= 1, returns a random integer uniformly distributed between
+1 and N (both included).
 
 May raise an `error:low_entropy` exception.
 """.
@@ -2133,12 +2246,26 @@ get_uniform_value( N ) ->
 
 
 -doc """
-Returns an integer random value generated from an uniform distribution in
-`[Nmin,Nmax]` (thus with both bounds included, with Nmax >= Nmin), updating the
-random state in the process dictionary.
+Returns a random integer value generated from an uniform distribution, based on
+the specified random state, whose updated version is returned as well.
+
+Given an integer N >= 1, returns a random integer uniformly distributed between
+1 and N (both included).
 """.
 % (spec already specified, for all random settings)
-get_uniform_value( Nmin, Nmax ) when Nmin =< Nmax ->
+get_uniform_value_with( _N, _RandomState ) ->
+    throw( not_available ).
+
+
+
+-doc """
+Returns a random integer value generated from an uniform distribution in
+`[Nmin,Nmax]` (i.e. both bounds included), using and updating the random state
+in the process dictionary.
+""".
+% (spec already specified, for all random settings)
+get_uniform_value( Nmin, Nmax ) when is_integer( Nmin )
+                    andalso is_integer( Nmax ) andalso Nmin =< Nmax ->
     % Now deprecated: crypto:rand_uniform( Nmin, Nmax+1 ).
 
     % As 0 =< result < N:
@@ -2147,15 +2274,42 @@ get_uniform_value( Nmin, Nmax ) when Nmin =< Nmax ->
 
 
 -doc """
+Returns a random integer value generated from an uniform distribution in
+`[Nmin,Nmax]` (i.e. both bounds included), based on the specified random state,
+whose updated version is returned as well.
+""".
+% (spec already specified, for all random settings)
+get_uniform_value_with( _Nmin, _Nmax, _RandomState ) ->
+    throw( not_available ).
+
+
+
+-doc """
 Returns a floating-point random value in `[0.0,N[` generated from an uniform
-distribution.
+distribution, using and updating the random state in the process
+% dictionary.
 
 Given a number (integer or float) N (positive or not), returns a random
 floating-point value uniformly distributed between 0.0 (included) and N
-(excluded), updating the random state in the process dictionary.
+(excluded).
 """.
 % (spec already specified, for all random settings)
 get_uniform_floating_point_value( _N ) ->
+    throw( not_available ).
+
+
+
+-doc """
+Returns a floating-point random value in `[0.0,N[` generated from an uniform
+distribution based on the specified random state, whose updated version is
+returned as well.
+
+Given a number (integer or float) N (positive or not), returns a random
+floating-point value uniformly distributed between 0.0 (included) and N
+(excluded).
+""".
+% (spec already specified, for all random settings)
+get_uniform_floating_point_value_with( _N, _RandomState ) ->
     throw( not_available ).
 
 
@@ -2174,17 +2328,46 @@ get_uniform_floating_point_value( _Nmin, _Nmax ) ->
     throw( not_available ).
 
 
+-doc """
+Returns a floating-point random value in `[Nmin, Nmax[` generated from an
+uniform distribution based on the specified random state, whose updated version
+is returned as well.
+
+Given two numbers (integer or float) Nmin and Nmax (each being positive or not),
+returns a random floating-point value uniformly distributed between Nmin
+(included) and Nmax (excluded).
+""".
+% (spec already specified, for all random settings)
+get_uniform_floating_point_value_with( _Nmin, _Nmax, _RandomState ) ->
+    throw( not_available ).
+
+
 
 -doc "Returns the name of the module managing the random generation.".
--spec get_random_module_name() -> 'crypto'.
+% (spec already specified, for all random settings)
 get_random_module_name() ->
     crypto.
 
 
 
 -doc """
+Returns any random state of the current process (it is useful for example for
+process serialisations).
+
+`undefined` may be returned, typically whenever no seeding was done.
+""".
+% (spec already specified, for all random settings)
+get_maybe_random_state() ->
+    % At least: not implemented yet.
+    throw( not_available ).
+
+
+-doc """
 Returns the random state of this process (it is useful for example for process
 serialisations).
+
+Throws an exception if no random state is available, typically whenever no
+seeding was done.
 """.
 % (spec already specified, for all random settings)
 get_random_state() ->
@@ -2194,8 +2377,8 @@ get_random_state() ->
 
 
 -doc """
-Sets the random state of this process (it is useful for example for process
-serialisations).
+Sets the random state of this process, using the default Myriad generation
+algorithm (it is useful for example for process serialisations).
 """.
 % (spec already specified, for all random settings)
 set_random_state( _NewState ) ->
@@ -2203,6 +2386,22 @@ set_random_state( _NewState ) ->
     throw( not_available ).
 
 
+-doc """
+Sets the random state of this process, using the specified generation algorithm
+""".
+% (spec already specified, for all random settings)
+set_random_state( _Algorithm, _NewRandomState ) ->
+    % At least: not implemented yet.
+    throw( not_available ).
+
+
+
+-doc """
+Returns the default algorithm currently used by this module for random
+generation.
+""".
+get_algorithm() ->
+    throw( not_available ).
 
 
 
@@ -2333,7 +2532,7 @@ start_random_source( _Seeding=time_based_seed ) ->
         trace_utils:info_fmt( "~w forging time-based seed ~p.", [ self(), T ] ),
         basic_utils:ignore_unused( T ) ),
 
-    % Directly inspired from third example in
+    % Directly inspired from the third example in
     % http://osdir.com/ml/erlang-questions-programming/2013-10/msg00244.html:
     %
     start_random_source( A + erlang:phash2( C ), B, 690123 + 16384*C );
@@ -2365,7 +2564,7 @@ stop_random_source() ->
 
 
 % doc: Returns a random float uniformly distributed between 0.0 (included) and
-% 1.0 (excluded), updating the random state in the process dictionary.
+% 1.0 (excluded), using and updating the random state in the process dictionary.
 %
 % Spec already specified, for all random settings.
 %
@@ -2374,12 +2573,23 @@ get_uniform_value() ->
     rand:uniform().
 
 
+% doc: Returns a random float uniformly distributed between 0.0 (included) and
+% 1.0 (excluded), based on the specified random state, whose updated version is
+% returned as well.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_value_with( RandomState ) ->
+    %random:uniform().
+    rand:uniform_s( RandomState ).
 
-% doc: Returns an integer random value generated from an uniform distribution.
+
+
+% doc: Returns a random integer value generated from an uniform distribution,
+% using and updating the random state in the process dictionary.
 %
 % Given an integer N >= 1, returns a random integer uniformly distributed
-% between 1 and N (both included), updating the random state in the process
-% dictionary.
+% between 1 and N (both included).
 %
 % Spec already specified, for all random settings.
 %
@@ -2392,9 +2602,28 @@ get_uniform_value( N ) ->
 
 
 
-% doc: Returns an integer random value generated from an uniform distribution in
-% [Nmin,Nmax] (i.e. both bounds includedd, with Nmax >= Nmin), updating the
-% random state in the process dictionary.
+% doc: Returns a random integer value generated from an uniform distribution,
+% based on the specified random state, whose updated version is returned as
+% well.
+%
+% Given an integer N >= 1, returns a random integer uniformly distributed
+% between 1 and N (both included).
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_value_with( N, RandomState ) when is_integer( N ) ->
+    %random:uniform( N ).
+    rand:uniform_s( N, RandomState );
+
+get_uniform_value_with( N, _RandomState ) ->
+    throw( { not_integer, N } ).
+
+
+
+
+% doc: Returns a random integer value generated from an uniform distribution in
+% `[Nmin,Nmax]` (i.e. both bounds included), using and updating the random state
+% in the process dictionary.
 %
 % Spec already specified, for all random settings.
 %
@@ -2415,12 +2644,39 @@ get_uniform_value( Nmin, Nmax ) ->
 
 
 
-% doc: Returns a floating-point random value in [0.0,N[ generated from an
-% uniform distribution.
+% doc: Returns a random integer value generated from an uniform distribution in
+% `[Nmin,Nmax]` (i.e. both bounds included), based on the specified random
+% state, whose updated version is returned as well.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_value_with( Nmin, Nmax, RandomState ) when is_integer( Nmin )
+                    andalso is_integer( Nmax ) andalso Nmin =< Nmax ->
+
+    % For example if Nmin = 3, Nmax = 5, we can draw value in [3, 4, 5], hence:
+    %
+    % N = 5 - 3 + 1 = 3.
+    %
+    N = Nmax - Nmin + 1,
+
+    { I, NewRandomState } = get_uniform_value_with( N, RandomState ),
+
+    % Drawn in [1,N]:
+    { I + Nmin - 1, NewRandomState };
+
+get_uniform_value_with( Nmin, Nmax, _RandomState ) ->
+    throw( { not_integer_bounds, { Nmin, Nmax } } ).
+
+
+
+
+% doc: Returns a floating-point random value in `[0.0,N[` generated from an
+% uniform distribution, using and updating the random state in the process
+% dictionary.
 %
 % Given a number (integer or float) N (positive or not), returns a random
 % floating-point value uniformly distributed between 0.0 (included) and N
-% (excluded), updating the random state in the process dictionary.
+% (excluded).
 %
 % Spec already specified, for all random settings.
 %
@@ -2429,13 +2685,33 @@ get_uniform_floating_point_value( N ) ->
     N * rand:uniform().
 
 
-% doc: Returns a floating-point random value in [Nmin, Nmax[ generated from an
-% uniform distribution.
+% doc: Returns a floating-point random value in `[0.0,N[` generated from an
+% uniform distribution based on the specified random state, whose updated
+% version is returned as well.
+%
+% Given a number (integer or float) N (positive or not), returns a random
+% floating-point value uniformly distributed between 0.0 (included) and N
+% (excluded).
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value_with( N, RandomState ) ->
+
+    { F, NewRandomState } = rand:uniform_s( RandomState ),
+
+    % Generated float in [0.0, 1.0[:
+    { N*F, NewRandomState }.
+
+
+
+
+% doc: Returns a floating-point random value in `[Nmin, Nmax[` generated from an
+% uniform distribution, using and updating the random state in the process
+% dictionary.
 %
 % Given two numbers (integer or float) Nmin and Nmax (each being positive or
 % not), returns a random floating-point value uniformly distributed between Nmin
-% (included) and Nmax (excluded), updating the random state in the process
-% dictionary.
+% (included) and Nmax (excluded).
 %
 % Spec already specified, for all random settings.
 %
@@ -2449,6 +2725,28 @@ get_uniform_floating_point_value( Nmin, Nmax ) ->
 
 
 
+% doc: Returns a floating-point random value in `[Nmin, Nmax[` generated from an
+% uniform distribution based on the specified random state, whose updated
+% version is returned as well.
+%
+% Given two numbers (integer or float) Nmin and Nmax (each being positive or
+% not), returns a random floating-point value uniformly distributed between Nmin
+% (included) and Nmax (excluded).
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value_with( Nmin, Nmax, RandomState ) ->
+
+    %trace_utils:debug_fmt( "Generating uniform value in [~w,~w].",
+    %                       [ Nmin, Nmax ] ),
+
+    { F, NewRandomState } = rand:uniform_s( RandomState ),
+
+    % Generated float in [0.0, 1.0[:
+    { Nmin + ( Nmax - Nmin ) * F, NewRandomState }.
+
+
+
 % doc: Returns the name of the module managing the random generation.
 %
 % Spec already specified, for all random settings.
@@ -2459,16 +2757,17 @@ get_random_module_name() ->
     rand.
 
 
-% doc: Returns the random state of the current process (it is useful for example
+
+% doc: Returns any random state of the current process (it is useful for example
 % for process serialisations).
 %
-% Spec already specified, for all random settings.
+% `undefined` may be returned, typically whenever no seeding was done.
 %
-get_random_state() ->
+%""".
+get_maybe_random_state() ->
 
     % Read from the process dictionary:
 
-    % Actually, no state should not be considered as an error:
     %case erlang:get( random_seed ) of
     %
     %   undefined ->
@@ -2483,22 +2782,69 @@ get_random_state() ->
     % May return 'undefined', if not seeded yet:
     %erlang:get( random_seed ).
     %erlang:get( rand_seed ).
+
     % Best:
-    rand:export_seed().
+    MaybeRandomState = rand:export_seed(),
+
+    cond_utils:if_defined( myriad_debug_random,
+        trace_utils:debug_fmt( "~w returning random state:~n ~p",
+                               [ self(), MaybeRandomState ] ) ),
+
+    MaybeRandomState.
 
 
 
-% doc: Sets the random state of this process (it is useful for example for
-% process serialisations).
+% doc: Returns the random state of the current process (it is useful for example
+% for process serialisations).
+%
+% Throws an exception if no random state is available, typically whenever no
+% seeding was done.
 %
 % Spec already specified, for all random settings.
 %
-set_random_state( RandomState ) ->
+get_random_state() ->
+
+   case get_maybe_random_state() of
+
+        undefined ->
+            % Probably that there has been no prior seeding:
+            throw( random_state_not_available );
+
+        S ->
+            S
+
+    end.
+
+
+
+% doc: Sets the random state of this process, using the default Myriad
+% generation algorithm (it is useful for example for process serialisations).
+%
+% Spec already specified, for all random settings.
+%
+set_random_state( NewRandomState ) ->
+    set_random_state( _Alg=?rand_algorithm, NewRandomState ).
+
+
+% doc: Sets the random state of this process, using the specified generation
+% algorithm (it is useful for example for process serialisations).
+%
+% Spec already specified, for all random settings.
+%
+set_random_state( Algorithm, NewRandomState ) ->
 
     % All are in the process dictionary (beware!):
-    %erlang:put( random_seed, NewState ).
-    %erlang:put( rand_seed, NewState ).
-    rand:seed( RandomState ).
+    %erlang:put( random_seed, RandomState ).
+    %erlang:put( rand_seed, RandomState ).
+    rand:seed( Algorithm, NewRandomState ).
+
+
+% doc: Returns the default algorithm currently used by this module for random
+% generation.
+%
+get_algorithm() ->
+    ?rand_algorithm.
+
 
 
 -endif. % use_crypto_module not defined
@@ -2516,6 +2862,41 @@ set_random_state( RandomState ) ->
 
 % The upper bound for a seed element.
 -define( seed_upper_bound, 65500 ).
+
+
+-doc """
+Ensures that a random generation state is available (regardless of the algorithm
+it relies on); if none is available, one is created, based on the default Myriad
+algorithm and a non-deterministic (time-dependent) seed.
+
+Returns whether such a seeding had to be done.
+""".
+-spec ensure_random_state() -> boolean().
+ensure_random_state() ->
+    ensure_random_state( _Alg=?rand_algorithm ).
+
+
+-doc """
+Ensures that a random generation state is available (regardless of the algorithm
+it relies on); if none is available, one is created, based on the specified
+algorithm and a non-deterministic (time-dependent) seed.
+
+Returns whether such a seeding had to be done.
+""".
+-spec ensure_random_state( algorithm() ) -> boolean().
+ensure_random_state( Algorithm ) ->
+
+    case get_maybe_random_state() of
+
+        undefined ->
+            rand:seed( Algorithm ),
+            true;
+
+        _State ->
+            false
+
+    end.
+
 
 
 -doc """
