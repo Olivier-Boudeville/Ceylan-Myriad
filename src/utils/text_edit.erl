@@ -64,7 +64,7 @@ The available options when creating a text edit.
 """.
 -type text_edit_option() ::
 
-    % Whether a trailing dot should be automatically added if lacking in an
+    % Whether a trailing dot should be automatically added if lacking in a
     % command (convenient in the context of single-line edition):
     %
     'auto_add_trailing_dot'
@@ -835,9 +835,9 @@ get_completion_info( TextEdit=#text_edit{ processor_pid=ProcPid } ) ->
         %
         { notifyCompletionInfo, MaybeComplInfo } ->
 
-            trace_utils:debug_fmt(
-                "Processor-originating completion info:~n ~p",
-                [ MaybeComplInfo ] ),
+            %trace_utils:debug_fmt(
+            %    "Processor-originating completion info:~n ~p",
+            %    [ MaybeComplInfo ] ),
 
             MaybeComplInfo
 
