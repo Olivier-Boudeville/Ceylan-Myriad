@@ -305,6 +305,33 @@ The PID of a group leader process for user I/O (see `lib/kernel/src/group.erl`).
 
 
 
+% Parser subsection.
+
+% The goal of this parser is to identify the role of each token of an expression
+% being entered, whereas it is possibly malformed (typically because it is not
+% full entered yet).
+%
+% Identifying such roles allows notably to perform better syntax highlighting
+% (based on roles) and auto-completion (listing only relevant candidates for
+% that role).
+
+
+%% -doc "The role of a token.".
+%% -type token_role() ::
+%%     'keyword'   % A keyword of Erlang
+%%   | 'variable'  % A variable name (bound or not)
+%%   | 'atom '     % An atom (new or not)
+%%   | 'function ' % A function name (with a maybe-arity)
+%%   | 'integer ' %
+%%   | 'float ' %
+%%   | 'string' % A string (plain or binary)
+%%   | 'operator ' % An operator (e.g. "+")
+%%   | 'comment' % A comment
+%%   | 'xxx'. %
+
+
+
+
 
 
 % Type shorthands:
