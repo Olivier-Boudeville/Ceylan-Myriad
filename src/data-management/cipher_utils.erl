@@ -583,17 +583,15 @@ apply_cipher( delta_combine_reverse, SourceFilePath, CipheredFilePath ) ->
 
 apply_cipher( { shuffle, Seed, Length }, SourceFilePath, CipheredFilePath ) ->
 
-    random_utils:reset_random_source( Seed ),
-
-    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, direct );
+    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed,
+                    _Dir=direct );
 
 
 apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilePath,
               CipheredFilePath ) ->
 
-    random_utils:reset_random_source( Seed ),
-
-    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, reciprocal );
+    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed, 
+                    _Dir=reciprocal );
 
 
 apply_cipher( { 'xor', XORList }, SourceFilePath, CipheredFilePath ) ->
@@ -863,19 +861,24 @@ extract_helper( CipheredFile, TargetFile, Range, Count ) ->
     end.
 
 
+
 % Direction is either 'direct' or 'reciprocal':
-shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Direction ) ->
+shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed, Direction ) ->
 
     % Wanting to read lists, not binaries:
     SourceFile = file_utils:open( SourceFilePath, ?list_read_opts ),
 
     TargetFile = file_utils:open( CipheredFilePath, ?list_write_opts ),
 
-    shuffle_helper( SourceFile, TargetFile, Length, Direction ).
+    FirstRandomState = random_utils:reset_random_source( Seed ),
+
+    shuffle_helper( SourceFile, TargetFile, Length, Direction, 
+                    FirstRandomState ).
 
 
 
-shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
+% (helper)
+shuffle_helper( SourceFile, TargetFile, Length, Direction, RandomState ) ->
 
     case file_utils:read( SourceFile, Length ) of
 
@@ -883,16 +886,18 @@ shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
             file_utils:close( SourceFile ),
             file_utils:close( TargetFile );
 
-        % When will hit the end of file, may perform shuffle on a smaller chunk:
+        % When hits the end of file, may perform shuffle on a smaller chunk:
         { ok, ByteList } ->
 
             ShuffledByteList = case Direction of
 
                 direct ->
-                    list_utils:random_permute( ByteList );
+                    list_utils:random_invertible_permute( ByteList, RandomState
+                                                          );
 
                 reciprocal ->
-                    list_utils:random_permute_reciprocal( ByteList )
+                    list_utils:random_invertible_permute_reciprocal( ByteList, RandomState
+ )
 
             end,
 

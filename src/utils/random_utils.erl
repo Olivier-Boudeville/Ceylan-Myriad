@@ -1952,7 +1952,7 @@ Could be named normal_2p_pdf() as well.
 
 -spec can_be_seeded() -> boolean().
 
--spec reset_random_source( seeding() ) -> void().
+-spec reset_random_source( seeding() ) -> random_state().
 
 -spec stop_random_source() -> void().
 
@@ -2176,7 +2176,7 @@ start_random_source( _Seeding=default_seed ) ->
     ok = application:start( crypto ),
 
     % Allows for faster sample generation by caching, on 64-bit machines:
-    _ = crypto:rand_seed_alg( crypto_cache );
+    crypto:rand_seed_alg( crypto_cache );
 
 
 start_random_source( _AnyOtherSeeding ) ->
