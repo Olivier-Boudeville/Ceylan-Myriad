@@ -69,7 +69,8 @@ ${usage}" 1>&2
 fi
 
 
-for target_pid in $(ps -edf | grep beam.smp | grep " -${target_mode} ${prog_name}" | while read ps_line; do
+# -ww: unlimited width.
+for target_pid in $(ps -edfww | grep beam.smp | grep " -${target_mode} ${prog_name}" | while read ps_line; do
 
 	pid="$(echo "${ps_line}" | awk '{print $2}')"
 	echo "${pid}"
