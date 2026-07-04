@@ -988,8 +988,9 @@ test-hex-package: rebar3-test-clean
 generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 
 
-# To synchronise the selected source content of the current layer, from the
-# local tree to the specified server location, as defined by
+# To synchronise the selected source content of the current layer (including any
+# locally-generated content like BEAM files), from the local tree to the
+# specified server location, as defined by
 # "$(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)" (run 'make info-sync' to check),
 # with no VCS commit involved.
 #
@@ -1006,7 +1007,10 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 # are elsewhere); see the next 'sync-all-to-server' target for a complete
 # transfer.
 #
-sync-sources-to-server: all
+# Currently not wanting to trigger a rebuild that may fail: 'all' prerequisite
+# target commented out.
+#
+sync-sources-to-server:
 	@echo "  Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(SYNC_HOST)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no SYNC_HOST variable set." 1>&2; exit 5; fi
 	@echo "(source synchronisation to $(SYNC_HOST):$(CEYLAN_SYNC_TARGET_ROOT) done)"

@@ -40,6 +40,9 @@ case), the first type may correspond to a Myriad-specific, internal symbol,
 whereas the second type may be a foreign one (for example defined by a
 third-party library).
 
+Neither type shall include `undefined`, otherwise the maybe-result of functions
+like `get_maybe_{first,second}_for/2` would become ambiguous.
+
 See also our `const_bijective_table` module for constant bijective tables that
 can be requested from any number (potentially extremely large) of callers very
 efficiently thanks to the generation (only in memory, or in file) of a
@@ -60,6 +63,8 @@ Refer to the:
           get_second_for/2, get_maybe_second_for/2, get_second_elements_for/2,
 
           remove_entry_by_first/2, remove_entry_by_second/2,
+
+          size/1,
 
           to_string/1 ]).
 
@@ -113,9 +118,11 @@ Now we recommend using `[entry()]` only.
 """.
 -type entries() :: [ entry() ].
 
+-type entry_count() :: basic_utils:count().
+
 
 -export_type([ bijective_table/0, bijective_table/2,
-               entry/0, entries/0 ]).
+               entry/0, entries/0, entry_count/0 ]).
 
 
 % Type shorthand:
@@ -361,6 +368,17 @@ remove_entry_by_second( Second,
     ShrunkFirstTable = table:remove_entry( First, FirstToSecondTable ),
     ShrunkSecondTable = table:remove_entry( Second, SecondToFirstTable ),
     { ShrunkFirstTable, ShrunkSecondTable }.
+
+
+
+-doc """
+Returns the size (number of entries, that is of key/value pairs) of the
+specified bijective table.
+""".
+-spec size( bijective_table() ) -> entry_count().
+size( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
+    % Of course both tables are of the same size:
+    table:size( FirstToSecondTable ).
 
 
 
