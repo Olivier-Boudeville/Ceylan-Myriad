@@ -262,7 +262,7 @@ test-recurse:
 # (e.g. 'make test-interactive UI_TEST_BACKEND=text_ui' or by modifying this
 # variable directly in GNUmakevars.inc)
 #
-test-interactive: #all test-interactive-recurse
+test-interactive: all test-interactive-recurse
 	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} -extra $(UI_TEST_OPT)"; then echo "Interactive test failed." 1>&2; exit 11; else echo; fi; done
 
 
