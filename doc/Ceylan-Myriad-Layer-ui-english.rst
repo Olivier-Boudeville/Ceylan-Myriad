@@ -131,24 +131,25 @@ If having very demanding 2D needs, one may refer to the `3D services`_ section (
 .. Note:: Currently MyriadGUI does not adhere yet to the ``ui`` conventions, but it will ultimately. MyriadGUI already provides many lower-level services and offers a graphical API (currently on top of ``wx``; see `our HOWTO <http://howtos.esperide.org/Erlang.html#using-wx>`_ for some information regarding that backend) that can be used in order to  develop one's GUI application hopefully in a future-proof way.
 
 
-.. _`wx availability`:
-
-As a consequence, `wxWidgets <https://www.wxwidgets.org/>`_ must be available on the host (otherwise a ``{load_driver,"No driver found"}`` exception will be raised on GUI start). This should correspond to the ``wxgtk3`` Arch Linux package, or the ``libwxgtk3.0-dev`` Debian one. This can be tested by executing ``wx-config --version`` on a shell.
-
-``wxWidgets`` must be installed *prior* to building Erlang, so that it is detected by its configuration script and a proper ``wx`` module can be used afterwards. Running then ``wx:demo()`` is a good test of the actual support.
 
 
 
 Purpose of ``gui``
 ******************
 
-The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx`` and OpenGL (more integrated, more typed, possibly clearer, having more runtime checks - that can be toggled at build time), and do not depend on any particular GUI backend (such as ``wx``, ``gs``, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.
+The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx`` and OpenGL (more integrated, more typed, possibly clearer, having more runtime checks - that can be toggled at build time), and whose use does not rely explicitly on any particular GUI backend (such as ``wx``, ``gs``, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.
+
+
+.. Note::
+
+   Of course, as MyriadGUI translates ultimately in ``wx`` calls, the latter must be available at runtime. Refer to `this section <#securing-an-erlang-environment-with-gui-support-recommended>`_ to secure such a support.
+
 
 So for example the messages received by the user programs do not mention ``wx``, and respect only MyriadGUI conventions. These conventions are in line with the `WOOPER ones <https://wooper.esperide.org/#method-invocation>`_, enabling (in a fully optional manner) the user code to rely on WOOPER if wanted [#]_.
 
 .. [#] Inspired from MyriadGUI, one could consider creating WOOPERGUI, which would provide basically the same services, yet relying on inheritance on the Erlang side as well.
 
-       That way for example a frame would be a special case (hence a child class) of window, and frames would automatically inherit all window operations; so the user would have just to handle a frame by itself, without having to take into account the fact that some operations of interest are actually defined at the window level instead.
+	   That way for example a frame would be a special case (hence a child class) of window, and frames would automatically inherit all window operations; so the user would have just to handle a frame by itself, without having to take into account the fact that some operations of interest are actually defined at the window level instead.
 
 
 The usual mode of operation is the following:
@@ -265,11 +266,11 @@ Various tests offer usage examples of the MyriadGUI API for 3D rendering:
 
 .. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
 
-         So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (e.g. for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (e.g. regarding event management).
+		 So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (e.g. for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (e.g. regarding event management).
 
-         Modern OpenGL is supported (e.g. version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.
+		 Modern OpenGL is supported (e.g. version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.
 
-         See the `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_ for more explanations.
+		 See the `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_ for more explanations.
 
 
 
