@@ -54,7 +54,8 @@ module, notably for its `key{find,take,...}` functions.
 -export([ ensure_list/1, ensure_atoms/1, ensure_tuples/1, ensure_pids/1,
           are_integers/1, check_integers/1, are_pids/1, are_atoms/1,
           check_strictly_ascending/1,
-          are_equal/1, check_equal/1 ]).
+          are_equal/1, check_equal/1,
+          is_proper_list/1 ]).
 
 
 % Basic list operations:
@@ -101,7 +102,8 @@ module, notably for its `key{find,take,...}` functions.
 
 
 % Random operations on lists:
--export([ random_permute/1, random_permute_reciprocal/1,
+-export([ random_permute/1,
+          random_invertible_permute/2, random_invertible_permute_reciprocal/2,
           draw_element/1, draw_element/2, draw_element_weighted/1,
           draw_elements_from/2, extract_elements_from/2 ]).
 
@@ -152,6 +154,7 @@ element is an atom.
 
 -type ustring() :: text_utils:ustring().
 
+-type random_state() :: random_utils:random_state().
 
 
 
@@ -330,7 +333,7 @@ insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 
 
 -doc """
-Extracts the element of the specified list at the specified index.
+Extracts the element at the specified index in the specified list.
 
 Returns that element and the resulting, shrunk list.
 
@@ -1458,6 +1461,35 @@ check_equal( L ) ->
 
 
 -doc """
+Tells whether the specified list is a proper one.
+
+Useful for example to display properly any term, or to determine whether
+computing the length of a list is safe (as `length/1` fails with `bad_arg` on
+improper lists).
+""".
+-spec is_proper_list( list() ) -> boolean().
+% Needing two functions, otherwise [a|b] would end up with is_proper_list(b) and
+% throws, instead of concluding it was an improper list:
+is_proper_list( L ) when is_list( L ) ->
+    is_proper_list_helper( L );
+
+is_proper_list( Other ) ->
+    throw( { not_a_list, Other } ).
+
+
+% (helper)
+is_proper_list_helper( _L=[] ) ->
+    true;
+
+is_proper_list_helper( _L=[ _ | T ] ) ->
+    is_proper_list_helper( T );
+
+is_proper_list_helper( _Other ) ->
+    false.
+
+
+
+-doc """
 Compares the two specified lists with no regard to the order of their elements:
 returns true iff they have the exact same elements (differentiating between 1
 and 1.0 for example), possibly in a different order.
@@ -1869,21 +1901,55 @@ check_same_length( Lists ) ->
 % Section to perform random operations on lists.
 
 
+
 -doc """
 Shuffles the specified list: returns a random uniform permutation thereof.
 
-Inspired from [http://paste.lisp.org/display/74804].
+Relies on any existing random state, otherwise will create a default one.
 
-All these algorithms would need random access to a list, which is not readily
-possible here, hence must be emulated.
-
-See also the `Speedy unsort:shuffle/1,2` thread in the erlang-questions mailing
-list for counterparts.
+This is the fastest version; if needing to rely on its reciprocal operation, use
+`random_invertible_permute/2` instead.
 """.
 -spec random_permute( list() ) -> list().
 random_permute( List ) ->
-    % Available since R29.0:
-    %rand:shuffle( List ).
+    rand:shuffle( List ).
+
+
+
+
+-doc """
+Shuffles the specified list: returns a random uniform permutation thereof, based
+on the specified random state.
+
+This version has a reciprocal one, see
+`random_invertible_permute_reciprocal/2`. Useful for example when ciphering.
+""".
+-spec random_invertible_permute( list(), random_state() ) ->
+                                            { list(), random_state() }.
+random_invertible_permute( _List=[], RandomState ) ->
+    { [], RandomState };
+
+% Hence non-empty from here.
+% No need to go further:
+random_invertible_permute( List=[ _S ], RandomState ) ->
+    { List, RandomState };
+
+random_invertible_permute( List, RandomState ) ->
+
+    % Seeding used to be determined by rand:seed/2.
+
+    Len = length( List ),
+
+    cond_utils:if_defined( myriad_debug_random,
+        trace_utils:debug_fmt( "~w invertible-shuffling a list of ~B elements, "
+            "based on random state:~n ~p", [ self(), Len, RandomState ] ) ),
+
+    % Available since R29.0, yet not implemented for invertibility:
+    %
+    % (we must select the right algorithm, the one seeded by
+    % random_utils:start_random_source/*)
+    %
+    %rand:shuffle_s( List, RandomState ).
 
     % Alternative, possibly flawed version (breaks cipher_utils_test, possibly
     % due to different seeding):
@@ -1892,65 +1958,113 @@ random_permute( List ) ->
     %{ _Rands, Elems } = lists:unzip( Pairs ),
     %Elems.
 
-    random_permute( List, length( List ) ).
+    random_permute_helper( List, Len, RandomState ).
 
 
-random_permute( _List, _RemainingLen=0 ) ->
-    [];
 
-random_permute( List, RemainingLen ) ->
+% Inspired from [http://paste.lisp.org/display/74804].
+%
+% All these algorithms would need random access to a list, which is not readily
+% possible here, hence must be emulated.
+%
+% See also the `Speedy unsort:shuffle/1,2` thread in the erlang-questions
+% mailing list for counterparts.
+%
+% Operating only on initially non-empty lists:
+random_permute_helper( _List, _RemainingLen=0, RandomState ) ->
+    { [], RandomState };
+
+% This optimisation would be silly, as the reciprocal operation could not easily
+% do the same, and thus their random state would differ:
+%
+%random_permute_helper( List, _RemainingLen=1, RandomState ) ->
+%    { List, RandomState };
+
+random_permute_helper( List, RemainingLen, RandomState ) ->
 
     % Checking is commented-out:
     %RemainingLen = length( List ),
 
-    % (using remove_element_at/2 should be quicker than using
-    % proplists:delete/2, as we stop at the first matching element found)
+    % Determining which element (can be any) will be permuted next:
     %
-    Index = random_utils:get_uniform_value( RemainingLen ),
+    % (using remove_element_at/2 could be quicker than using proplists:delete/2,
+    % as we stop at the first matching element found)
+    %
+    { Index, IdxRandState } =
+        random_utils:get_uniform_value_with( RemainingLen, RandomState ),
 
-    %io:format( "Index=~p, ", [ Index ] ),
 
-    % We put the drawn element at head, and recurse in the remaining list:
-    [ get_element_at( List, Index )
-        | random_permute( remove_element_at( List, Index ),
-                          RemainingLen-1 ) ].
+    { ExtractedElem, ShrunkList } = extract_element_at( List, Index ),
+
+    trace_utils:debug_fmt( "Index: ~p/~p, extracted: ~p, remaining: ~p.",
+                           [ Index, RemainingLen, ExtractedElem, ShrunkList ] ),
+
+    % We recurse in the remaining list, and will put the drawn element at head:
+    { PermList, PermRandState } =
+        random_permute_helper( ShrunkList, RemainingLen-1, IdxRandState ),
+
+    { [ ExtractedElem | PermList ], PermRandState }.
 
 
 
 -doc """
-Returns a reciprocal random uniform permutation of the specified list, compared
-to random_permute/1.
+Shuffles reciprocally the specified list: returns a reciprocal random uniform
+permutation thereof, based on the specified random state.
 
-Consists on the reciprocal operation, so that, if starting from a random state S
-(see `set_random_state/1`) and if `L2 = random_permute(L1)`, then, if starting
-again from S, `L1 = random_permute_reciprocal( L2 )`.
+Consists on the reciprocal operation to `random_invertible_permute/2`: if
+starting from a random state S (see `set_random_state/1`) and if `L2 =
+random_invertible_permute(L1)`, then, if starting again from S, `L1 =
+random_invertible_permute_reciprocal(L2)`.
 """.
--spec random_permute_reciprocal( list() ) -> list().
-random_permute_reciprocal( List ) ->
+-spec random_invertible_permute_reciprocal( list(), random_state() ) ->
+                                            { list(), random_state() }.
+random_invertible_permute_reciprocal( List, RandomState ) ->
 
-    % This is a little trickier than random_permute/1; we have to reverse
-    % operations from latest to first, hence we must start with the latest drawn
-    % value. So we draw them all first, and start by the end of that list,
-    % taking into account that the range is decremented at each draw:
+    cond_utils:if_defined( myriad_debug_random,
+        trace_utils:debug_fmt( "~w reciprocal invertible-shuffling a list "
+            "of ~B elements, based on random state:~n ~p",
+            [ self(), length( List ), RandomState ] ) ),
+
+    % This is a little trickier than random_invertible_permute/2; we have to
+    % reverse operations from latest to first, hence we must start with the
+    % latest drawn value. So we draw them all first, and start by the end of
+    % that list, taking into account that the range is decremented at each draw:
     %
-    ReciprocalIndex = lists:reverse( [ random_utils:get_uniform_value( L )
-        || L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
+    % (index is plural)
+    %ReciprocalIndex = lists:reverse(
+    %    [ random_utils:get_uniform_value( L, RandomState )
+    %        || L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
 
-    %io:format( "Reciprocal index = ~p~n", [ ReciprocalIndex ] ),
+    % The consing implies the reversal:
+    { RevReciprocalIndex, FinalRandState } = lists:foldl(
+        fun( Indice, { AccIndex, AccRandState } ) ->
+            { NewIndice, NewAccRandState } =
+                    random_utils:get_uniform_value_with( Indice, AccRandState ),
+            { [ NewIndice | AccIndex ], NewAccRandState }
+        end,
+        _Acc0={ [], RandomState },
+        _List=lists:reverse( lists:seq( 1, length( List ) ) ) ),
 
-    random_permute_reciprocal( lists:reverse( List ), ReciprocalIndex,
-                               _Acc=[] ).
+    %trace_utils:debug_fmt( "Reversed reciprocal index = ~p.",
+    %                       [ RevReciprocalIndex ] ),
+
+    cond_utils:if_defined( myriad_debug_random, basic_utils:assert_equal(
+        length( List ), length( RevReciprocalIndex ) ) ),
+
+    { random_reciprocal_permute_helper( lists:reverse( List ),
+            RevReciprocalIndex, _Acc=[] ), FinalRandState }.
 
 
-random_permute_reciprocal( _List=[], _ReciprocalIndex=[], Acc ) ->
+% (helper)
+random_reciprocal_permute_helper( _List=[], _ReciprocalIndex=[], Acc ) ->
     Acc;
 
-random_permute_reciprocal( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
-                           Acc ) ->
+random_reciprocal_permute_helper( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
+                                  Acc ) ->
 
     NewAcc = insert_element_at( _Elem=H, Acc, _Index=I ),
 
-    random_permute_reciprocal( T, Is, NewAcc ).
+    random_reciprocal_permute_helper( T, Is, NewAcc ).
 
 
 

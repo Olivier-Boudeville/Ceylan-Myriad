@@ -113,8 +113,8 @@
 ;;(if auto-save-default
 ;;  (auto-save-mode 1))))
 
-(auto-save-mode -1)
-
+;;(auto-save-mode -1)
+(setq auto-save-default nil)
 
 ;; No more annoying, unmutable bell (e.g. when reaching buffer bounds):
 (setq ring-bell-function 'ignore)

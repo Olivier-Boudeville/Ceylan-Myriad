@@ -32,8 +32,9 @@ Testing of the **texture support**; displays an image as a texture.
 
 This test relies on the old OpenGL (the one obtained with the "compatibility"
 profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
-counterpart.
+shaders and GLSL.
+
+See the `gui_opengl_texture_shader_test` module for its more modern counterpart.
 """.
 
 
@@ -402,7 +403,10 @@ render( #texture{ width=TexWidth,
 
     % The texture of interest is expected to be the one already bound here.
 
-    _TopLeftRenderPoint = { RenderX=15, RenderY=150 },
+    RenderX = 15,
+    RenderY = 150,
+
+    %_TopLeftRenderPoint = { RenderX, RenderY },
 
     W = TexWidth,
     H = TexHeight,

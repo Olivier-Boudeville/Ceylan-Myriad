@@ -28,9 +28,9 @@
 -module(matrix4_test).
 
 -moduledoc """
-Unit tests for the **specialised 4x4 matrix**> facilities.
+Unit tests for the **specialised 4x4 matrix** facilities.
 
-See the matrix4 tested module.
+See the `matrix4` tested module.
 """.
 
 
@@ -141,7 +141,11 @@ run() ->
 
 
     14.0 = matrix4:get_element( _RowC=4, _ColC=2, SubMatrix ),
-    SubSetMatrix = matrix4:set_element( RwC=4, ClC=3, 21.0, SubMatrix ),
+
+    RwC=4,
+    ClC=3,
+
+    SubSetMatrix = matrix4:set_element( RwC, ClC, 21.0, SubMatrix ),
     21.0 = matrix4:get_element( RwC, ClC, SubSetMatrix ),
 
     % Octave: TransposedCoordMatrix = [ 1, 5, 9, 13; 2, 6, 10, 14;

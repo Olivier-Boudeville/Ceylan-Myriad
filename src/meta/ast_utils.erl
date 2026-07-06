@@ -935,7 +935,7 @@ Note:
 - this function is used to report errors detected by Myriad itself (not by the
 Erlang toolchain)
 
-- prefer using raise_usage_error/* to report errors in a more standard,
+- prefer using `raise_usage_error/*` to report errors in a more standard,
 convenient way
 """.
 -spec raise_error( term() ) -> no_return().
@@ -947,9 +947,9 @@ raise_error( ErrorTerm ) ->
     % Does not add any information (just non-relevant erl_parse, epp
     % etc. state):
     %
-    %erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
+    %erlang:exit_signal( { ErrorTerm, erlang:get_stacktrace() } ).
 
-    %erlang:exit( ErrorTerm ).
+    %erlang:exit_signal( ErrorTerm ).
 
     % Possibly a list of elements:
     raise_error( ErrorTerm, _Context=undefined ).
@@ -966,7 +966,7 @@ result in throwing `{invalid_module_name, Other, {line, 112}}`.
 Note:
 - this function is used to report errors detected by Myriad itself (not by the
 Erlang toolchain)
-- prefer using raise_usage_error/* to report errors in a more standard,
+- prefer using `raise_usage_error/*` to report errors in a more standard,
 convenient way
 """.
 -spec raise_error( term(), option( source_context() ) ) -> no_return().
@@ -986,7 +986,7 @@ _OriginLayer="FooLayer")` shall result in throwing `{invalid_module_name, Other,
 Note:
 - this function is used to report errors detected by Myriad itself (not by the
 Erlang toolchain)
-- prefer using raise_usage_error/* to report errors in a more standard,
+- prefer using `raise_usage_error/*` to report errors in a more standard,
 convenient way
 """.
 -spec raise_error( term(), option( source_context() ),

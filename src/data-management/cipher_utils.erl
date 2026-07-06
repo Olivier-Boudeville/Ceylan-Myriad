@@ -28,15 +28,26 @@
 -module(cipher_utils).
 
 -moduledoc """
-Gathering of various **cipher-related facilities**.
+Gathering of various **cipher-related facilities**, for all kinds of data
+streams (for example files).
 
-We focus on symmetric ciphering here.
+We focus on symmetric ciphering here, hence implying a prior, private exchange
+between parties of the key of interest.
 
-See `cipher_utils_test.erl` for testing.
+We believe that this (symmetric, ad hoc/very specific) mode of operation is
+quite complementary to the standard asymmetric private/public key pairs, in the
+sense that backdoors/loopholes/non-public solving approaches may exist for the
+most common algorithms (now, or in some future), whereas overcoming the
+approaches used in this module would require very targeted attacks on
+nevertheless very strong safety measures.
+
+Using both approaches (public and standard/ad hoc here) may be the safest route.
+
+See the `cipher_utils_test` module for testing.
 """.
 
 
--export([ generate_key/2, key_to_string/1,
+-export([ write_key_file/2, key_to_string/1,
           encrypt/3, decrypt/3,
           generate_mealy_table/1, compute_inverse_mealy_table/1,
           mealy_table_to_string/1 ]).
@@ -54,12 +65,14 @@ See `cipher_utils_test.erl` for testing.
 % To encrypt a file, one shall use a key file, whose extension is by convention
 % 'cipher' (e.g. "my-key-file.cipher").
 %
-% The same file can be used to perform the reverse operation.
+% The same key file can be used to perform the reverse operation.
 %
 % The mode of operation is to chain a series of elementary transformations that
 % can be reversed. These operations are listed and described in the
-% aforementioned file, which contains Erlang terms for that.
-
+% aforementioned key file, which contains Erlang terms for that.
+%
+% Of course both the key and the content to encrypt/decrypt can come from any
+% source (data stream; not only files).
 
 % When ciphering or deciphering a file of size N, as much as possible:
 %
@@ -69,8 +82,8 @@ See `cipher_utils_test.erl` for testing.
 %
 % - we could apply all transformations in-memory once (instead of writing as
 % many intermediate files as there are transformations), however it would be
-% difficult to implement (as such, and because of streaming, and because, from a
-% transformation to another, the access patterns are usually different)
+% difficult to implement (as such, and also because of streaming, and because,
+% from a transformation to another, the access patterns are usually different)
 
 
 
@@ -78,31 +91,31 @@ See `cipher_utils_test.erl` for testing.
 
 
 -doc """
-Identity (content not changed).
+Identity (content stream unchanged).
 
-Just for testing.
+Of course just for testing.
 """.
 -type id_transform() :: 'id'.
 
 
 
 -doc """
-The specified offset value is added to all bytes of the file.
+The specified (signed) offset value is added to all bytes of the content stream.
 """.
--type offset_transform() :: { 'offset', integer() }.
+-type offset_transform() :: { 'offset', Offset :: integer() }.
 
 
 
 -doc """
 The stream content is replaced by a compressed version thereof, using one of the
-supported formats (see compress_format/0).
+supported formats (see `compress_format/0`).
 """.
 -type compress_transform() :: { 'compress', compression_format() }.
 
 
 
 -doc """
-The stream content is replaced by a decompressed version thereof, using one of
+The content stream is replaced by a decompressed version thereof, using one of
 the supported formats (see `compress_format/0`).
 """.
 -type decompress_transform() :: { 'decompress', compression_format() }.
@@ -110,22 +123,27 @@ the supported formats (see `compress_format/0`).
 
 
 -doc """
-Based on the specified seed and on the specified range R, a series of strictly
-positive values is uniformly drawn in [1,R]; these values are offsets relative
-to the last random insertion (initial one is 0); at each position determined
-thanks to offsets, a random value in [0,255] is inserted.
+Inserts random elements at random positions in the content stream, in each
+window whose size is based on the user-specified offset.
+
+Based on the specified seed and on the specified maximum insertion offset R, a
+series of strictly positive values is uniformly drawn in `[1,R]`; these values
+are offsets relative to the last random insertion (initial one being 0); at each
+position determined thanks to offsets, a random value in `[0,255]` is inserted.
 """.
--type insert_random_transform() :: { 'insert_random', seed(), count() }.
+-type insert_random_transform() ::
+    { 'insert_random', seed(), MaxInsertionOffset :: count() }.
 
 
 
 -doc """
-Based on the specified seed and on the specified range R, a series of strictly
-positive values is uniformly drawn in `[1,R]`; these values are offsets relative
-to the last random insertion (initial one is 0); at each position determined
-thanks to offsets, a random value in `[0,255]` is extracted.
+Based on the specified seed and on the specified maximum insertion offset R, a
+series of strictly positive values is uniformly drawn in `[1,R]`; these values
+are offsets relative to the last random insertion (initial one being 0); at each
+position determined thanks to offsets, a random value in `[0,255]` is extracted.
 """.
--type extract_random_transform() :: { 'extract_random', seed(), count() }.
+-type extract_random_transform() ::
+    { 'extract_random', seed(), MaxExtractionOffset :: count() }.
 
 
 
@@ -142,23 +160,21 @@ hence Bk+1 is replaced by `Bk+1 - Bk` (Bk having obeyed the same rule).
 
 
 -doc """
-Based on the specified seed and length L, each series of up to L bytes is
-uniformly shuffled.
+Based on the specified seed and maximum length L, each series of up to L bytes
+is uniformly shuffled.
 """.
--type shuffle_transform() :: { 'shuffle', seed(), count() }.
+-type shuffle_transform() :: { 'shuffle', seed(), MaxLen :: count() }.
 
 
 
 -doc "Reverse operation of `shuffle_transform/0`.".
 -type reciprocal_shuffle_transform() ::
-        { 'reciprocal_shuffle', seed(), count() }.
+    { 'reciprocal_shuffle', seed(), MaxLen :: count() }.
 
 
 
--doc """
-Based on the specified list of bytes, the content of the stream is XOR'ed.
-""".
--type xor_transform() :: { 'xor', [ integer() ] }.
+-doc "The content of the stream is XOR'ed with the specified list of bytes.".
+-type xor_transform() :: { 'xor', XORMask :: [ integer() ] }.
 
 
 
@@ -202,7 +218,7 @@ The Mealy table is implemented (easier to build) as a fixed-size array, one
 element per possible state (corresponding to a column of the 2D array).
 
 Each element of this table is itself an array, having as many elements as the
-size of the input alphabet, hence 256 of them, in [0,255].
+size of the input alphabet, hence 256 of them, in `[0,255]`.
 
 Each element of these inner arrays corresponds to the aforementioned cell.
 """.
@@ -215,11 +231,12 @@ Each element of these inner arrays corresponds to the aforementioned cell.
 
 -doc """
 The content of a target stream can be modified according to the specified
-state-transition data, ; the input and output alphabet are the same, B, the set
-of all bytes (i.e. integers in `[0,255]`), while the states are strictly
-positive integers; the transition and output function are coalesced into a
-single function: `f({ CurrentState, InputByte }) -> {NewState, OutputByte}`; see
-[this page](https://en.wikipedia.org/wiki/Mealy_machine) for more information.
+state-transition data; the input and output alphabet are the same: the set of
+all bytes (i.e. integers in `[0,255]`), while the states are strictly positive
+integers; the transition and output function are coalesced into a single
+function, taking a cell and returning one: `f({CurrentState, InputByte}) ->
+{NewState, OutputByte}`; see [this
+page](https://en.wikipedia.org/wiki/Mealy_machine) for more information.
 """.
 -type mealy_transform() :: { 'mealy', mealy_state(), mealy_table() }.
 
@@ -250,20 +267,22 @@ reverse transformations.
 -type any_transform() :: cipher_transform() | decipher_transform().
 
 
--doc """
-User may specify either some licit transform, or possibly mistakes.
-""".
+-doc "User may specify either some licit transform, or possibly mistakes.".
 -type user_specified_transform() :: any().
 
 
 
--doc "A key is an (ordered) list of (parametrised) transformations.".
--type key() :: [ any_transform() ].
+-doc "A key is an (ordered) list of (parametrised) cipher transformations.".
+% Not accepting decipher_transform/0, as some of them (e.g. extract_random) are
+% lossy by design:
+%
+-type key() :: [ cipher_transform() ].
 
 
 -export_type([ cipher_transform/0, decipher_transform/0 ]).
 
 
+% For file I/O:
 -define( bin_read_opts, [ read, raw, binary, read_ahead ] ).
 -define( bin_write_opts, [ write, raw, delayed_write ] ).
 
@@ -286,9 +305,10 @@ User may specify either some licit transform, or possibly mistakes.
 
 
 
--doc "Generates a key file.".
--spec generate_key( file_path(), [ cipher_transform() ] ) -> void().
-generate_key( KeyFilePath, Transforms ) ->
+
+-doc "Creates a file storing the specified key.".
+-spec write_key_file( file_path(), key() ) -> void().
+write_key_file( KeyFilePath, Transforms ) ->
 
     file_utils:exists( KeyFilePath ) andalso
         throw( { already_existing_key_file, KeyFilePath } ),
@@ -310,47 +330,19 @@ generate_key( KeyFilePath, Transforms ) ->
 
 
 
+
 -doc "Returns a textual description of the specified key.".
 -spec key_to_string( key() ) -> ustring().
 key_to_string( Key ) ->
-    text_utils:format( "Key composed of following ~B cipher(s): ~ts",
-        [ length( Key ), text_utils:strings_to_string(
-            key_to_strings( Key, _Acc=[] ) ) ] ).
+    text_utils:format( "key made of ~B ciphers: ~ts", [ length( Key ),
+        text_utils:strings_to_string(
+            [ transform_to_string( C ) || C <- Key ] ) ] ).
 
-
-% (helper)
-key_to_strings( _Ciphers=[], Acc ) ->
-    lists:reverse( Acc );
-
-
-key_to_strings( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
-
-    % Much info:
-    %CipherString = text_utils:format(
-    %   "Mealy cipher with initial state S~B and a ~ts",
-    %   [ InitialState, mealy_table_to_string( Table ) ] ),
-
-    % Shorter:
-
-    StateCount = array:size( Table ),
-    AlphabetSize = array:size( array:get( 0, Table ) ),
-
-    CipherString = text_utils:format(
-        "Mealy cipher with initial state S~B for a table of "
-        "~B states and an alphabet of ~B letters",
-        [ InitialState, StateCount, AlphabetSize ] ),
-
-    key_to_strings( T, [ CipherString | Acc ] );
-
-
-key_to_strings( [ Cipher | T ], Acc ) ->
-    CipherString = text_utils:format( "~p", [ Cipher ] ),
-    key_to_strings( T, [ CipherString | Acc ] ).
 
 
 
 -doc """
-Encrypts the specified source file using specified key file, and writes the
+Encrypts the specified source file using the specified key file, and writes the
 result in the specified target file.
 
 The original file is kept as is.
@@ -360,7 +352,6 @@ encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
     file_utils:is_existing_file_or_link( SourceFilePath ) orelse
         throw( { non_existing_source_file, SourceFilePath } ),
-
 
     file_utils:exists( TargetFilePath ) andalso
         throw( { already_existing_target_file, TargetFilePath } ),
@@ -382,8 +373,8 @@ encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
 
 -doc """
-Decrypts specified source file using specified key file, and writes the result
-in specified target file.
+Decrypts the specified source file using the specified key file, and writes the
+result in the specified target file.
 
 The ciphered file is kept as is.
 """.
@@ -460,9 +451,9 @@ get_reverse_key_from( _KeyInfos=[], Acc ) ->
     % Order already reversed by design:
     Acc;
 
-get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
+get_reverse_key_from( _KeyInfos=[ K | T ], Acc ) ->
     ReversedK = reverse_cipher( K ),
-    get_reverse_key_from( H, [ ReversedK | Acc ] ).
+    get_reverse_key_from( T, [ ReversedK | Acc ] ).
 
 
 
@@ -475,13 +466,14 @@ apply_key( KeyInfos, SourceFilePath ) ->
     apply_key( KeyInfos, SourceFilePath, _CipherCount=1 ).
 
 
+% (helper)
 apply_key( _KeyInfos=[], SourceFilePath, _CipherCount ) ->
     SourceFilePath;
 
-apply_key( _KeyInfos=[ C | H ], SourceFilePath, CipherCount ) ->
+apply_key( _KeyInfos=[ C | T ], SourceFilePath, CipherCount ) ->
 
-    io:format( " - applying cipher #~B: '~p'~n",
-               [ CipherCount, get_cipher_description( C ) ] ),
+    io:format( " - applying cipher #~B: ~ts~n",
+               [ CipherCount, transform_to_string( C ) ] ),
 
     % FilePath of the ciphered version:
     CipheredFilePath = generate_filename(),
@@ -492,19 +484,66 @@ apply_key( _KeyInfos=[ C | H ], SourceFilePath, CipherCount ) ->
         % Not wanting to saturate the storage space with intermediate files:
         file_utils:remove_file( SourceFilePath ),
 
-    apply_key( H, CipheredFilePath, CipherCount + 1 ).
+    apply_key( T, CipheredFilePath, CipherCount + 1 ).
 
 
 
--doc "Returns a description, as a term, of the specified transformation.".
--spec get_cipher_description( any_transform() ) -> term().
-% Table way too big to be displayed:
-get_cipher_description( { mealy, InitialState, _Table } ) ->
-    text_utils:format( "Mealy transform, with initial state ~p",
-                       [ InitialState ] );
+-doc "Returns a description of the specified transformation.".
+-spec transform_to_string( any_transform() ) -> ustring().
+transform_to_string( _Transform=id ) ->
+    "identity transform";
 
-get_cipher_description( OtherCipher ) ->
-    OtherCipher.
+transform_to_string( _Transform={ offset, Offset } ) ->
+    text_utils:format( "transform of offset ~B", [ Offset ] );
+
+transform_to_string( _Transform={ compress, CompFormat } ) ->
+    text_utils:format( "~ts-based compression transform", [ CompFormat ] );
+
+transform_to_string( _Transform={ decompress, CompFormat } ) ->
+    text_utils:format( "~ts-based decompression transform", [ CompFormat ] );
+
+transform_to_string( _Transform={ insert_random, Seed, MaxInsertionOffset } ) ->
+    text_utils:format( "random insertion transform of maximum offset ~B "
+                     "and seed ~w", [ MaxInsertionOffset, Seed ] );
+
+transform_to_string(
+        _Transform={ extract_random, Seed, MaxExtractionOffset } ) ->
+    text_utils:format( "random extraction transform of maximum offset ~B "
+                     "and seed ~w", [ MaxExtractionOffset, Seed ] );
+
+transform_to_string( _Transform=delta_combine ) ->
+    "delta-combine transform";
+
+transform_to_string( _Transform=delta_combine_reverse ) ->
+    "delta-combine reverse transform";
+
+transform_to_string( _Transform={ shuffle, Seed, MaxLen } ) ->
+    text_utils:format( "shuffle transform over a maximum length of ~B "
+                       "and seed ~w", [ MaxLen, Seed ] );
+
+transform_to_string( _Transform={ reciprocal_shuffle, Seed, MaxLen } ) ->
+    text_utils:format( "reciprocal shuffle transform over a maximum "
+                       "length of ~B and seed ~w", [ MaxLen, Seed ] );
+
+transform_to_string( _Transform={ 'xor', XORMask } ) ->
+    text_utils:format( "xor transform for mask ~w", [ XORMask ] );
+
+transform_to_string( _Transform={ mealy, InitialState, Table } ) ->
+
+    % Table way too big to be displayed:
+    %CipherString = text_utils:format(
+    %   "Mealy cipher with initial state S~B and a ~ts",
+    %   [ InitialState, mealy_table_to_string( Table ) ] ),
+
+    % Shorter:
+
+    StateCount = array:size( Table ),
+    AlphabetSize = array:size( array:get( 0, Table ) ),
+
+    text_utils:format( "Mealy transform with initial state S~B, for a table of "
+        "~B states and an alphabet of ~B letters",
+        [ InitialState, StateCount, AlphabetSize ] ).
+
 
 
 
@@ -581,22 +620,20 @@ apply_cipher( delta_combine_reverse, SourceFilePath, CipheredFilePath ) ->
                       end,
 
     apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
-                    _Transform=ReverseDeltaFun, _InitialCipherState=100 );
+        _Transform=ReverseDeltaFun, _InitialCipherState=100 );
 
 
 apply_cipher( { shuffle, Seed, Length }, SourceFilePath, CipheredFilePath ) ->
 
-    random_utils:reset_random_source( Seed ),
-
-    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, direct );
+    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed,
+                    _Dir=direct );
 
 
 apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilePath,
               CipheredFilePath ) ->
 
-    random_utils:reset_random_source( Seed ),
-
-    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, reciprocal );
+    shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed,
+                    _Dir=reciprocal );
 
 
 apply_cipher( { 'xor', XORList }, SourceFilePath, CipheredFilePath ) ->
@@ -866,42 +903,52 @@ extract_helper( CipheredFile, TargetFile, Range, Count ) ->
     end.
 
 
+
 % Direction is either 'direct' or 'reciprocal':
-shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Direction ) ->
+shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed, Direction ) ->
 
     % Wanting to read lists, not binaries:
     SourceFile = file_utils:open( SourceFilePath, ?list_read_opts ),
 
     TargetFile = file_utils:open( CipheredFilePath, ?list_write_opts ),
 
-    shuffle_helper( SourceFile, TargetFile, Length, Direction ).
+    FirstRandomState = random_utils:reset_random_source( Seed ),
+
+    shuffle_helper( SourceFile, TargetFile, Length, Direction,
+                    FirstRandomState ).
 
 
 
-shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
+% (helper)
+shuffle_helper( SourceFile, TargetFile, Length, Direction, RandomState ) ->
 
     case file_utils:read( SourceFile, Length ) of
 
+        % End of processing; the final random state is dropped:
         eof ->
             file_utils:close( SourceFile ),
             file_utils:close( TargetFile );
 
-        % When will hit the end of file, may perform shuffle on a smaller chunk:
+        % When hits the end of file, may perform shuffle on a smaller chunk:
         { ok, ByteList } ->
 
-            ShuffledByteList = case Direction of
+            % Processes per chunk:
+            { ShuffledByteList, NewRandState } = case Direction of
 
                 direct ->
-                    list_utils:random_permute( ByteList );
+                    list_utils:random_invertible_permute( ByteList,
+                        RandomState );
 
                 reciprocal ->
-                    list_utils:random_permute_reciprocal( ByteList )
+                    list_utils:random_invertible_permute_reciprocal( ByteList,
+                        RandomState )
 
             end,
 
             file_utils:write( TargetFile, ShuffledByteList ),
 
-            shuffle_helper( SourceFile, TargetFile, Length, Direction )
+            shuffle_helper( SourceFile, TargetFile, Length, Direction,
+                            NewRandState )
 
     end.
 
@@ -1030,7 +1077,7 @@ generate_filename() ->
 -doc """
 Generates a Mealy table for the specified number of states.
 
-Relies on the current random state.
+Relies on any existing random state, otherwise will create a default one.
 """.
 -spec generate_mealy_table( count() ) -> mealy_table().
 generate_mealy_table( StateCount ) ->
@@ -1043,16 +1090,18 @@ generate_mealy_table( StateCount ) ->
 Generates a Mealy table for the specified number of states and alphabet size.
 
 We manage index to designate symbols of the alphabet; for example, if the
-alphabet is [alpha, beta, gamma], then the alpha symbol is coded by 1, the beta
-one by 2, etc.
+alphabet is `[alpha, beta, gamma]`, then the alpha symbol is coded by 1, the
+beta one by 2, etc.
 
-Relies on the current random state.
+Relies on any existing random state, otherwise will create a default one.
 """.
 -spec generate_mealy_table( count(), count() ) -> mealy_table().
 generate_mealy_table( StateCount, AlphabetSize ) ->
 
-    io:format( "Generating a Mealy table for ~B states and "
-               "an alphabet of ~B symbols.~n", [ StateCount, AlphabetSize ] ),
+    trace_utils:debug_fmt( "Generating a Mealy table for ~B states and "
+        "an alphabet of ~B symbols.", [ StateCount, AlphabetSize ] ),
+
+    random_utils:ensure_random_state(),
 
     Table = array:new( StateCount ),
 

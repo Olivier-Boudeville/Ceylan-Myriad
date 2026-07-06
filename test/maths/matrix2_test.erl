@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **specialised 2x2 matrix** facilities.
 
-See the matrix2 tested module.
+See the `matrix2` tested module.
 """.
 
 
@@ -126,7 +126,12 @@ run() ->
 
 
     18.0 = matrix2:get_element( _RowC=1, _ColC=2, SubMatrix ),
-    SubSetMatrix = matrix2:set_element( RwC=2, ClC=1, 21.0, SubMatrix ),
+
+
+    RwC = 2,
+    ClC = 1,
+
+    SubSetMatrix = matrix2:set_element( RwC, ClC, 21.0, SubMatrix ),
     21.0 = matrix2:get_element( RwC, ClC, SubSetMatrix ),
 
     TransposedCoordMatrix = matrix2:from_coordinates( 10.0, 30.0,

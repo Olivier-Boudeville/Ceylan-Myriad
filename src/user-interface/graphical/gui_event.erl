@@ -1232,9 +1232,9 @@ process_event_messages( LoopState ) ->
         receive
 
             AnyEvent ->
-                cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+                %cond_utils:if_defined( myriad_debug_gui_repaint_logic,
                     trace_utils:debug_fmt( "[event] Received any event:~n ~w.",
-                                           [ AnyEvent ] ) ),
+                                           [ AnyEvent ] ), % ),
                 process_event_message( AnyEvent, LoopState )
 
         end ),

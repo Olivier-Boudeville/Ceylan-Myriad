@@ -1800,7 +1800,7 @@ ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(HOSTNAME_OPT) $(FIREWALL_OPT)  \
 # Yet some environments, such as in continuous integration and/or in containers,
 # do not support long names, so finally relying on short ones is more pragmatic.
 #
-# Then we realized that some use cases required the node name to be changed at
+# Then we realised that some use cases required the node name to be changed at
 # runtime, implying the node should not be defined initially as a distributed
 # one (hence the --nn option).
 #
@@ -1813,7 +1813,7 @@ ifndef NODE_NAMING
 
 	#NODE_NAMING = "--ln"
 
-	# Best default currently:
+	# Best default currently (more reliable):
 	NODE_NAMING = "--sn"
 
 	#NODE_NAMING = "--nn"
@@ -1885,6 +1885,9 @@ TIME_OPTS =
 # To disable non-systematic, unsolved warnings like "'global' at node
 # us_main@xxx requested disconnect from node 'us_main_controller_exec-uu@yyy' in
 # order to prevent overlapping partitions":
+#
+# (refer to https://erlangforums.com/t/preventing-overlapping-partitions/ for
+# better workarounds)
 #
 #DIST_OPTS := -kernel prevent_overlapping_partitions false
 DIST_OPTS :=
