@@ -147,7 +147,7 @@ See the `file_utils_test` module for the corresponding test.
 
           is_absolute_path/1,
           ensure_path_is_absolute/1, ensure_path_is_absolute/2,
-          normalise_path/1, make_relative/1, make_relative/2,
+          normalise_path/1, is_relative/2, make_relative/1, make_relative/2,
           get_longest_common_path/1, get_shortest_unique_ending_paths/2,
 
           is_leaf_among/2,
@@ -4958,6 +4958,24 @@ filter_elems_bin( _ElemList=[ E | T ], Acc ) ->
 
 
 -doc """
+Tells whether the specified path is relative to the specified reference
+directory path.
+""".
+-spec is_relative( any_path(), any_directory_path() ) -> boolean().
+is_relative( Path, RefDir ) ->
+
+    AbsPathStr = text_utils:ensure_string( ensure_path_is_absolute( Path ) ),
+
+    AbsRefDirStr = text_utils:ensure_string(
+        ensure_path_is_absolute( RefDir ) ),
+
+    text_utils:get_any_suffix( _PfxStr=AbsRefDirStr,
+                               _TestStr=AbsPathStr ) =/= undefined.
+
+
+
+
+-doc """
 Returns a version of the specified path that is relative to the current
 directory; returns the same type (plain or binary string) as the one of the
 specified path.
@@ -6769,12 +6787,12 @@ Reads in memory the files specified from their filenames (as plain strings),
 zips the corresponding term, and returns it.
 
 Note: useful for network transfers of small files. Larger ones should be
-transferred with TCP/IP / send_file and by chunks.
+transferred with TCP/IP / `send_file` and by chunks.
 """.
 -spec files_to_zipped_term( [ file_name() ] ) -> binary().
 files_to_zipped_term( Filenames ) ->
 
-    %trace_utils:debug_fmt( "Selected filenames: ~p.", [ Filenames ] ),
+    %trace_utils:debug_fmt( "zip-selected filenames:~n ~p.", [ Filenames ] ),
 
     DummyFileName = "dummy",
 
@@ -6791,13 +6809,14 @@ assuming their path is relative to the specified base directory, zips the
 corresponding term, and returns it.
 
 Note: useful for network transfers of small files. Larger ones should be
-transferred with TCP/IP / send_file and by chunks.
+transferred with TCP/IP / `send_file` and by chunks.
 """.
 -spec files_to_zipped_term( [ file_name() ], any_directory_path() ) -> binary().
 files_to_zipped_term( Filenames, BaseDirectory ) ->
 
-    %trace_utils:debug_fmt( "Selected filenames (base directory: '~ts'): ~p.",
-    %                       [ BaseDirectory, Filenames ] ),
+    %trace_utils:debug_fmt( "zip-selected filenames "
+    %    "(base directory: '~ts'):~n ~p.",
+    %    [ BaseDirectory, Filenames ] ),
 
     DummyFileName = "dummy",
 
