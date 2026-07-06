@@ -154,7 +154,8 @@
 ;; Highlights the line containing point:
 (global-hl-line-mode 1)
 
-(set-face-background hl-line-face "orange")
+;; "orange", now red:
+(set-face-background hl-line-face "#0000ff")
 
 ;; Display how and whether parentheses (or other delimiters) match up:
 (show-paren-mode t)
