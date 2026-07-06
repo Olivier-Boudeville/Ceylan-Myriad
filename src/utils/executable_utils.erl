@@ -38,6 +38,8 @@ See `system_utils.erl` for the actual execution of programs.
 """.
 
 
+-define( last_resort_open_tool, "xdg-open" ).
+
 
 % Section for the searching and checking of executables:
 -export([ lookup_executable/1, lookup_executable/2, find_executable/1 ]).
@@ -59,6 +61,8 @@ See `system_utils.erl` for the actual execution of programs.
 
     get_default_image_viewer_name/0,
     get_secondary_default_image_viewer_name/0,
+    get_last_resort_image_viewer_name/0,
+
     get_default_image_viewer_info/0,
     get_default_image_viewer_path/0,
 
@@ -535,7 +539,7 @@ Could be also: xv, firefox, etc.
 """.
 -spec get_default_image_viewer_name() -> executable_name().
 get_default_image_viewer_name() ->
-    % Viewer is 'eye of gnome' here:
+    % Viewer was 'eye of gnome' here:
     %
     % (disabled, as too often not displaying the right version due to strange
     % caching)
@@ -548,7 +552,14 @@ get_default_image_viewer_name() ->
 -doc "Returns the name of the secondary default image viewer.".
 -spec get_secondary_default_image_viewer_name() -> executable_name().
 get_secondary_default_image_viewer_name() ->
-    "eog".
+    % "eog".
+    "loupe".
+
+
+-doc "Returns the name of the last-resort image viewer.".
+-spec get_last_resort_image_viewer_name() -> executable_name().
+get_last_resort_image_viewer_name() ->
+    ?last_resort_open_tool.
 
 
 
@@ -563,8 +574,21 @@ get_default_image_viewer_info() ->
             case lookup_executable( SecondaryImgViewerName ) of
 
                 false ->
-                    throw( { no_image_viewer_found,
-                        { PrimaryImgViewerName, SecondaryImgViewerName } } );
+                    LastResortViewerName = get_last_resort_image_viewer_name(),
+
+                    case lookup_executable( LastResortViewerName ) of
+
+                        false ->
+                            throw( { no_image_viewer_found, {
+                                PrimaryImgViewerName,
+                                SecondaryImgViewerName,
+                                LastResortViewerName } } );
+
+                        ThrdPath ->
+                            { LastResortViewerName, ThrdPath }
+
+
+                    end;
 
                 SecPath ->
                     { SecondaryImgViewerName, SecPath }
