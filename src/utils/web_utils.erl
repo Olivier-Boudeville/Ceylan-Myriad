@@ -1748,7 +1748,9 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
         throw( { non_existing_document_root, DocRootDir } ),
 
     % File names in UTF8 can be forced with 'erl +fnu':
-    utf8 = file:native_name_encoding(),
+    % (commented-out, as equal to 'latin1' in CI, as not using our makefiles)
+    %utf8 = file:native_name_encoding(),
+
 
     MimeMappings = get_mime_mappings( base ),
 
