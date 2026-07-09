@@ -11,7 +11,7 @@
 Module in charge of providing the actual support for the **management of
 filesystem trees** (merging, unifiquation, comparison, etc.).
 
-Transferred from merge-tree.escript to benefit from a more user-friendly
+Transferred from `merge-tree.escript` to benefit from a more user-friendly
 debugging.
 
 Note that it is currently architectured mostly as a program rather than as a
@@ -337,8 +337,8 @@ get_usage() ->
 -doc """
 Typically for testing.
 
-Note that, when run from a shell script, main/1 is called instead (through
-merge_app:exec/0).
+Note that, when run from a shell script, `main/1` is called instead (through
+`merge_app:exec/0`).
 """.
 -spec run() -> void().
 run() ->
@@ -420,7 +420,7 @@ main( ArgTable ) ->
 
 
 -doc """
-Handles the command-line whenever the --reference option was specified, with a
+Handles the command-line whenever the `--reference` option was specified, with a
 single corresponding parameter, of type list.
 """.
 handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
@@ -453,7 +453,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 
 
 -doc """
-Handles the command-line whenever the --reference option was not specified.
+Handles the command-line whenever the `--reference` option was not specified.
 """.
 handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 
@@ -904,7 +904,7 @@ stop( StatusCode ) ->
 
 
 
--doc "Scans specified tree, returning the corresponding datastructure.".
+-doc "Scans the specified tree, returning the corresponding datastructure.".
 -spec scan( bin_directory_path(), analyzer_ring(), user_state() ) ->
                     tree_data().
 scan( BinTreePath, AnalyzerRing, UserState ) ->
@@ -1018,8 +1018,8 @@ perform_scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 -doc """
-Rescans specified tree (as an absolute directory), returning the corresponding
-datastructure.
+Rescans the specified tree (as an absolute directory), returning the
+corresponding datastructure.
 """.
 -spec rescan( directory_path(), analyzer_ring(), user_state() ) -> tree_data().
 rescan( BinTreePath, AnalyzerRing, UserState ) ->
@@ -1087,7 +1087,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 -doc """
-Performs a rescan and returns {TreeData, Notifications}; does not write the
+Performs a rescan and returns `{TreeData, Notifications}`; does not write the
 corresponding cache file.
 
 (helper)
@@ -1163,7 +1163,7 @@ perform_rescan( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 
 -doc """
-Rescans specified content files, using for that the specified analyzers,
+Rescans the specified content files, using for that the specified analyzers,
 returning the corresponding tree data.
 """.
 -spec rescan_files( set( bin_file_path() ), [ hash_entry() ],
@@ -1420,8 +1420,8 @@ check_file_datas_for_scan( _FileDatas=[
 
 
 -doc """
-Resyncs specified tree (as an absolute directory), returning the corresponding
-datastructure.
+Resyncs the specified tree (as an absolute directory), returning the
+corresponding datastructure.
 """.
 -spec resync( bin_directory_path(), analyzer_ring(), user_state() ) ->
                     tree_data().
@@ -1489,7 +1489,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 -doc """
-Performs a resync and returns {TreeData, Notifications}; does not write the
+Performs a resync and returns `{TreeData, Notifications}`; does not write the
 corresponding cache file.
 
 (helper)
@@ -1568,7 +1568,7 @@ perform_resync( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 
 -doc """
-Resyncs specified content files, using for that the specified analyzers,
+Resyncs the specified content files, using for that the specified analyzers,
 returning the corresponding tree data.
 """.
 -spec resync_files( set( bin_file_path() ), [ hash_entry() ],
@@ -1784,7 +1784,8 @@ create_analyzer_ring( UserState ) ->
 
 
 -doc """
-Actual scanning of specified path, producing specified cache file from scratch.
+Actual scanning of the specified path, producing the specified cache file from
+scratch.
 """.
 scan_helper( TreePath, AnalyzerRing, UserState ) ->
 
@@ -1964,8 +1965,8 @@ merge_trees( InputTree=#tree_data{ root=InputRootDir,
 
 
 -doc """
-Purges specified tree from specified content, removing it from the filesystem
-and returning the corresponding, updated, tree data.
+Purges the specified tree from specified content, removing it from the
+filesystem and returning the corresponding, updated, tree data.
 """.
 -spec purge_tree_from( tree_data(), set( binary_hash() ), user_state() ) ->
                                 tree_data().
@@ -2007,8 +2008,8 @@ purge_helper( _Hashs=[ Hash | T ], Entries, BinRootDir, RemoveCount,
 
 
 -doc """
-Removes specified content from specified input tree. Returns the resulting tree,
-or 'undefined' if it became empty.
+Removes the specified content from the specified input tree. Returns the
+resulting tree, or `undefined` if it became empty.
 """.
 -spec clear_input_tree( tree_data(), count(), set( binary_hash() ),
             bin_directory_path(), bin_directory_path(), user_state() ) ->
@@ -2267,7 +2268,7 @@ move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
 
 
 -doc """
-Moves as a whole all specified content in the reference tree, and returns an
+Moves as a whole all the specified content in the reference tree, and returns an
 updated view thereof.
 """.
 -spec move_content_to_integrate( [ binary_hash() ], bin_directory_path(),
@@ -2927,10 +2928,10 @@ delete_content_to_merge( HashsToDelete, InputRootDir, InputEntries,
 
 
 -doc """
-Moves "safely" specified file, from path RelFilePath relative to SourceRootDir
-to the same RelFilePath path but this time relatively to TargetSubPath, itself
-relative to TargetRootDir, by ensuring (through any renaming needed) that no
-clash happens at target.
+Moves "safely" the specified file, from path `RelFilePath` relative to
+`SourceRootDir` to the same RelFilePath path but this time relatively to
+TargetSubPath, itself relative to TargetRootDir, by ensuring (through any
+renaming needed) that no clash happens at target.
 
 Returns the path to which the file was moved, twice: as a pair made of an
 absolute path and a relative one to TargetRootDir.
@@ -2989,13 +2990,13 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 
 
 -doc """
-Copies "safely" the specified file, from path RelFilePath relative to
-SourceRootDir to the same RelFilePath path but this time relatively to
-TargetRootDir, by ensuring (through any renaming needed) that no clash happens
+Copies "safely" the specified file, from path `RelFilePath` relative to
+`SourceRootDir` to the same `RelFilePath` path but this time relatively to
+`TargetRootDir`, by ensuring (through any renaming needed) that no clash happens
 at target.
 
 Returns the path to which the file was copied, twice: as a pair made of an
-absolute path and as one relative to TargetRootDir.
+absolute path and as one relative to `TargetRootDir`.
 """.
 -spec safe_copy( bin_directory_path(), bin_file_path(),
                  bin_directory_path(), user_state() ) ->
@@ -3064,7 +3065,7 @@ safe_delete( FilePath, UserState ) ->
 
 
 
--doc "Returns the number of files referenced in specified table.".
+-doc "Returns the number of files referenced in the specified table.".
 -spec get_file_count_from( hash_table() ) -> count().
 get_file_count_from( HashTable ) ->
 
@@ -3207,7 +3208,7 @@ check_tree_path_exists( AnyTreePath ) ->
 
 
 -doc """
-Updates specified content tree (based on a "weak" check): verifies that it
+Updates the specified content tree (based on a "weak" check): verifies that it
 exists, that a merge cache file exists and is up to date (otherwise rebuilds
 it), and returns the corresponding tree datastructure.
 """.
@@ -3262,8 +3263,8 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 
 -doc """
 Returns the last content modification timestamp of the most recently modified
-file (the merge cache file excluded) in specified tree, and a list of the actual
-files (as relative paths).
+file (the merge cache file excluded) in the specified tree, and a list of the
+actual files (as relative paths).
 """.
 -spec find_newest_timestamp_from( bin_directory_path(), bin_file_path() ) ->
                         { option( posix_seconds() ), [ bin_file_path() ] }.
@@ -3401,7 +3402,7 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 
 
 -doc """
-Creates an automatically named merge cache file for specified content tree
+Creates an automatically named merge cache file for the specified content tree
 (overwriting any priorly existing merge cache file), and returns that tree.
 """.
 -spec create_merge_cache_file_for( directory_path(), analyzer_ring(),
@@ -3447,7 +3448,7 @@ write_cache_file( TreeData=#tree_data{ root=BinRootDir }, UserState ) ->
 
 
 
--doc "Writes the header of specified cache file.".
+-doc "Writes the header of the specified cache file.".
 -spec write_cache_header( file() ) -> void().
 write_cache_header( File ) ->
 
@@ -3471,7 +3472,7 @@ write_cache_header( File ) ->
 
 
 
--doc "Writes the footer of specified cache file.".
+-doc "Writes the footer of the specified cache file.".
 -spec write_cache_footer( file() ) -> void().
 write_cache_footer( File ) ->
     file_utils:write_ustring( File, "~n% End of merge cache file (at ~ts).",
@@ -3479,7 +3480,7 @@ write_cache_footer( File ) ->
 
 
 
--doc "Writes the specified tree data into specified file.".
+-doc "Writes the specified tree data into the specified file.".
 write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
                                         entries=Entries }, _UserState ) ->
 
@@ -3585,7 +3586,7 @@ get_file_content_for( Hash, FileDataElems ) ->
 
 
 -doc """
-Reads as it is specified cache file, performs first checks and returns the
+Reads as it is the specified cache file, performs first checks and returns the
 corresponding tree data.
 
 Cache file expected to be already checked existing.
@@ -3744,7 +3745,9 @@ scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
 
 
 
--doc "Manages specified received file data, and returns an updated tree data.".
+-doc """
+Manages the specified received file data, and returns an updated tree data.
+""".
 -spec manage_received_data( file_data(), tree_data() ) -> tree_data().
 manage_received_data( FileData=#file_data{ type=Type, hash=Hash },
                       TreeData=#tree_data{ entries=Entries,
@@ -3977,8 +3980,8 @@ deduplicate_tree( TreeData=#tree_data{ root=BinRootDir,
 
 
 -doc """
-Manages all duplicates found in specified table, returns an updated table and
-the number of files (usually only extra duplicates, sometimes *all* files
+Manages all duplicates found in the specified table, returns an updated table
+and the number of files (usually only extra duplicates, sometimes *all* files
 corresponding to a given content) that have been removed.
 """.
 -spec manage_duplicates( hash_table(), bin_directory_path(), user_state() ) ->
@@ -4055,7 +4058,7 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 
 
 -doc """
-Filters the duplications from specified content entries: returns the actual
+Filters the duplications from the specified content entries: returns the actual
 duplications in a list, put the unique files in a new table.
 """.
 -spec filter_duplications( [ hash_entry() ] ) ->
@@ -4891,7 +4894,7 @@ Any pre-existing file on the same name will be removed.  The returned file shall
 be closed by the caller.
 """.
 -spec prepare_delta( bin_fqdn(), bin_directory_path(), bin_fqdn(),
-        bin_directory_path() ) -> { bin_directory_path(), file() }.
+                     bin_directory_path() ) -> { bin_directory_path(), file() }.
 prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
                SecondRootPath ) ->
 
@@ -4946,8 +4949,8 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 
 
 -doc """
-Returns a textual description of specified lacking cached content, and writes a
-corresponding information in specified opened file (if any).
+Returns a textual description of the specified lacking cached content, and
+writes a corresponding information in the specified opened file (if any).
 """.
 -spec list_lacking_content( [ binary_hash() ], hash_table(), ustring(),
             option( bin_directory_path() ), option( file() ) ) -> ustring().
@@ -5219,7 +5222,7 @@ tree_data_to_string( TreeData ) ->
 
 
 -doc """
-Returns a textual description of the specified tree data, with teh specified
+Returns a textual description of the specified tree data, with the specified
 verbosity.
 """.
 -spec tree_data_to_string( tree_data(), boolean() ) -> ustring().

@@ -64,7 +64,8 @@ fi
 # As for erlang_commit_id_for_* (Git commit of the release; currently not used),
 # it is just obtained from (some) downloaded source archive.
 
-erlang_sha512_for_29_0="e539437070d2abedc922578dd119ac786fdb28c0e72a44a9ddf784c22f3c4e8c6d3d88dac8e540429d05569c4c392fe2ee243d020a4dedbdf9eecda98d827cbc"
+
+erlang_sha512_for_29_0_3="38ff5c7afe6a46093ae2e7b481e3d182320f2d6aa7ebf4b332e09e36ffc8763b6fa521ee53e90b79fabcda7188e6d377a8785c13bb9b454925b92c491b34d2df"
 
 erlang_sha512_for_28_5="1c56cf3030ebe474c84d2e3deec1355e6bff4ef58994666c6e4266e4d3fb7ff50c53b107782883294f000f9a3186fc2c4c57797a11c10a1140c0d905782aebcd"
 
@@ -138,8 +139,9 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="29.0"
-erlang_sum="${erlang_sha512_for_29_0}"
+erlang_version="29.0.3"
+erlang_sum="${erlang_sha512_for_29_0_3}"
+
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
 
@@ -603,7 +605,7 @@ if [ $do_download -eq 0 ]; then
 
 		if [ -z "${erlang_sum}" ]; then
 
-			echo "  Error, no Erlang checksum available for this version." 1>&2
+			echo "  Error, no Erlang checksum available for this version ('${erlang_version}')." 1>&2
 
 			exit 55
 

@@ -161,7 +161,7 @@ run() ->
 
     10.0 = matrix3:get_element( _RowC=3, _ColC=2, SubMatrix ),
 
-    RwC = 3, 
+    RwC = 3,
     ClC = 1,
 
     SubSetMatrix = matrix3:set_element( RwC, ClC, 21.0, SubMatrix ),

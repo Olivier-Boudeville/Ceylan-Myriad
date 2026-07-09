@@ -77,7 +77,7 @@ See the `file_utils_test` module for the corresponding test.
           is_user_readable/1, is_user_writable/1, is_user_executable/1,
 
           is_directory/1, is_existing_directory/1,
-          is_existing_directory_or_link/1,
+          is_existing_directory_or_link/1, find_longest_existing_path_prefix/1,
           list_dir_elements/1, list_dir_elements/2,
 
           check_existing_file/1, check_existing_file_or_link/1,
@@ -1069,8 +1069,8 @@ get_base_path( AnyPath, Depth ) ->
 
 
 -doc """
-Returns the final, "file" part of specified path, that is its last element, as a
-one-element path, corresponding either to a file or a directory.
+Returns the final, "file" part of the specified path, that is its last element,
+as a one-element path, corresponding either to a file or a directory.
 
 For example: `<<"foobar.txt">> =
         file_utils:get_last_path_element(<<"/aaa/bbb/ccc/foobar.txt">>).`
@@ -1083,7 +1083,7 @@ and hopefully clearer).
 
 See `get_base_path/1` for the counterpart function.
 """.
--spec get_last_path_element( any_path() ) ->  any_path_element().
+-spec get_last_path_element( any_path() ) -> any_path_element().
 get_last_path_element( AnyPath ) ->
     filename:basename( AnyPath ).
 
@@ -1193,28 +1193,37 @@ resolve_any_path( Other ) ->
 Converts the specified name into an acceptable filename (or file path),
 filesystem-wise.
 
+Note that generally `convert_to_filename_with_extension/2` is preferred, as any
+dot between the radix and any extension would be transliterated as well
+(e.g. `"foo.html"` becoming `foo-html`).
+
 Returns the same type of string as the provided one.
 """.
 -spec convert_to_filename( any_string() ) -> any_file_name().
-convert_to_filename( BinName ) when is_binary( BinName ) ->
-    re:replace( BinName, ?patterns_to_replace_for_paths, ?replacement_for_paths,
-                _Opts=[ global, unicode, { return, binary } ] );
+%convert_to_filename( BinName ) when is_binary( BinName ) ->
+%    Str = text_utils:slugify(
+%    re:replace( BinName, ?patterns_to_replace_for_paths,
+%        ?replacement_for_paths,
+%        _Opts=[ global, unicode, { return, binary } ] );
 
 convert_to_filename( Name ) ->
 
-    % Currently we use exactly the same translation rules both for node names
+    % We used to rely on exactly the same translation rules both for node names
     % and file names (see net_utils:generate_valid_node_name_from/1).
     %
-    % Note however that now we duplicate the code instead of calling the
+    % Note however that we duplicated the code instead of calling the
     % net_utils module from here, as otherwise there would be one more module to
     % deploy under some circumstances (and over time they may have to be
     % different).
-    %
+
     % The 'unicode' option is needed, as some characters (e.g. '’') would make
     % the next re:replace/4 call fail with "not an iodata term":
     %
-    re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
-        ?replacement_for_paths, _Opts=[ global, unicode, { return, list } ] ).
+    %re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
+    %    ?replacement_for_paths, _Opts=[ global, unicode, { return, list } ] ).
+
+    % Even safer:
+    text_utils:slugify( Name ).
 
 
 
@@ -1222,12 +1231,18 @@ convert_to_filename( Name ) ->
 Converts the specified name into an acceptable filename (or file path),
 filesystem-wise.
 
+For example: `"chateau-d-o.html" =*
+    convert_to_filename_with_extension("Château d'O", "html')`.
+
 Returns the same type of string as the provided one.
 """.
 -spec convert_to_filename_with_extension( any_string(), extension() ) ->
                                             any_file_name().
 convert_to_filename_with_extension( Name, Ext ) ->
-    convert_to_filename( add_extension( Name, Ext ) ).
+    % Compose in that order (not wanting to end up with "foo-html" instead of
+    % "foo.html"):
+    %
+    add_extension( convert_to_filename(  Name ), Ext ).
 
 
 
@@ -2088,6 +2103,33 @@ is_existing_directory_or_link( Path ) ->
 
         _ ->
             false
+
+    end.
+
+
+
+-doc """
+Returns the longest prefix of the specified path that is found existing.
+
+Removes one path element at a time until finding one that exists (shortest one
+being just `"."`).
+
+For example, if `first/second` exists but not `first/second/third`:
+`"first/second" = find_longest_existing_path_prefix("first/second/third")`
+""".
+-spec find_longest_existing_path_prefix( path() ) -> path().
+find_longest_existing_path_prefix( Path="." ) ->
+    Path;
+
+find_longest_existing_path_prefix( Path ) ->
+    case exists( Path ) of
+
+        true ->
+            Path;
+
+        _False ->
+             find_longest_existing_path_prefix( get_base_path( Path ) )
+
 
     end.
 
@@ -4063,6 +4105,7 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
         ok ->
             ok;
 
+
         { error, eacces } ->
             throw( { copy_file_failed,
                      { source, text_utils:ensure_string( SourceFilePath ) },
@@ -4073,6 +4116,46 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
                        get_file_access_denied_info( SourceFilePath ) },
                      { destination_information,
                        get_file_access_denied_info( DestinationFilePath ) } } );
+
+
+        { error, enoent } ->
+            case is_existing_file_or_link( SourceFilePath ) of
+
+                false ->
+                    throw( { copy_file_failed,
+                        { source_file_not_found,
+                          text_utils:ensure_string( SourceFilePath ) },
+                        { destination,
+                          text_utils:ensure_string( DestinationFilePath ) } } );
+
+                true ->
+                    DestDir = get_base_path( DestinationFilePath ),
+                    case is_existing_directory( DestDir ) of
+
+                        false ->
+                            throw( { copy_file_failed,
+                                { non_existing_destination_directory, DestDir },
+                                { longest_existing_path_prefix,
+                                  file_utils:find_longest_existing_path_prefix(
+                                    DestDir ) },
+                                { source,
+                                  text_utils:ensure_string( SourceFilePath ) },
+                                { destination, text_utils:ensure_string(
+                                                    DestinationFilePath ) } } );
+
+                        % Unexpected:
+                        true ->
+                            throw( { copy_file_failed,
+                                { source,
+                                  text_utils:ensure_string( SourceFilePath ) },
+                                { destination, text_utils:ensure_string(
+                                                    DestinationFilePath ) },
+                                { reason, filesystem_entry_not_found } } )
+
+                    end
+
+            end;
+
 
         { error, Reason } ->
             throw( { copy_file_failed,
@@ -4687,7 +4770,7 @@ describe_permissions_of( EntryPath ) ->
         { ok, #file_info{ mode=Mode } } ->
             text_utils:format( "~w", [ from_permission_mask( Mode ) ] );
 
-        { error, eacces} ->
+        { error, eacces } ->
             "unknown (insufficient permissions)";
 
         { error, Reason } ->

@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **random-related** toolbox.
 
-See the random_utils.erl tested module.
+See the `random_utils` tested module.
 """.
 
 

@@ -1747,6 +1747,9 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
     file_utils:is_existing_directory_or_link( DocRootDir ) orelse
         throw( { non_existing_document_root, DocRootDir } ),
 
+    % File names in UTF8 can be forced with 'erl +fnu':
+    utf8 = file:native_name_encoding(),
+
     MimeMappings = get_mime_mappings( base ),
 
     % To avoid an eaddrinuse error, triggered even if a previous server on that
@@ -1759,6 +1762,13 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
                                { server_name, SrvName },
                                { server_root, SrvRootDir },
                                { document_root, DocRootDir },
+
+                               % Not sufficient to solve the problem of
+                               % returning UTF8 filenames (e.g. containing "à"):
+                               %
+                               { file_charset, "utf-8" },
+                               { directory, { "/", DocRootDir } },
+
                                { bind_address, BindIPAddress },
                                { mime_types, MimeMappings },
                                { socket_opts, SocketOpts } ] ).

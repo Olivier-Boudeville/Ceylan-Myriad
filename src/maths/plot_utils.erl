@@ -858,7 +858,10 @@ String describing a timestamp (typically either a tick or a textual timestamp).
 
           declare_curves/2, declare_zones/2,
           get_plot_command/5,
-          plot_samples/2, plot_samples/3 ]).
+          plot_samples/2, plot_samples/3,
+
+          % Useful for example if a test wants to remove any prior generation:
+          get_command_filename/1, get_data_filename/1 ]).
 
 
 

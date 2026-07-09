@@ -208,7 +208,7 @@ See `text_utils_test.erl` for the corresponding test.
 
 
 % Miscellaneous functions:
--export([ generate_text_name_from/1, match_types/3 ]).
+-export([ generate_text_name_from/1, match_types/3, slugify/1 ]).
 
 
 % This module being a bootstrap one, the 'table' pseudo-module is not available
@@ -3126,6 +3126,93 @@ match_types( _TypeDescs=[ TypeDesc | Ts ], _Values=[ V | Tv ], VCount ) ->
                   type_utils:get_type_of( V ), TypeDesc  ] )
 
     end.
+
+
+
+
+-doc """
+Returns a transliterated version of the specified string (of the same type),
+designed to reduce the risk of Unicode-related encoding problems with
+filesystems, webservers, etc.
+
+For example: `"le-chateau-d-helene" = slugify("Le château d'Hélène.")`.
+
+Typically useful to have safer yet still readable URIs.
+""".
+-spec slugify( any_string() ) -> any_string().
+slugify( BinStr ) when is_binary( BinStr ) ->
+    string_to_binary( slugify( binary_to_string( BinStr ) ) );
+
+slugify( Str ) ->
+
+    LowStr = string:lowercase( Str ),
+
+    % No more multi-characters:
+    MonoStr = lists:foldl(
+        fun( { FromChar, ToChar }, AccStr ) ->
+            re:replace( AccStr, FromChar, ToChar,
+                        [ global, { return, list }, unicode ] )
+        end,
+        LowStr,
+        _List=[ { "œ", "oe" }, { "æ", "ae" } ] ),
+
+    % No more diacritics-like:
+    RegStr = [ transliterate_diacritics( C ) || C <- MonoStr ],
+
+    % Replace non-alphanumerical characters with '-':
+    AlphaStr = re:replace( RegStr, _Pattern="[^a-z0-9]+", _Replacement="-",
+                           [ global, { return, list }, unicode ] ),
+
+    % Remove leading/trailing '-':
+    SideDashStr = re:replace( AlphaStr, _Pat="^-+|-+$", _Repl="",
+                              [ global, { return, list } ] ),
+
+    % Shortens the series of dashes:
+    re:replace( SideDashStr, _P="-+", _S="-", [ global, { return, list } ] ).
+
+
+
+
+-doc """
+Returns a character corresponding to the specified one, once diacritics have
+been removed.
+""".
+-spec transliterate_diacritics( uchar() ) -> uchar().
+transliterate_diacritics( $à ) -> $a;
+transliterate_diacritics( $á ) -> $a;
+transliterate_diacritics( $â ) -> $a;
+transliterate_diacritics( $ä ) -> $a;
+transliterate_diacritics( $ã ) -> $a;
+transliterate_diacritics( $å ) -> $a;
+transliterate_diacritics( $ç ) -> $c;
+
+transliterate_diacritics( $è ) -> $e;
+transliterate_diacritics( $é ) -> $e;
+transliterate_diacritics( $ê ) -> $e;
+transliterate_diacritics( $ë ) -> $e;
+
+transliterate_diacritics( $ì ) -> $i;
+transliterate_diacritics( $í ) -> $i;
+transliterate_diacritics( $î ) -> $i;
+transliterate_diacritics( $ï ) -> $i;
+
+transliterate_diacritics( $ñ ) -> $n;
+
+transliterate_diacritics( $ò ) -> $o;
+transliterate_diacritics( $ó ) -> $o;
+transliterate_diacritics( $ô ) -> $o;
+transliterate_diacritics( $ö ) -> $o;
+transliterate_diacritics( $õ ) -> $o;
+
+transliterate_diacritics( $ù ) -> $u;
+transliterate_diacritics( $ú ) -> $u;
+transliterate_diacritics( $û ) -> $u;
+transliterate_diacritics( $ü ) -> $u;
+
+transliterate_diacritics( $ý ) -> $y;
+transliterate_diacritics( $ÿ ) -> $y;
+
+transliterate_diacritics( C ) -> C.
 
 
 

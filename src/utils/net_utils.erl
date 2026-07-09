@@ -1262,6 +1262,9 @@ generate_valid_node_name_from( Name ) when is_list( Name ) ->
     % by exactly one underscore:
     %
     % (see also: file_utils:convert_to_filename/1)
+
+    % text_utils:slugify/1 might be used as well.
+
     re:replace( lists:flatten( Name ),
         "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
         "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|\\.|:)+", "_",
