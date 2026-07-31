@@ -1,4 +1,4 @@
-;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.;
+;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
 
 
 ;; Note that our early-init.el file shall be available (as a regular file or a
@@ -64,15 +64,27 @@
 ;; Hence to be found through the original load path, otherwise in ~/.emacs.d,
 ;; otherwise in Myriad configuration directory:
 
-(setq myriad-conf-file "init-myriad-local.el")
+(setq myriad-local-conf-file "init-myriad-local.el")
 
-(if (locate-file myriad-conf-file load-path)
+(if (locate-file myriad-local-conf-file load-path)
     ;;(load-file "init-myriad-local.el")
     (require 'init-myriad-local)
     (message
-	 (concat "(no '" myriad-conf-file "' Myriad local configuration found)")))
+	 (concat "(no '" myriad-local-conf-file "' Myriad local configuration found)")))
 
 ;;(message "After myriad-local")
+
+
+(setq myriad-ai-conf-file "init-myriad-ai.el")
+
+(if (locate-file myriad-ai-conf-file load-path)
+    ;;(load-file "init-myriad-ai.el")
+    (require 'init-myriad-ai)
+    (message
+	 (concat "(no '" myriad-ai-conf-file "' Myriad AI configuration found)")))
+
+;;(message "After myriad-ai")
+
 
 
 ;; From this point 'require' can be preferred to 'load-file'.
@@ -91,6 +103,8 @@
 
 ;; For more advanced Erlang configuration, requiring packages:
 (require 'init-myriad-erlang-advanced)
+
+
 
 
 
