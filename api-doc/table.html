@@ -2,14 +2,14 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Module map_hashtable</title>
+<title>Module table</title>
 <link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
 </head>
 <body bgcolor="white">
 <div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
 <hr>
 
-<h1>Module map_hashtable</h1>
+<h1>Module table</h1>
 <ul class="index"><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
 
 
@@ -36,15 +36,7 @@
 
 
 <h3 class="typedecl"><a name="type-map_hashtable">map_hashtable()</a></h3>
-<p><code>map_hashtable(K, V) = <a href="type_utils.html#type-map" docgen-rel="seetype" docgen-href="type_utils#map/0">type_utils:map</a>(K, V)</code></p>
-
-
-<h3 class="typedecl"><a name="type-map_hashtable">map_hashtable()</a></h3>
 <p><code>map_hashtable() = map()</code></p>
-
-
-<h3 class="typedecl"><a name="type-option">option()</a></h3>
-<p><code>option(T) = T | undefined</code></p>
 
 
 <h3 class="typedecl"><a name="type-option_entries">option_entries()</a></h3>
@@ -55,12 +47,20 @@
 <p><code>option_entry() = <a href="hashtable.html#type-option_entry" docgen-rel="seetype" docgen-href="hashtable#option_entry/0">hashtable:option_entry()</a></code></p>
 
 
-<h3 class="typedecl"><a name="type-tagged_map_hashtable">tagged_map_hashtable()</a></h3>
-<p><code>tagged_map_hashtable() = <a href="#type-tagged_map_hashtable" docgen-rel="seetype" docgen-href="#tagged_map_hashtable/0">tagged_map_hashtable</a>(term())</code></p>
+<h3 class="typedecl"><a name="type-table">table()</a></h3>
+<p><code>table(K, V) = <a href="type_utils.html#type-map" docgen-rel="seetype" docgen-href="type_utils#map/0">type_utils:map</a>(K, V)</code></p>
 
 
-<h3 class="typedecl"><a name="type-tagged_map_hashtable">tagged_map_hashtable()</a></h3>
-<p><code>tagged_map_hashtable(V) = <a href="#type-map_hashtable" docgen-rel="seetype" docgen-href="#map_hashtable/0">map_hashtable</a>(atom(), V)</code></p>
+<h3 class="typedecl"><a name="type-table">table()</a></h3>
+<p><code>table() = <a href="#type-map_hashtable" docgen-rel="seetype" docgen-href="#map_hashtable/0">map_hashtable()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-tagged_table">tagged_table()</a></h3>
+<p><code>tagged_table() = <a href="#type-tagged_table" docgen-rel="seetype" docgen-href="#tagged_table/0">tagged_table</a>(term())</code></p>
+
+
+<h3 class="typedecl"><a name="type-tagged_table">tagged_table()</a></h3>
+<p><code>tagged_table(V) = <a href="#type-table" docgen-rel="seetype" docgen-href="#table/0">table</a>(atom(), V)</code></p>
 
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
@@ -69,10 +69,6 @@
 
 <h3 class="typedecl"><a name="type-value">value()</a></h3>
 <p><code>value() = <a href="hashtable.html#type-value" docgen-rel="seetype" docgen-href="hashtable#value/0">hashtable:value()</a></code></p>
-
-
-<h3 class="typedecl"><a name="type-void">void()</a></h3>
-<p><code>void() = <a href="type_utils.html#type-void" docgen-rel="seetype" docgen-href="type_utils#void/0">type_utils:void()</a></code></p>
 
 
 <h2><a name="index">Function Index</a></h2>

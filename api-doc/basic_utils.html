@@ -63,6 +63,10 @@
 <p><code>byte_size() = <a href="system_utils.html#type-byte_size" docgen-rel="seetype" docgen-href="system_utils#byte_size/0">system_utils:byte_size()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-coarse_fallible">coarse_fallible()</a></h3>
+<p><code>coarse_fallible(TSuccess) = <a href="#type-successful" docgen-rel="seetype" docgen-href="#successful/0">successful</a>(TSuccess) | error</code></p>
+
+
 <h3 class="typedecl"><a name="type-command_spec">command_spec()</a></h3>
 <p><code>command_spec() = {<a href="#type-module_name" docgen-rel="seetype" docgen-href="#module_name/0">module_name()</a>, <a href="#type-function_name" docgen-rel="seetype" docgen-href="#function_name/0">function_name()</a>, [<a href="#type-argument" docgen-rel="seetype" docgen-href="#argument/0">argument()</a>]}</code></p>
 
@@ -377,13 +381,16 @@
 <tr><td valign="top"><a href="#assert_different-2">assert_different/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#assert_equal-2">assert_equal/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#assert_false-1">assert_false/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#assert_maybe_equal-2">assert_maybe_equal/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#assert_true-1">assert_true/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_all_defined-1">check_all_defined/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_all_undefined-1">check_all_undefined/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_any_version-1">check_any_version/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_defined-1">check_defined/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_error_report_output-1">check_error_report_output/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_no_pending_message-0">check_no_pending_message/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_not_undefined-1">check_not_undefined/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#check_only_normal_exit_pending_messages-0">check_only_normal_exit_pending_messages/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_three_digit_version-1">check_three_digit_version/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#check_undefined-1">check_undefined/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#checkpoint-1">checkpoint/1</a></td><td></td></tr>
@@ -409,6 +416,7 @@
 <tr><td valign="top"><a href="#flush_pending_messages-0">flush_pending_messages/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#flush_pending_messages-1">flush_pending_messages/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#freeze-0">freeze/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_all_error_report_outputs-0">get_all_error_report_outputs/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_error_report_output-0">get_error_report_output/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_execution_target-0">get_execution_target/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_myriad_root_path-0">get_myriad_root_path/0</a></td><td></td></tr>
@@ -495,6 +503,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="assert_maybe_equal-2">assert_maybe_equal/2</a></h3>
+<div class="spec">
+<p><code>assert_maybe_equal(Expr::term(), MaybeExpr::<a href="#type-option" docgen-rel="seetype" docgen-href="#option/0">option</a>(term())) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="assert_true-1">assert_true/1</a></h3>
 <div class="spec">
 <p><code>assert_true(Expr::term()) -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
@@ -525,6 +539,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="check_error_report_output-1">check_error_report_output/1</a></h3>
+<div class="spec">
+<p><code>check_error_report_output(T::term()) -&gt; <a href="#type-error_report_output" docgen-rel="seetype" docgen-href="#error_report_output/0">error_report_output()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="check_no_pending_message-0">check_no_pending_message/0</a></h3>
 <div class="spec">
 <p><code>check_no_pending_message() -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
@@ -534,6 +554,12 @@
 <h3 class="function"><a name="check_not_undefined-1">check_not_undefined/1</a></h3>
 <div class="spec">
 <p><code>check_not_undefined(Term::term()) -&gt; term()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="check_only_normal_exit_pending_messages-0">check_only_normal_exit_pending_messages/0</a></h3>
+<div class="spec">
+<p><code>check_only_normal_exit_pending_messages() -&gt; <a href="#type-void" docgen-rel="seetype" docgen-href="#void/0">void()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -684,6 +710,12 @@
 <h3 class="function"><a name="freeze-0">freeze/0</a></h3>
 <div class="spec">
 <p><code>freeze() -&gt; no_return()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_all_error_report_outputs-0">get_all_error_report_outputs/0</a></h3>
+<div class="spec">
+<p><code>get_all_error_report_outputs() -&gt; [<a href="#type-error_report_output" docgen-rel="seetype" docgen-href="#error_report_output/0">error_report_output()</a>]</code><br></p>
 <p> </p>
 </div>
 
