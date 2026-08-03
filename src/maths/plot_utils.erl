@@ -1236,7 +1236,8 @@ possibly with a point being marked there.
 
 (most complete label definition)
 """.
--spec add_label( label_text(), label_location(), symbol_spec(),
+-spec add_label( label_text(), label_location(), label_color(),
+                 label_justification(), label_orientation(), symbol_spec(),
                  plot_settings() ) -> plot_settings().
 add_label( Text, Location, Color, Justification, Orientation, UsrPtStyleSpec,
            PlotSettings=#plot_settings{ labels=Labels } ) ->

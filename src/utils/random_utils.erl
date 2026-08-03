@@ -2158,6 +2158,10 @@ get_uniform_values_helper( Nmin, Nmax, Count, Acc ) ->
 % per-process).
 
 
+% Had to be defined, otherwise edoc reports it is an 'undefined macro':
+-define( rand_algorithm, none_because_using_crypto ).
+
+
 -doc "Starts the random source with the specified seeding.".
 start_random_source( _A, _B, _C ) ->
     % Now probably untrue:
