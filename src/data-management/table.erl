@@ -28,7 +28,6 @@
 -module(table).
 
 -moduledoc """
-
 This is a "source-only", pseudo-module meant just to expose the exact same API
 as the actual table type (see the actual_table_type define) used at runtime
 (e.g. `map_hashtable`), so that tools like source-based (as opposed to
