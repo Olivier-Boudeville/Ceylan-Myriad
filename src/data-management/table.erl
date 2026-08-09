@@ -28,11 +28,10 @@
 -module(table).
 
 -moduledoc """
-
 This is a "source-only", pseudo-module meant just to expose the exact same API
-as the actual table type (see the actual_table_type define) used at runtime
+as the actual table type (see the `actual_table_type` define) used at runtime
 (e.g. `map_hashtable`), so that tools like source-based (as opposed to
-BEAM-based) static code checkers or IDEs have the illusion of seing the `table`
+BEAM-based) static code checkers or IDEs have the illusion of seeing the `table`
 module that is referenced in other modules (knowing that such a module is not
 even meant to exist, being translated at compilation-time to the actual
 table-like module of choice, like `list_table` or `map_hashtable`).
@@ -77,7 +76,8 @@ shall be applied here as well.
           add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
           append_to_existing_entry/3, append_list_to_existing_entry/3,
           append_to_entry/3, append_list_to_entry/3,
-          concat_to_entry/3, concat_list_to_entries/2,
+          concat_to_existing_entry/3, concat_to_entry/3,
+          concat_list_to_entries/2,
           delete_from_entry/3, delete_existing_from_entry/3,
           pop_from_entry/2,
           enumerate/1, select_entries/2, keys/1, values/1,
@@ -134,7 +134,7 @@ specified type.
 
 % Type shorthands:
 
-% As this module is not parse-transformed:
+% Commented-out, as this module is parse-transformed:
 %
 % (if a 'type option(_) is unused' error is reported for this type, this is the
 % sign that this module is recompiled with the Myriad parse transform, whereas
@@ -168,6 +168,9 @@ specified type.
 
 -type accumulator() :: basic_utils:accumulator().
 
+% Commented-out, otherwise reported as unused, as this specific module is
+% parse-transformed:
+%
 %-type void() :: type_utils:void().
 
 -type ustring() :: text_utils:ustring().
@@ -1131,7 +1134,8 @@ the specified key, which must already exist in that table.
 An exception is thrown if the key does not exist.
 
 Note: no check is performed to ensure that the value is already a list indeed,
-and the cons (`[|]`) operation will not complain if not.
+and the cons (`[|]`) operation will not complain if not, creating then an
+improper list.
 """.
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
                                     map_hashtable().
@@ -1205,6 +1209,29 @@ append_list_to_entry( Key, Elements, MapHashtable ) ->
 
         { value, CurrentList } ->
             add_entry( Key, Elements ++ CurrentList, MapHashtable )
+
+    end.
+
+
+
+-doc """
+Concatenates (on the left) the specified list to the value, supposed to be a
+list as well, associated to the specified key.
+
+If that key does not already exist, an exception will be thrown.
+""".
+-spec concat_to_existing_entry( key(), list(), map_hashtable() ) ->
+                                            map_hashtable().
+concat_to_existing_entry( Key, ListToConcat, MapHashtable )
+                                        when is_list( ListToConcat ) ->
+
+    case lookup_entry( Key, MapHashtable ) of
+
+        key_not_found ->
+            throw( { non_existing_key_for_concatenation, Key } );
+
+        { value, CurrentList } ->
+            add_entry( Key, ListToConcat ++ CurrentList, MapHashtable )
 
     end.
 

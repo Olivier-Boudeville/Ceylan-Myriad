@@ -79,7 +79,8 @@ applied to that pseudo-module as well.
           add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
           append_to_existing_entry/3, append_list_to_existing_entry/3,
           append_to_entry/3, append_list_to_entry/3,
-          concat_to_entry/3, concat_list_to_entries/2,
+          concat_to_existing_entry/3, concat_to_entry/3,
+          concat_list_to_entries/2,
           delete_from_entry/3, delete_existing_from_entry/3,
           pop_from_entry/2,
           enumerate/1, select_entries/2, keys/1, values/1,
@@ -1132,7 +1133,8 @@ the specified key, which must already exist in that table.
 An exception is thrown if the key does not exist.
 
 Note: no check is performed to ensure that the value is already a list indeed,
-and the cons (`[|]`) operation will not complain if not.
+and the cons (`[|]`) operation will not complain if not, creating then an
+improper list.
 """.
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
                                     map_hashtable().
@@ -1206,6 +1208,29 @@ append_list_to_entry( Key, Elements, MapHashtable ) ->
 
         { value, CurrentList } ->
             add_entry( Key, Elements ++ CurrentList, MapHashtable )
+
+    end.
+
+
+
+-doc """
+Concatenates (on the left) the specified list to the value, supposed to be a
+list as well, associated to the specified key.
+
+If that key does not already exist, an exception will be thrown.
+""".
+-spec concat_to_existing_entry( key(), list(), map_hashtable() ) ->
+                                            map_hashtable().
+concat_to_existing_entry( Key, ListToConcat, MapHashtable )
+                                        when is_list( ListToConcat ) ->
+
+    case lookup_entry( Key, MapHashtable ) of
+
+        key_not_found ->
+            throw( { non_existing_key_for_concatenation, Key } );
+
+        { value, CurrentList } ->
+            add_entry( Key, ListToConcat ++ CurrentList, MapHashtable )
 
     end.
 
