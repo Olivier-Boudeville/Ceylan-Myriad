@@ -233,7 +233,7 @@ Each element of these inner arrays corresponds to the aforementioned cell.
 The content of a target stream can be modified according to the specified
 state-transition data; the input and output alphabet are the same: the set of
 all bytes (i.e. integers in `[0,255]`), while the states are strictly positive
-integers; the transition and output function are coalesced into a single
+integers; the transition and output functions are coalesced into a single
 function, taking a cell and returning one: `f({CurrentState, InputByte}) ->
 {NewState, OutputByte}`; see [this
 page](https://en.wikipedia.org/wiki/Mealy_machine) for more information.

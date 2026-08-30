@@ -216,6 +216,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_webserver
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_streams
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_datastructures
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
@@ -272,6 +273,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_binaries
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_streams
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_lists
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources

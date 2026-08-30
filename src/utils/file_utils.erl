@@ -537,7 +537,8 @@ For example in `aaa/bbb/ccc`, `aaa` is the root, and `ccc` is the (single) leaf.
 Relevant flags when opening a file (e.g. read, write, append, exclusive, raw,
 etc.).
 
-See [http://erlang.org/doc/man/file.html#open-2] for their detailed description.
+See [this section](http://erlang.org/doc/man/file.html#open-2) for their
+detailed description.
 """.
 % (type file:mode() not exported currently unfortunately, see
 % lib/kernel/src/file.erl)
@@ -586,8 +587,8 @@ an atom), or any PID handling the I/O protocols.
 Action to trigger whenever a file element does not have a proper Unicode
 filename.
 
-(refer to
-[https://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames]
+(refer to [this
+section](https://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames)
 for further information)
 """.
 -type improper_encoding_action() ::
@@ -1763,8 +1764,8 @@ file.
 If the specified entry happens not to exist, a `{non_existing_entry, EntryName}`
 exception will be thrown.
 
-Not to be confused with `is_file_reference/1`, which deals with opened file IO
-devices.
+Not to be confused with `is_file_reference/1`, which tells whether a term is a
+file object/handle.
 """.
 -spec is_file( any_path() ) -> boolean().
 is_file( Path ) ->
@@ -6521,8 +6522,8 @@ write_direct_terms( File, Terms ) ->
 
 
 -doc """
-Tells whether the specified term is a file reference, i.e. a file object
-(pseudo-guard).
+Tells whether the specified term is a file reference, i.e. a file object/handle
+(behaves like a pseudo-guard).
 
 Not to be confused with `is_file/1`, which is about file paths.
 """.
