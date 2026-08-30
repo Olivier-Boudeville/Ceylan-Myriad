@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is the base, all-purpose Ceylan Emacs configuration.
 ;;
 ;; This is an initialisation script written in elisp.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is an optional, host-local Emacs configuration.
 ;; It provides an example to customise host-specific elements.
 ;;

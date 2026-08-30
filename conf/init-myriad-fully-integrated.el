@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
 
 

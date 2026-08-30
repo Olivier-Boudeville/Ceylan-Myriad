@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is a minimal configuration of Emacs regarding C/C++.
 
 

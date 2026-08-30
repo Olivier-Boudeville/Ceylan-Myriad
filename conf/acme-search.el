@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; acme-search.el --- right-click searching
 
 ;; Author: Dan McCarthy <daniel.c.mccarthy@gmail.com>

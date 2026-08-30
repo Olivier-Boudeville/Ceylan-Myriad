@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is our configuration of Emacs regarding RST mode (ReStructuredText).
 ;;
 ;; This major mode is shown as "ReST".

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is a minimal configuration of Emacs regarding Erlang.
 ;;
 ;; Only the base Erlang-related settings are specified here, i.e. the ones

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is the Ceylan Emacs configuration for security, to edit sensitive files.
 ;;
 ;; Typically symlinked as ~/.emacs.d/myriad-sensitive/init.el, and used by our

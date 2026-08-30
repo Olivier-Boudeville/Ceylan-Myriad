@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This early-init.el shall be put (as a regular file or a symlink) in one's
 ;; user-emacs-directory, typically in ~/.emacs.d/.
 ;;

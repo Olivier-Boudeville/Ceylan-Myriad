@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is our configuration of Emacs regarding package management.
 ;;
 ;; After relying on package.el then straight.el, we use now Elpaca.

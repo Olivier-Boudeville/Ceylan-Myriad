@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;; This is a more advanced configuration of Emacs regarding Erlang than
 ;; init-myriad-erlang-base.el.
 ;;
