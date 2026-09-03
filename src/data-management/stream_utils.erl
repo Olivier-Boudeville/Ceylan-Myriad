@@ -32,7 +32,7 @@ Utility module for **data streams**, which are abstractions of any kind of
 input/output devices, like files, sockets, etc.
 
 Streams are similar to the outputs of shell commands, whcih can be processed
-(e.g. filtered) by pipes.  Minor utilities to manage **pairs** (that is: all
+(e.g. filtered) by pipes. Minor utilities to manage **pairs** (that is: all
 kinds of 2-element tuples).
 """.
 
