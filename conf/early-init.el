@@ -9,4 +9,5 @@
 ;; See
 ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html
 
+;; As requested by elpaca:
 (setq package-enable-at-startup nil)
