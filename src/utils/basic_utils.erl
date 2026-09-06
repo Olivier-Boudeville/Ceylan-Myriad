@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various **convenient facilities of all sorts**.
 
-See the `basic_utils_test` module for the corresponding test.
+See `basic_utils_test.erl` module for the corresponding test.
 """.
 
 
@@ -716,8 +716,9 @@ eliminate afterwards).
           set_option/2,
 
           ignore_unused/1,
-          do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
-          trigger_oom/0 ]).
+          do_nothing/0, freeze/0,
+          crash/0, crash/1, crash_stacktraced/0,
+          enter_infinite_loop/0, trigger_oom/0 ]).
 
 
 -compile( { inline, [ set_option/2 ] } ).
@@ -1082,7 +1083,7 @@ freeze() ->
 
 
 -doc """
-Crashes the current process immediately.
+Crashes the current process immediately (with `badarith`).
 
 Useful for testing reliability, for example.
 """.
@@ -1092,17 +1093,14 @@ crash() ->
     trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",
                               [ self() ] ),
 
-    % Must outsmart the compiler; there should be simpler solutions:
-    A = system_utils:get_core_count(),
-    B = system_utils:get_core_count(),
+    do_crash().
 
-    % Dividing thus by zero:
-    1 / ( A - B ).
 
 
 
 -doc """
-Crashes the current process immediately, displaying the specified term.
+Crashes the current process immediately (with `badarith`), displaying the
+specified term.
 
 Useful for testing reliability, for example.
 """.
@@ -1112,11 +1110,37 @@ crash( Term ) ->
     trace_bridge:warning_fmt( "*** Crashing on purpose process ~w: ~p ***",
                               [ self(), Term ] ),
 
+    do_crash().
+
+
+
+
+-doc """
+Displays the current stacktrace then crashes the current process immediately
+(with `badarith`).
+
+Possibly useful to study problematic cases.
+""".
+-spec crash_stacktraced() -> void().
+crash_stacktraced() ->
+
+    % Not calling crash/1 to have a better message:
+    trace_bridge:warning_fmt( "*** Crashing on purpose process ~w, "
+        "current stacktrace being: ~ts ***",
+        [ self(), code_utils:interpret_stacktrace() ] ),
+
+    do_crash().
+
+
+
+% (helper)
+do_crash() ->
+
     % Must outsmart the compiler; there should be simpler solutions:
     A = system_utils:get_core_count(),
     B = system_utils:get_core_count(),
 
-    % Dividing thus by zero:
+    % Dividing thus by zero (resulting in 'badarith'):
     1 / ( A - B ).
 
 
@@ -2339,7 +2363,8 @@ much as possible that this message is output synchronously, so that it can be
 fully processed (typically displayed) by the console even if the virtual machine
 is to crash just after.
 """.
--spec display( ustring() ) -> void().
+% Not returning void() to allow for caller matching.
+-spec display( ustring() ) -> 'ok'.
 display( Message ) ->
 
     % Finally io:format has been preferred to erlang:display, as the latter one
@@ -2353,7 +2378,6 @@ display( Message ) ->
     timer:sleep( 10 ),
 
     system_utils:await_output_completion().
-
 
     % May not go through group leader (like io:format), thus less likely to
     % crash without displaying the message:
@@ -2369,7 +2393,8 @@ the standard output of the console, ensuring as much as possible that this
 message is output synchronously, so that it can be output on the console even if
 the virtual machine is to crash just after.
 """.
--spec display( format_string(), format_values() ) -> void().
+% Not returning void() to allow for caller matching.
+-spec display( format_string(), format_values() ) -> 'ok'.
 display( Format, Values ) ->
 
     %io:format( "Displaying format '~p' and values '~p'.~n",
@@ -2386,7 +2411,8 @@ Displays the specified string on the standard output of the console, ensuring as
 much as possible that this message is output synchronously, so that it can be
 output on the console even if the virtual machine is to crash just after.
 """.
--spec display_timed( ustring(), time_out() ) -> void().
+% Not returning void() to allow for caller matching.
+-spec display_timed( ustring(), time_out() ) -> 'ok'.
 display_timed( Message, TimeOut ) ->
 
     % Finally io:format has been preferred to erlang:display, as the latter one
