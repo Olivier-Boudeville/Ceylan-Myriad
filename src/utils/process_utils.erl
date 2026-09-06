@@ -30,7 +30,7 @@
 -moduledoc """
 Gathering of various convenient facilities regarding **(Erlang) processes**.
 
-See process_utils_test.erl for the corresponding test.
+See `process_utils_test.erl` for the corresponding test.
 """.
 
 
