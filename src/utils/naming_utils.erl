@@ -70,17 +70,53 @@ See `naming_utils_test.erl` for the corresponding test.
 
 
 
--doc "Necessarily an atom.".
--type registration_name() :: atom().
+-doc """
+The name a process may be registered as.
+
+Necessarily an atom.
+""".
+-type registration_name() :: erlang:registered_name().
 
 
 
 -doc """
-The two ways according to which a locally-registered process can be designated:
-either directly thanks to its PID or to the name under which it is locally
-registered.
+The two ways according to which a locally-registered process can be
+designated: either directly thanks to its PID or to the name under which it is
+locally registered.
 """.
 -type local_designator() :: pid() | registration_name().
+
+
+-doc """
+Designates an Erlang process locally registered either on the current node or on
+a given one.
+
+Corresponds to `erlang:registered_process_identifier/0`.
+""".
+-type locally_registered_process_id() ::
+    registration_name() % On the current node.
+  | { registration_name(), node() }. % On the specified node.
+
+
+-doc """
+Designates globally how a locally-registered process can be designated: either
+directly thanks to its PID or to the name under which it is locally registered,
+either on the current node or on another one.
+
+Corresponds to `pid() | registration_name() | {registration_name(), node()}`.
+""".
+% (not exported yet by the 'erlang' module)
+%-type global_local_designator() :: erlang:monitor_process_identifier().
+-type global_local_designator() :: pid() | locally_registered_process_id().
+
+
+
+-doc """
+The two ways according to which a globally-registered process can be
+designated: either directly thanks to its PID or to the name under which it is
+globally registered.
+""".
+-type global_designator() :: pid() | registration_name().
 
 
 
@@ -116,7 +152,11 @@ Not to be mixed up with a registration scope.
 -type lookup_info() :: { registration_name(), lookup_scope() }.
 
 
--export_type([ registration_name/0, local_designator/0,
+
+-export_type([ registration_name/0,
+               local_designator/0, locally_registered_process_id/0,
+               global_local_designator/0,
+               global_designator/0,
                registration_scope/0, lookup_scope/0, lookup_info/0 ]).
 
 
@@ -198,6 +238,9 @@ register_as( Pid, RegName, local_only ) when is_atom( RegName ) ->
     try erlang:register( RegName, Pid ) of
 
         true ->
+            cond_utils:if_defined( myriad_debug_registration,
+                trace_utils:debug_fmt( "~w registered locally as '~ts'.",
+                                       [ self(), RegName ] ) ),
             ok
 
     catch
@@ -233,8 +276,18 @@ register_as( Pid, RegName, global_only ) when is_atom( RegName ) ->
     %trace_utils:debug_fmt( "register_as: global_only, with PID=~w "
     %                       "and RegName='~p'.", [ Pid, RegName ] ),
 
-    global:register_name( RegName, Pid ) =:= yes orelse
-        throw( { global_registration_failed, RegName } );
+    case global:register_name( RegName, Pid ) of
+
+        yes ->
+            cond_utils:if_defined( myriad_debug_registration,
+                trace_utils:debug_fmt( "~w registered globally as '~ts'.",
+                                       [ self(), RegName ] ) ),
+            ok;
+
+        no ->
+            throw( { global_registration_failed, RegName, Pid } )
+
+    end;
 
 register_as( Pid, RegName, local_and_global ) when is_atom( RegName ) ->
     register_as( Pid, RegName, local_only ),
@@ -316,6 +369,9 @@ unregister( RegName, local_only ) ->
     try erlang:unregister( RegName ) of
 
         true ->
+            cond_utils:if_defined( myriad_debug_registration,
+                trace_utils:debug_fmt( "~w unregistered locally from '~ts'.",
+                                       [ self(), RegName ] ) ),
             ok
 
     catch
@@ -330,7 +386,10 @@ unregister( RegName, global_only ) ->
     % Documentation says it returns "void" (actually 'ok'):
     try
 
-        global:unregister_name( RegName )
+        global:unregister_name( RegName ),
+        cond_utils:if_defined( myriad_debug_registration,
+            trace_utils:debug_fmt( "~w unregistered globally from '~ts'.",
+                                   [ self(), RegName ] ) )
 
     catch
 
@@ -931,14 +990,19 @@ wait_for_global_registration_of( Name, DurationMs ) ->
 wait_for_global_registration_of( Name, TotalMs, RemainMs ) when RemainMs =< 0 ->
 
     cond_utils:if_defined( myriad_debug_registration,
-        trace_utils:error_fmt( "Global registration of '~ts' timed-out "
-            "after ~ts; globally registered processes: ~w",
+        trace_utils:error_fmt( "The lookup for a global registration of '~ts' "
+            "timed-out after ~ts; globally registered processes: ~w",
             [ Name, time_utils:duration_to_string( TotalMs ),
               lists:sort( get_registered_names( _LookUpScope=global ) ) ] ) ),
 
     throw( { registration_waiting_timeout, Name, global, TotalMs } );
 
 wait_for_global_registration_of( Name, TotalMs, MsToWait ) ->
+
+    cond_utils:if_defined( myriad_debug_registration, trace_utils:debug_fmt(
+        "~w waiting for global registration of '~ts': ~B/~B ms.",
+        [ self(), Name, MsToWait, TotalMs ] ) ),
+
     case global:whereis_name( Name ) of
 
         undefined ->
@@ -984,14 +1048,18 @@ wait_for_local_registration_of( Name, DurationMs ) ->
 wait_for_local_registration_of( Name, TotalMs, RemainMs ) when RemainMs =< 0 ->
 
     cond_utils:if_defined( myriad_debug_registration,
-        trace_utils:error_fmt( "Local registration of '~ts' timed-out "
-            "after ~ts; locally registered processes: ~w",
+        trace_utils:error_fmt( "The lookup for a local registration of '~ts' "
+            "timed-out after ~ts; locally registered processes: ~w",
             [ Name, time_utils:duration_to_string( TotalMs ),
               lists:sort( get_registered_names( _LookUpScope=local ) ) ] ) ),
 
     throw( { registration_waiting_timeout, Name, local, TotalMs } );
 
 wait_for_local_registration_of( Name, TotalMs, MsToWait ) ->
+
+    cond_utils:if_defined( myriad_debug_registration, trace_utils:debug_fmt(
+        "~w waiting for local registration of '~ts': ~B/~B ms.",
+        [ self(), Name, MsToWait, TotalMs ] ) ),
 
     case erlang:whereis( Name ) of
 
@@ -1044,6 +1112,11 @@ wait_for_local_otherwise_global_registration_of( Name, TotalMs, RemainMs )
              TotalMs } );
 
 wait_for_local_otherwise_global_registration_of( Name, TotalMs, MsToWait ) ->
+
+    cond_utils:if_defined( myriad_debug_registration, trace_utils:debug_fmt(
+        "~w waiting for local otherwise global registration of '~ts': "
+        "~B/~B ms.", [ self(), Name, MsToWait, TotalMs ] ) ),
+
     case erlang:whereis( Name ) of
 
         undefined ->
@@ -1103,6 +1176,11 @@ wait_for_global_otherwise_local_registration_of( Name, TotalMs, RemainMs )
              TotalMs } );
 
 wait_for_global_otherwise_local_registration_of( Name, TotalMs, MsToWait ) ->
+
+    cond_utils:if_defined( myriad_debug_registration, trace_utils:debug_fmt(
+        "~w waiting for global otherwise local registration of '~ts': "
+        "~B/~B ms.", [ self(), Name, MsToWait, TotalMs ] ) ),
+
     case global:whereis_name( Name ) of
 
         undefined ->
@@ -1151,6 +1229,11 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 
 wait_for_remote_local_registrations_of( RegisteredName, Nodes,
                                         RemainingAttempts ) ->
+
+    cond_utils:if_defined( myriad_debug_registration, trace_utils:debug_fmt(
+        "~w waiting for remote local registrations of '~ts' on ~p: "
+        "~B attempts left.",
+        [ self(), RegisteredName, Nodes, RemainingAttempts ] ) ),
 
     { ResList, BadNodes } = rpc:multicall( Nodes, erlang, whereis,
                                            [ RegisteredName  ], _Timeout=2000 ),
