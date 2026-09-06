@@ -32,16 +32,15 @@ Gathering of various facilities related to the **monitoring of processes, ports,
 time changes or nodes**.
 
 See `monitor_utils_test.erl` for the corresponding test.
+
+See also the `process_utils` module, for example the
+`spawn_message_queue_monitor/*` functions.
 """.
 
 
 
-% Monitoring section.
-
-
 -doc "Not allowed to be shortened into a local `reference/0` type.".
--type monitor_reference() :: reference().
-
+-type monitor_ref() :: reference().
 
 
 -doc "The types of language elements that can be monitored.".
@@ -50,15 +49,24 @@ See `monitor_utils_test.erl` for the corresponding test.
 
 
 % (not exported yet by the 'erlang' module)
+% That is: pid() | registered_process_identifier().
 % -type monitored_process() :: erlang:monitor_process_identifier().
 -doc "Designates an Erlang process being monitored.".
--type monitored_process() :: pid() | registered_process_identifier().
+-type monitored_process() :: pid() | erlang:registered_process_identifier().
 
 
+-doc "The PID of an ad hoc process in charge of monitoring a target process.".
+-type proc_monitor_pid() :: pid().
 
--doc "Designates a registered Erlang process.".
--type registered_process_identifier() ::
-        registered_name() | { registered_name(), node() }.
+
+-doc """
+Information returned with monitoring a target process: the monitor itself, and
+the PID of the ad hoc process relying on it.
+""".
+% A bit like a swapped version of the result of spawn_monitor/*:
+-type proc_monitor_info() :: { monitor_ref(), proc_monitor_pid() }.
+
+
 
 
 % (not exported yet by the 'erlang' module)
@@ -70,7 +78,6 @@ See `monitor_utils_test.erl` for the corresponding test.
 
 -doc "To monitor time offsets.".
 -type monitored_clock() :: 'clock_service'.
-
 
 
 -doc "An actual element being monitored.".
@@ -103,20 +110,31 @@ resides)
                              | 'nodedown_reason'.
 
 
--export_type([ monitor_reference/0, monitored_element_type/0,
-               monitored_process/0, monitored_port/0, monitored_clock/0,
+-export_type([ monitor_ref/0, monitored_element_type/0, monitored_process/0,
+               proc_monitor_pid/0, proc_monitor_info/0,
+               monitored_port/0, monitored_clock/0,
                monitored_element/0, monitor_info/0, monitor_node_info/0,
                monitor_node_option/0 ]).
 
 
+% For nodes:
 -export([ monitor_nodes/1, monitor_nodes/2 ]).
 
+% For processes:
+-export([ monitor_self/0, monitor_process/1 ]).
+
+
+% For myriad_spawn:
+-include("spawn_utils.hrl").
 
 
 % Type shorthands:
 
 -type registered_name() :: naming_utils:registration_name().
 
+
+
+% Node monitoring section.
 
 
 -doc """
@@ -146,5 +164,87 @@ monitor_nodes( DoStartNewSubscription, Options ) ->
         Error ->
             throw( { node_monitoring_failed, Error, DoStartNewSubscription,
                      Options } )
+
+    end.
+
+
+
+
+% Process monitoring section.
+%
+% The goal here is notably to track the life-cycle of processes, for debugging
+% purposes
+%
+% Using a monitor is better than relying on links and trapping EXITs.
+%
+% Sending a monitor request will in turn result in monitor messages to be
+% received.
+
+
+-doc """
+Monitors the current process with a dedicated one reporting with traces any
+monitoring event, whose PID is returned.
+
+This monitor (including the corresponding process) can be terminated by sending
+the `terminate` atom to the returned PID.
+""".
+-spec monitor_self() -> proc_monitor_pid().
+monitor_self() ->
+    monitor_process( self() ).
+
+
+-doc """
+Monitors the specified process with a dedicated one reporting with traces any
+monitoring event, whose PID is returned.
+
+This monitor (including the corresponding process) can be terminated by sending
+the `terminate` atom to the returned PID.
+""".
+-spec monitor_process( monitored_process() ) -> proc_monitor_pid().
+monitor_process( TargetProcId ) ->
+    % Not wanting to kill, even with 'normal', the caller when the monitoring
+    % process terminates, so no link:
+    %
+    ?myriad_spawn( fun() -> monitor_process_init( TargetProcId ) end ).
+
+
+
+% Run by a dedicated process:
+monitor_process_init( TargetProcId ) ->
+
+    MonRef = erlang:monitor( _Type=process, TargetProcId ),
+
+    trace_bridge:debug_fmt_echoed( "The process ~w is monitoring "
+        "the target process ~p now, based on monitor ~p.",
+        [ self(), TargetProcId, MonRef ] ),
+
+    monitor_process_loop( TargetProcId, MonRef ).
+
+
+% (helper)
+monitor_process_loop( TargetProcId, MonRef ) ->
+
+    receive
+
+        { ReasonTag, _MonitorRef=MonRef, _Type=process, _Object=TargetProcId,
+          TriggerReason } ->
+            % Note that we expect that a monitor is fired at most once (only),
+            % so we terminate here:
+            %
+            trace_bridge:notice_fmt_echoed( "~w monitor (~w) event triggered "
+                "(through ~w) for the target process ~p; reason:~n ~p",
+                [ ReasonTag, MonRef, self(), TargetProcId, TriggerReason ] );
+
+        terminate ->
+            trace_bridge:info_fmt_echoed( "Requested to terminate "
+                "the process ~w in charge of monitoring the target process ~p "
+                "(based on monitor ~w).", [ self(), TargetProcId, MonRef ] );
+
+        Other ->
+            trace_bridge:error_fmt_echoed( "Monitoring process ~w "
+                "for process ~p received an unexpected message (~p), "
+                "ignoring it.", [ self(), TargetProcId, Other] ),
+
+            monitor_process_loop( TargetProcId, MonRef )
 
     end.
