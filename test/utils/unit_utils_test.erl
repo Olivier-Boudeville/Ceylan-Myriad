@@ -28,9 +28,9 @@
 -module(unit_utils_test).
 
 -moduledoc """
-Unit tests for the management of **units**.
+Unit tests for the management of **units**, like kilograms or meters.
 
-See the unit_utils.erl tested module.
+See the `unit_utils` tested module.
 """.
 
 
@@ -72,8 +72,8 @@ test_parsing() ->
     test_parse( "-7.0011 A^1.s^2/km^2",   "-7.0011e-6 s^2.A^1.m^-2" ),
 
 
-    test_facilities:display( "~nTesting the remaining of the 7 SI "
-                             "base units." ),
+    test_facilities:display(
+        "~nTesting the remaining of the 7 SI base units." ),
 
     % Meter already done.
     test_parse( "1038  kg^2.kg^-3.kg.kg.g", "1.038e6 g^2" ),
