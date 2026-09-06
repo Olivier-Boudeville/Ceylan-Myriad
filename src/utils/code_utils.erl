@@ -1197,7 +1197,9 @@ A replacement for the deprecated `erlang:get_stacktrace/0`.
 """.
 -spec get_stacktrace() -> stack_trace().
 get_stacktrace() ->
-    get_stacktrace( _SkipLastElemCount=0 ).
+    % By default we do not want to include interpret_stacktrace/0 in the stack:
+    % (otherwise specify a zero count)
+    get_stacktrace( _SkipLastElemCount=1 ).
 
 
 
@@ -1210,11 +1212,16 @@ relevant stacktrace).
 get_stacktrace( SkipLastElemCount ) ->
     try
 
-        throw( generate_stacktrace )
+        % Not using throw/1, which supposedly would generate a shortened
+        % stacktrace; nevertheless, due to tail-call optimisation, inlining,
+        % calls to BIFs, optimised anonymous funs, BeamAsm/JIT, direct calls
+        % (jumps), "useless" frames may be removed.
+        %
+        erlang:error( generate_stacktrace )
 
-    catch throw:generate_stacktrace:Stacktrace ->
+    catch error:generate_stacktrace:Stacktrace ->
 
-        %trace_utils:debug_fmt( "Got stacktrace: ~p", [ Stacktrace ] ),
+        trace_utils:debug_fmt( "Got stacktrace: ~p", [ Stacktrace ] ),
 
         % To remove the initial call to code_utils:get_stacktrace/0, by design
         % at the top of the stack:
@@ -1257,11 +1264,7 @@ current stacktrace.
 """.
 -spec interpret_stacktrace() -> ustring().
 interpret_stacktrace() ->
-
-    % We do not want to include interpret_stacktrace/0 in the stack:
-    Stacktrace = get_stacktrace( _SkipLastElemCount=1 ),
-
-    interpret_stacktrace( Stacktrace ).
+    interpret_stacktrace( get_stacktrace() ).
 
 
 -doc """
