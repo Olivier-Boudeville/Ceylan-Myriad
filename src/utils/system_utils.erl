@@ -439,7 +439,7 @@ variable is not set.
 
 
 
--doc "An option about encoding. Subset of file:mode/0.".
+-doc "An option about encoding. Subset of `file:mode/0`.".
 -type encoding_option() :: { 'encoding', encoding() }.
 
 
@@ -835,7 +835,7 @@ get_default_encoding() ->
 Returns the default recommended option encoding option, for example when needing
 to open a file for writing - should such an option be used.
 
-See the notes in the 'Regarding encodings and Unicode' section of the file_utils
+See the notes in the `Regarding encodings and Unicode` section of the file_utils
 module, notably about the consequences of specifying an encoding at file opening
 (generally directly writing encoded content is safer and offers more control).
 """.
@@ -874,9 +874,9 @@ displaying and the halting.
 
 We use a relatively short waiting here, just out of safety. It may be in some
 cases insufficient (e.g. for error traces to be sent, received and stored
-*before* the VM is halted after a throw/1 that may be executed just after).
+*before* the VM is halted after a `throw/1` that may be executed just after).
 
-In this case, await_output_completion/1 should be used, with a larger delay.
+In this case, `await_output_completion/1` should be used, with a larger delay.
 """.
 -spec await_output_completion() -> void().
 
@@ -887,7 +887,6 @@ await_output_completion() ->
     await_output_completion( _MsTimeOut=300 ).
 
 -else. % myriad_debug_mode
-
 
 % doc: Extended time-out (2.5 seconds), if for example being in production, on a
 % possibly heavily loaded system:
@@ -909,7 +908,7 @@ Especially useful when displaying an error message on the standard output and
 then immediately halting the VM, in order to avoid a race condition between the
 displaying and the halting.
 """.
--spec await_output_completion( milliseconds() ) -> void().
+-spec await_output_completion( milliseconds() ) -> 'ok'.
 await_output_completion( _MsTimeOut ) ->
 
     % Not sure it is really the proper way of waiting, however should be still
@@ -920,7 +919,11 @@ await_output_completion( _MsTimeOut ) ->
     %trace_utils:debug( "(awaiting output completion)" ),
 
     % Almost just a yield (re-enabled, see below):
-    timer:sleep( 10 ),
+    %
+    % Note that this implies that 'ok' is returned, and this specific atom may
+    % still be matched by some callers (see trace_bridge):
+    %
+    timer:sleep( 10 ).
 
     %trace_utils:debug( "(output completed)" ),
 
@@ -947,7 +950,6 @@ await_output_completion( _MsTimeOut ) ->
     % As for logger, a doubt remains about its synchronicity, see
     % test_facilities:start/1 about that.
 
-    ok.
 
 
 
@@ -1124,7 +1126,6 @@ run_command( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
 
 -doc """
-
 Executes (synchronously) the specified executable, whose path is exactly the
 specified one (that is: taken verbatim, not looked-up through any PATH
 environment variable; use, in the `executable_utils` module,
@@ -1572,7 +1573,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one should consider using evaluate_background_shell_expression/1 instead.
+one should consider using `evaluate_background_shell_expression/1` instead.
 """.
 -spec run_background_command( command() ) -> void().
 run_background_command( Command ) ->
@@ -1681,7 +1682,7 @@ For that, as it is a process-blocking operation in Erlang, a dedicated process
 is spawned (and most probably lost).
 
 If this function is expected to be called many times, to avoid the process leak,
-one may consider using evaluate_background_shell_expression/1 instead.
+one may consider using `evaluate_background_shell_expression/1` instead.
 """.
 -spec run_background_executable( executable_path() ) -> void().
 run_background_executable( ExecPath ) ->
@@ -1774,7 +1775,7 @@ PATH environment variable; use, in the `executable_utils` module,
 `lookup_executable/{1,2}` or `find_executable/1` for that; not using any
 intermediary shell either, use `evaluate_shell_expression/{1,2}` for that) with
 the specified command-line arguments, environment, working directory and port
-options (see [http://erlang.org/doc/man/erlang.html#open_port-2]).
+options (see <http://erlang.org/doc/man/erlang.html#open_port-2>).
 
 As a consequence it returns no return code (exit status) nor output.
 
@@ -2273,7 +2274,7 @@ should be preferred, provided the value is not a bitstring (that are accepted by
 `is_binary/1` shall be used beforehand (note that the compiler removes redundant
 calls to `is_binary/1`).
 
-See also [https://www.erlang.org/doc/efficiency_guide/advanced.html].
+See also <https://www.erlang.org/doc/efficiency_guide/advanced.html>.
 """.
 -spec get_size( term() ) -> byte_size().
 get_size( Bin ) when is_binary( Bin ) ->
@@ -2293,7 +2294,7 @@ expressed in bytes, using multipliers of 2^10=1024 (hence not SI kilos, that is
 1000-based multipliers): GiB (Gibibytes, not Gigabytes), MiB (Mebibytes, not
 Megabytes), KiB (Kibibytes, not Kilobytes) and bytes.
 
-See [http://en.wikipedia.org/wiki/Kibibyte].
+See <http://en.wikipedia.org/wiki/Kibibyte>.
 """.
 -spec interpret_byte_size( byte_size() ) -> ustring().
 interpret_byte_size( SizeInBytes ) ->
@@ -2379,7 +2380,7 @@ Gigabytes), MiB (Mebibytes, not Megabytes), KiB (Kibibytes, not Kilobytes) and
 bytes, rounding that value to 1 figure after the comma (this is thus an
 approximate value).
 
-See [http://en.wikipedia.org/wiki/Kibibyte].
+See <http://en.wikipedia.org/wiki/Kibibyte>.
 """.
 -spec interpret_byte_size_with_unit( byte_size() ) -> ustring().
 interpret_byte_size_with_unit( Size ) ->
@@ -2430,8 +2431,8 @@ wanted); Unit can be `gib`, for GiB (Gibibytes), `mib`, for MiB (Mebibytes),
 - Value is the converted byte size, in the specified returned unit, expressed
 either as an integer (for bytes) or as a float
 
-For example 1023 (bytes) translates to {byte, 1023}, 1025 translates to {kib,
-1.0009765625}.
+For example 1023 (bytes) translates to `{byte, 1023}`, 1025 translates to `{kib,
+1.0009765625}`.
 
 Note that the returned value cannot be expected to be exact (rounded), therefore
 this function is mostly useful for user output.
