@@ -77,15 +77,20 @@ trace_bridge:register(BridgeSpec), [...]
 -export_type([ bridge_pid/0 ]).
 
 
+% Trace bridge management:
 -export([ get_bridge_spec/2, get_bridge_spec/3,
           register/1, register_if_not_already/1,
           get_bridge_info/0, set_bridge_info/1,
           set_application_timestamp/1, unregister/0,
           wait_bridge_sync/0,
 
-          inhibit_any/0, restore_any/1,
+          inhibit_any/0, restore_any/1 ]).
 
-          debug/1, debug_fmt/2,
+
+% Base bridged traces, going through an advanced trace system otherwise being
+% output on the console:
+%
+-export([ debug/1, debug_fmt/2,
           info/1, info_fmt/2,
           notice/1, notice_fmt/2,
           warning/1, warning_fmt/2,
@@ -96,6 +101,18 @@ trace_bridge:register(BridgeSpec), [...]
           void/1, void_fmt/2,
 
           send/2, send/3 ]).
+
+
+% Bridge traces echoed (exactly once, in all cases) on the console:
+-export([ debug_echoed/1, debug_fmt_echoed/2,
+          info_echoed/1, info_fmt_echoed/2,
+          notice_echoed/1, notice_fmt_echoed/2,
+          warning_echoed/1, warning_fmt_echoed/2,
+          error_echoed/1, error_fmt_echoed/2,
+          critical_echoed/1, critical_fmt_echoed/2,
+          alert_echoed/1, alert_fmt_echoed/2,
+          emergency_echoed/1, emergency_fmt_echoed/2,
+          void_echoed/1, void_fmt_echoed/2 ]).
 
 
 % Keys defined in the process dictionary:
@@ -110,7 +127,6 @@ trace_bridge:register(BridgeSpec), [...]
 % to a Trace system.
 %
 % Not special-casing the 'void' severity, as not used frequently enough.
-
 
 
 % Type shorthands:
@@ -151,17 +167,19 @@ thereof.
 
 
 -doc "A bridging information stored in a target process dictionary.".
--opaque bridge_info() :: {
-        TraceEmitterName :: bin_string(),
-        TraceCategory :: bin_string(),
-        Location :: bin_string(),
-        BridgePid :: bridge_pid(),
-        ApplicationTimestamp :: option( trace_timestamp() ) }
+-opaque bridge_info() ::
 
-  % In some very rare cases, we want to inhibit a trace bridge (e.g. if needing
-  % to determine whether a service is available by triggering an operation that
-  % may fail with an error trace that should not be reported overall):
-  %
+  { TraceEmitterName :: bin_string(),
+    TraceCategory :: bin_string(),
+    Location :: bin_string(),
+    BridgePid :: bridge_pid(),
+    ApplicationTimestamp :: option( trace_timestamp() ) }
+
+    % In some very rare cases, we want to inhibit a trace bridge (e.g. if
+    % needing to determine whether a service is available by triggering an
+    % operation that may fail with an error trace that should not be reported
+    % overall):
+    %
   | 'inhibited_trace_bridge'.
 
 
@@ -418,7 +436,6 @@ info( Message ) ->
     send( info, Message ).
 
 
-
 -doc "Outputs the specified info message to format.".
 -spec info_fmt( format_string(), format_values() ) -> void().
 info_fmt( MessageFormat, MessageValues ) ->
@@ -528,8 +545,176 @@ void_fmt( _MessageFormat, _MessageValues ) ->
 
 
 
+% Section for "echoed traces", i.e. traces that are wanted to be output exactly
+% once on the console (not zero, not multiple times), possibly alongside
+% advanced traces, notably in order to facilitate debugging.
+%
+% If send/* returns 'ok', then trace_utils was used, and no extra console output
+% is needed, otherwise such an output is done.
+
+
+-doc "Outputs the specified debug message, at least (once) on the console.".
+-spec debug_echoed( trace_message() ) -> void().
+debug_echoed( Message ) ->
+    send( debug, Message ) =:= ok orelse
+        trace_utils:debug( Message ).
+
+
+-doc """
+Outputs the specified debug message to format, at least (once) on the console.
+""".
+-spec debug_fmt( format_string(), format_values() ) -> void().
+debug_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( debug, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:debug_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified info message, at least (once) on the console.".
+-spec info_echoed( trace_message() ) -> void().
+info_echoed( Message ) ->
+    send( info, Message ) =:= ok orelse
+        trace_utils:info( Message ).
+
+
+-doc """
+Outputs the specified info message to format, at least (once) on the console.
+""".
+-spec info_fmt( format_string(), format_values() ) -> void().
+info_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( info, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:info_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified notice message, at least (once) on the console.".
+-spec notice_echoed( trace_message() ) -> void().
+notice_echoed( Message ) ->
+    send( notice, Message ) =:= ok orelse
+        trace_utils:notice( Message ).
+
+
+-doc """
+Outputs the specified notice message to format, at least (once) on the console.
+""".
+-spec notice_fmt( format_string(), format_values() ) -> void().
+notice_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( notice, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:notice_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified warning message, at least (once) on the console.".
+-spec warning_echoed( trace_message() ) -> void().
+warning_echoed( Message ) ->
+    send( warning, Message ) =:= ok orelse
+        trace_utils:warning( Message ).
+
+
+-doc """
+Outputs the specified warning message to format, at least (once) on the console.
+""".
+-spec warning_fmt( format_string(), format_values() ) -> void().
+warning_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( warning, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:warning_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified error message, at least (once) on the console.".
+-spec error_echoed( trace_message() ) -> void().
+error_echoed( Message ) ->
+    send( error, Message ) =:= ok orelse
+        trace_utils:error( Message ).
+
+
+-doc """
+Outputs the specified error message to format, at least (once) on the console.
+""".
+-spec error_fmt( format_string(), format_values() ) -> void().
+error_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( error, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:error_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified critical message, at least (once) on the console.".
+-spec critical_echoed( trace_message() ) -> void().
+critical_echoed( Message ) ->
+    send( critical, Message ) =:= ok orelse
+        trace_utils:critical( Message ).
+
+
+-doc """
+Outputs the specified critical message to format, at least (once) on the
+console.
+""".
+-spec critical_fmt( format_string(), format_values() ) -> void().
+critical_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( critical, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:critical_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified alert message, at least (once) on the console.".
+-spec alert_echoed( trace_message() ) -> void().
+alert_echoed( Message ) ->
+    send( alert, Message ) =:= ok orelse
+        trace_utils:alert( Message ).
+
+
+-doc """
+Outputs the specified alert message to format, at least (once) on the console.
+""".
+-spec alert_fmt( format_string(), format_values() ) -> void().
+alert_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( alert, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:alert_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc "Outputs the specified emergency message, at least (once) on the console.".
+-spec emergency_echoed( trace_message() ) -> void().
+emergency_echoed( Message ) ->
+    send( emergency, Message ) =:= ok orelse
+        trace_utils:emergency( Message ).
+
+
+-doc """
+Outputs the specified emergency message to format, at least (once) on the
+console.
+""".
+-spec emergency_fmt( format_string(), format_values() ) -> void().
+emergency_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( emergency, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:emergency_fmt( MessageFormat, MessageValues ).
+
+
+
+-doc """
+"Outputs" the specified void message, at least (once) on the console.
+""".
+-spec void_echoed( trace_message() ) -> void().
+void_echoed( Message ) ->
+    send( void, Message ) =:= ok orelse
+        trace_utils:void( Message ).
+
+
+-doc """
+"Outputs" the specified void message to format, at least (once) on the console.
+""".
+-spec void_fmt( format_string(), format_values() ) -> void().
+void_fmt_echoed( MessageFormat, MessageValues ) ->
+    send( void, MessageFormat, MessageValues ) =:= ok orelse
+        trace_utils:void_fmt( MessageFormat, MessageValues ).
+
+
+
+
+
 % (helper)
--spec send( trace_severity(), trace_message() ) -> void().
+% (returns 'ok' iff trace_utils is used - hence console outputs are done)
+-spec send( trace_severity(), trace_message() ) -> 'ok' | any().
 send( SeverityType, Message ) ->
 
     case process_dictionary:get( ?myriad_trace_bridge_key ) of
@@ -547,7 +732,8 @@ send( SeverityType, Message ) ->
 
 
 % (helper)
--spec send( trace_severity(), format_string(), format_values() ) -> void().
+-spec send( trace_severity(), format_string(), format_values() ) ->
+                                            'ok' | any().
 send( SeverityType, MessageFormat, MessageValues ) ->
 
     %io:format( "Sending ~ts message of format '~ts' and values ~p.",
@@ -574,6 +760,9 @@ send( SeverityType, MessageFormat, MessageValues ) ->
 
 
 % Mimicking the Ceylan-Traces protocol.
+% Not returning 'ok' on purpose.
+-spec send_bridge( trace_severity(), trace_message(), bridge_info() ) ->
+                                            'ok' | any().
 send_bridge( SeverityType, Message,
              _BridgeInfo={ TraceEmitterName, TraceEmitterCategorization,
                            BinLocation, BridgePid, AppTimestamp } ) ->
@@ -613,17 +802,19 @@ send_bridge( SeverityType, Message,
             wait_bridge_sync();
 
         false ->
-            % Unechoed fire and forget here:
+            % Unechoed fire and forget here (and not returning 'ok'):
             BridgePid ! { send, Msg }
 
     end;
 
-send_bridge( SeverityType, Message, _BridgeInfo=inhibited_trace_bridge ) ->
+send_bridge( SeverityType, Message, BridgeInfo=inhibited_trace_bridge ) ->
     cond_utils:if_defined( myriad_debug_traces,
         trace_utils:debug_fmt(
             "Not sending trace '~ts' with ~ts severity: inhibited bridge.",
             [ Message, SeverityType ] ),
-        basic_utils:ignore_unused( [ SeverityType, Message ] ) ).
+        basic_utils:ignore_unused( [ SeverityType, Message ] ) ),
+    % Avoiding 'ok':
+    BridgeInfo.
 
 
 
@@ -631,7 +822,8 @@ send_bridge( SeverityType, Message, _BridgeInfo=inhibited_trace_bridge ) ->
 -doc """
 Waits for the bridge to report that a trace synchronisation has been completed.
 """.
--spec wait_bridge_sync() -> void().
+% Avoiding to return 'ok' on purpose:
+-spec wait_bridge_sync() -> 'trace_aggregator_synchronised'.
 wait_bridge_sync() ->
 
     receive
@@ -647,7 +839,7 @@ wait_bridge_sync() ->
         % currently, we prefer being bound only by message structures, not by
         % module calls)
         %
-        { wooper_result, trace_aggregator_synchronised } ->
-            ok
+        { wooper_result, Res=trace_aggregator_synchronised } ->
+            Res
 
     end.
