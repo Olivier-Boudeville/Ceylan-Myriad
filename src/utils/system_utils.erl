@@ -36,15 +36,16 @@ See `system_utils_test.erl` for the corresponding test.
 
 
 % User-related functions.
--export([ get_user_name/0, get_user_name_safe/0, get_user_name_string/0,
-          get_user_id/0,
-          get_user_info/0, get_user_info_safe/0,
+-export([ get_user_name/0, describe_user_name/0, get_user_name_string/0,
+          get_user_id/0, describe_user_id/0,
+          get_user_info/0, describe_user_info/0,
           get_user_home_directory/0, get_user_home_directory/1,
           get_user_home_directory_string/0 ]).
 
 
 % Group-related functions.
--export([ get_group_id/0, get_group_name/0, get_group_name_safe/0 ]).
+-export([ get_group_id/0, describe_group_id/0,
+          get_group_name/0, describe_group_name/0 ]).
 
 
 % Unicode-related support.
@@ -587,7 +588,7 @@ identifier).
 
 
 -doc "Returns the name of the current user, as a plain string.".
--spec get_user_name() -> ustring().
+-spec get_user_name() -> user_name().
 get_user_name() ->
 
     case run_command( ?id "-un" ) of
@@ -623,8 +624,8 @@ Returns the name of the current user, as a plain string.
 
 Not expected to fail.
 """.
--spec get_user_name_safe() -> user_name().
-get_user_name_safe() ->
+-spec describe_user_name() -> ustring().
+describe_user_name() ->
 
     try
 
@@ -662,7 +663,8 @@ get_user_name_string() ->
 
 
 
--doc "Returns the (system) identifier of the current user.".
+
+-doc "Returns the (system) identifier (UID) of the current user.".
 -spec get_user_id() -> user_id().
 get_user_id() ->
 
@@ -673,6 +675,28 @@ get_user_id() ->
 
         { ExitCode, ErrorOutput } ->
             throw( { user_id_inquiry_failed, ExitCode, ErrorOutput } )
+
+    end.
+
+
+
+-doc """
+Returns the (system) identifier (UID) of the current user, as a plain string.
+
+Not expected to fail.
+""".
+-spec describe_user_id() -> ustring().
+describe_user_id() ->
+
+    case run_command( ?id "-u" ) of
+
+        { _ExitCode=0, Output } ->
+            Output;
+
+        { _ExitCode, ErrorOutput } ->
+            trace_utils:error_fmt( "Failed to resolve current UID: '~ts'.",
+                                   [ ErrorOutput ] ),
+            "(unknown user identifier)"
 
     end.
 
@@ -690,9 +714,9 @@ Returns the system information regarding the current user.
 
 Not expected to fail.
 """.
--spec get_user_info_safe() -> { user_name(), group_name() }.
-get_user_info_safe() ->
-    { get_user_name_safe(), get_group_name_safe() }.
+-spec describe_user_info() -> { user_name(), group_name() }.
+describe_user_info() ->
+    { describe_user_name(), describe_group_name() }.
 
 
 
@@ -776,6 +800,28 @@ get_group_id() ->
 
 
 
+-doc """
+Returns the (system) identifier (GID) of the current group, as a plain string.
+
+Not expected to fail.
+""".
+-spec describe_group_id() -> ustring().
+describe_group_id() ->
+
+    case run_command( ?id "-g" ) of
+
+        { _ExitCode=0, Output } ->
+            Output;
+
+        { _ExitCode, ErrorOutput } ->
+            trace_utils:error_fmt( "Failed to resolve current GID: '~ts'.",
+                                   [ ErrorOutput ] ),
+            "(unknown group identifier)"
+
+    end.
+
+
+
 -doc "Returns the name of the group of the current user, as a plain string.".
 -spec get_group_name() -> group_name().
 get_group_name() ->
@@ -797,8 +843,8 @@ Returns the name of the group of the current user, as a plain string.
 
 Not expected to fail.
 """.
--spec get_group_name_safe() -> group_name().
-get_group_name_safe() ->
+-spec describe_group_name() -> ustring().
+describe_group_name() ->
 
     try
 
