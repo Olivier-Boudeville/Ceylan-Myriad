@@ -1213,10 +1213,14 @@ get_stacktrace( SkipLastElemCount ) ->
     try
 
         % Not using throw/1, which supposedly would generate a shortened
-        % stacktrace; nevertheless, due to tail-call optimisation, inlining,
-        % calls to BIFs, optimised anonymous funs, BeamAsm/JIT, direct calls
-        % (jumps), "useless" frames may be removed.
+        % stacktrace; nevertheless, possibly due to tail-call optimisation,
+        % inlining, calls to BIFs, optimised anonymous funs, BeamAsm/JIT, direct
+        % calls (jumps), "useless" frames may be removed.
         %
+        % In our test, error/1 and throw/1 resulted in the same stacktrace,
+        % which had only 8 levels out of possibly twice as many, and we did not
+        % find a solution to avoid that (even by disabling inline and LCO).
+
         erlang:error( generate_stacktrace )
 
     catch error:generate_stacktrace:Stacktrace ->
