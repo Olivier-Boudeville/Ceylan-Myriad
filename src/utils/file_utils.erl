@@ -31,7 +31,7 @@
 Gathering of various facilities regarding **files and other filesystem
 elements**.
 
-See the `file_utils_test` module for the corresponding test.
+See `file_utils_test.erl` for the corresponding test.
 """.
 
 
@@ -577,6 +577,18 @@ an atom), or any PID handling the I/O protocols.
 -type permission_mask() :: non_neg_integer().
 
 
+-type access_status() ::
+
+    'accessible'    % Existing and accessible by the current user.
+
+  | 'not_accessible' % Not accessible by the current user (yet possibly
+                     % existing; example of a file within a directory that is
+                     % not accessible).
+
+  | 'non_existing'. % Non-existing for good.
+
+
+
 
 % We previously considered also (was not satisfactory, as introducing a
 % different return type):
@@ -644,6 +656,8 @@ for further information)
 
 -type count() :: basic_utils:count().
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type posix_reason()  :: error_utils:posix_reason().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -1462,9 +1476,18 @@ replace_extension( FilePath, SourceExtension, TargetExtension ) ->
 
 
 
+% General rule: tests should not throw unless serious error conditions are met,
+% and then should not report detailed diagnoses (as such diagnosis may use tests
+% in turn, and the whole shall not recurse indefinitely).
+
+
 -doc """
 Tells whether the specified filesystem entry exists, regardless of its actual
 type.
+
+Can throw, and then reports detailed diagnoses.
+
+Refer to `get_access_status/1` for a raw version (no diagnosis, no throw) of it.
 """.
 -spec exists( any_path() ) -> boolean().
 exists( EntryName ) ->
@@ -1481,8 +1504,44 @@ exists( EntryName ) ->
                      access_denied,
                      get_element_access_denied_info( EntryName ) } );
 
-        { error, _Reason } ->
-            false
+        { error, PosixReason } ->
+            throw( { PosixReason, EntryName,
+                     error_utils:get_descriptions( PosixReason ) } )
+
+    end.
+
+
+
+-doc """
+Tells whether the specified filesystem entry exists and can be accessed,
+regardless of its actual type.
+
+Note that dead symbolic links are deemed existing.
+
+Does not throw.
+
+Raw version of `exists/1`: no detailed diagnosis is reported, notably in order
+to avoid any infinite recursion (e.g. an `exists/1` failing, resulting
+ultimately in another call of the same function being made on the same file).
+""".
+-spec get_access_status( any_path() ) -> access_status().
+get_access_status( EntryName ) ->
+    case file:read_link_info( EntryName ) of
+
+        { ok, _FileInfo } ->
+            accessible;
+
+        { error, _Reason=enoent } ->
+            non_existing;
+
+        { error, _Reason=eacces } ->
+            not_accessible;
+
+        { error, AnyOtherReason } ->
+            % If wanting to investigate:
+            trace_utils:warning_fmt( "Failed to get the access status "
+                "of '~ts': ~p.",  [ EntryName, AnyOtherReason ] ),
+            not_accessible
 
     end.
 
@@ -1494,9 +1553,17 @@ Returns the (direct) type of the specified file entry (hence may return
 
 See `resolve_type_of/1` to go through symbolic links, and return the actual,
 ultimate entry type resolved.
+
+Throws an exception with a detailed diagnosis if an error is reported.
 """.
 -spec get_type_of( any_path() ) -> entry_type().
 get_type_of( Path ) ->
+
+    trace_utils:debug_fmt( "Getting type of path '~ts'.", [ Path ] ),
+
+    % If ever needing to investigate:
+    %text_utils:ensure_string( Path ) =:= "/some/path"
+    %    andalso basic_utils:crash_stacktraced(),
 
     % We used to rely on file:read_file_info/1, but an existing symlink pointing
     % to a non-existing entry was triggering the enoent error, while we just
@@ -1527,16 +1594,48 @@ get_type_of( Path ) ->
 
 
 -doc """
-Returns the actual, ultimate type of the specified file entry (hence may not
-return `symlink`).
+Returns, in a safe manner, any (direct) type found for the specified file entry
+(hence may return `symlink` if the path of a symbolic link is specified).
 
-Refer to `get_type_of/1` to return the type into which the specified entry
+See `resolve_type_of/1` to go through symbolic links, and return the actual,
+ultimate entry type resolved.
+
+Returns `undefined`, safely, i.e. rather than throwing an exception like
+`get_type_of/1` in case of problem, avoiding to emit any diagnosis that could
+result in an infinite recursion.
+""".
+-spec get_type_of_safe( any_path() ) ->
+    entry_type() | { 'unknown', posix_reason() | 'badarg' }.
+get_type_of_safe( Path ) ->
+
+    % See get_type_of/1 for more details.
+
+    case file:read_link_info( Path ) of
+
+        { ok, #file_info{ type=FileType } } ->
+            FileType;
+
+       AnyError ->
+            { unknown, AnyError }
+
+    end.
+
+
+
+-doc """
+Returns the actual, ultimate type of the specified file entry (hence may not
+return `symlink`). Throws an exception on failure.
+
+Refer to `get_type_of*/1` to return the type into which the specified entry
 resolves first (thus possibly resolving in a symbolic link).
 """.
 -spec resolve_type_of( any_path() ) -> entry_type().
 resolve_type_of( Path ) ->
 
     case file:read_file_info( Path ) of
+
+        { ok, #file_info{ type=symlink } } ->
+            get_type_of( resolve_symlink_fully( Path ) );
 
         { ok, #file_info{ type=FileType } } ->
             FileType;
@@ -1560,13 +1659,19 @@ resolve_type_of( Path ) ->
 -doc """
 Resolves the specified symbolic link once: returns the entry (potentially
 another symbolic link) to which it points.
+
+Throws an exception on failure.
 """.
 -spec resolve_symlink_once( any_path() ) -> any_path().
 resolve_symlink_once( SymlinkPath ) ->
 
+    trace_utils:debug_fmt( "Resolving once symlink '~ts'.", [ SymlinkPath ] ),
+
     case file:read_link_all( SymlinkPath ) of
 
         { ok, TargetPath } ->
+            trace_utils:debug_fmt( "Symlink resolved as '~ts'.",
+                                   [ TargetPath ] ),
             TargetPath;
 
         { error, eacces } ->
@@ -1588,7 +1693,7 @@ exception (including if exceeding a larger link depth, which happens most
 probably because these links form a cycle; throwing arbitrarily an exception is
 better than looping for ever).
 
-Note that an absolute directory path may be returned even if supplied with a
+Note that an absolute directory path will be returned, even if supplied with a
 relative one, as a symlink source may be relative to its parent, and they may be
 arbitrarily nested. For example a `foo/bar/s1.txt` symlink may be resolved as
 `s2.txt`: then this last entry shall not be searched literally as `s2.txt` (thus
@@ -1598,6 +1703,9 @@ avoid this contextual dependency.
 """.
 -spec resolve_symlink_fully( any_path() ) -> abs_directory_path().
 resolve_symlink_fully( SymlinkPath ) ->
+
+    trace_utils:debug_fmt( "Resolving fully symlink '~ts'.", [ SymlinkPath ] ),
+
     resolve_symlink_fully( SymlinkPath, SymlinkPath, _MaxDepth=50 ).
 
 
@@ -1605,12 +1713,15 @@ resolve_symlink_fully( SymlinkPath ) ->
 resolve_symlink_fully( _SymlinkPath, OrigSymlinkPath, _Depth=0 ) ->
 
     trace_utils:error_fmt( "Maximum symlink depth reached for '~ts'; "
-        "most probably these links form a cycle.", [ OrigSymlinkPath ] ),
+        "most probably that these links form a cycle.", [ OrigSymlinkPath ] ),
 
     throw( { max_symlink_depth_reached_for, OrigSymlinkPath } );
 
 
 resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
+
+    trace_utils:debug_fmt( "Resolving fully symlink '~ts' with depth: ~B.",
+                           [ SymlinkPath, Depth ] ),
 
     case file:read_link_all( SymlinkPath ) of
 
@@ -1619,6 +1730,9 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
             RetargetedPath = case is_absolute_path( TargetPath ) of
 
                 true ->
+                    trace_utils:debug_fmt(
+                      "Symlink resolved as direct absolute path '~ts'.",
+                      [ TargetPath ] ),
                     TargetPath;
 
                 false ->
@@ -1626,29 +1740,49 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
                     BaseDir = get_base_path( SymlinkPath ),
 
                     % No need to normalise:
-                    any_join( BaseDir, TargetPath )
+                    Res = any_join( BaseDir, TargetPath ),
+                    trace_utils:debug_fmt(
+                        "Symlink resolved as absolute path '~ts'.",
+                        [ Res ] ),
+                    Res
 
             end,
+
+            trace_utils:debug_fmt( "Retargeted symlink is '~ts'.",
+                                   [ RetargetedPath ] ),
 
             case is_link( RetargetedPath ) of
 
                 true ->
+                    trace_utils:debug_fmt(
+                        "Symlink resolved as another symlink, '~ts'.",
+                        [ RetargetedPath ] ),
                     % Then we consider the actual target of that symlink:
                     resolve_symlink_fully( RetargetedPath, OrigSymlinkPath,
                                            Depth-1 );
 
                 false ->
+                    trace_utils:debug_fmt( "Symlink fully resolved as '~ts'.",
+                                           [ RetargetedPath ] ),
                     % Better kept as a potentially relative path:
                     RetargetedPath
 
             end;
 
         { error, eacces } ->
+
+            trace_utils:error_fmt( "Access denied for symlink '~ts'",
+                                   [ SymlinkPath ] ),
+
             throw( { resolve_symlink_fully_failed,
                      text_utils:ensure_string( SymlinkPath ), access_denied,
                      get_element_access_denied_info( SymlinkPath ) } );
 
         { error, Reason } ->
+
+            trace_utils:error_fmt( "Error when resolving symlink '~ts': ~p",
+                                   [ SymlinkPath, Reason ] ),
+
             throw( { symlink_resolution_failed, Reason, OrigSymlinkPath } )
 
     end.
@@ -1656,7 +1790,38 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
 
 
 -doc """
-Returns the user identifier (uid) of the owner of the specified file entry.
+Tries to fully resolve the specified symbolic link by returning any entry to
+which it points ultimately (therefore this entry cannot be a symbolic link).
+
+Does not throw an exception in case of problem, but may return `undefined` in
+case of failure.
+
+Refer to `resolve_symlink_fully/1` for more details about returned paths.
+""".
+-spec resolve_symlink_fully_safe( any_path() ) ->
+                                            option( abs_directory_path() ).
+resolve_symlink_fully_safe( SymlinkPath ) ->
+
+    try
+
+        resolve_symlink_fully( SymlinkPath )
+
+     catch throw:E ->
+
+        trace_utils:error_fmt(
+            "Failed to fully resolve the symbolic link '~ts': ~p",
+            [ SymlinkPath, E ] ),
+
+        undefined
+
+     end.
+
+
+
+-doc """
+Returns the user identifier (`uid`) of the owner of the specified file entry.
+
+May throw and report a diagnosis.
 """.
 -spec get_owner_of( any_path() ) -> system_utils:user_id().
 get_owner_of( Path ) ->
@@ -1681,7 +1846,7 @@ get_owner_of( Path ) ->
 -doc """
 Returns any description of the owner of the specified file entry.
 
-Never fails.
+Never fails, never throws.
 """.
 -spec describe_owner_of( any_path() ) -> ustring().
 describe_owner_of( Path ) ->
@@ -1693,6 +1858,7 @@ describe_owner_of( Path ) ->
 
         { error, _Reason=eacces } ->
 
+            % Not wanting potentially infinite recursion:
             %throw( { describe_owner_of_failed,
             %   text_utils:ensure_string( Path ),
             %   access_denied, get_element_access_denied_info( Path ) } );
@@ -1708,6 +1874,8 @@ describe_owner_of( Path ) ->
 
 -doc """
 Returns the group identifier (gid) of the group of the specified file entry.
+
+May throw and report a diagnosis.
 """.
 -spec get_group_of( any_path() ) -> system_utils:group_id().
 get_group_of( Path ) ->
@@ -1731,7 +1899,7 @@ get_group_of( Path ) ->
 -doc """
 Returns any description of the group of the specified file entry.
 
-Never fails.
+Never fails, never throws.
 """.
 -spec describe_group_of( any_path() ) -> ustring().
 describe_group_of( Path ) ->
@@ -1743,6 +1911,7 @@ describe_group_of( Path ) ->
 
         { error, _Reason=eacces } ->
 
+            % Not wanting potentially infinite recursion:
             %throw( { describe_group_of_failed,
             %   text_utils:ensure_string( Path ),
             %   access_denied, get_element_access_denied_info( Path ) } );
@@ -1760,8 +1929,8 @@ describe_group_of( Path ) ->
 Returns whether the specified path entry, supposedly existing, is a regular
 file.
 
-If the specified entry happens not to exist, a `{non_existing_entry, EntryName}`
-exception will be thrown.
+May throw exceptions; notably, if the specified entry happens not to exist, a
+`{non_existing_entry, EntryName}` exception will be thrown.
 
 Not to be confused with `is_file_reference/1`, which deals with opened file IO
 devices.
@@ -1779,7 +1948,11 @@ Returns `true` or `false`, and cannot trigger an exception.
 """.
 -spec is_existing_file( any_path() ) -> boolean().
 is_existing_file( Path ) ->
-    exists( Path ) andalso get_type_of( Path ) =:= regular.
+
+    %trace_utils:debug_fmt( "Checking whether path '~ts' is a regular file.",
+    %                       [ Path ] ),
+
+    get_type_of_safe( Path ) =:= regular.
 
 
 
@@ -1787,22 +1960,28 @@ is_existing_file( Path ) ->
 Returns whether the specified path entry, supposedly existing, is a symbolic
 file.
 
+May throw exceptions; notably, if the specified entry happens not to exist, a
+`{non_existing_entry, EntryName}` exception will be thrown.
+
 Returns `true` or `false`, and cannot trigger an exception.
 """.
 -spec is_link( any_path() ) -> boolean().
 is_link( Path ) ->
-    get_type_of( Path ) =:= symlink.
+    Res = get_type_of( Path ) =:= symlink,
+    trace_utils:debug_fmt( "Is '~ts' a symlink? ~p.", [ Path, Res ] ),
+    Res.
 
 
 
 -doc """
-Returns whether the specified path entry exists and is a symbolic file.
+Returns whether the specified path entry exists and is a symbolic link (dead or
+alive; see the `resolve*/1` functions to resolve the target of this symlink).
 
 Returns `true` or `false`, and cannot trigger an exception.
 """.
 -spec is_existing_link( any_path() ) -> boolean().
 is_existing_link( Path ) ->
-    exists( Path ) andalso get_type_of( Path ) =:= symlink.
+    get_type_of_safe( Path ) =:= symlink.
 
 
 
@@ -1824,31 +2003,75 @@ Returns `true` or `false`, and cannot trigger an exception.
 -spec is_existing_file_or_link( any_path() ) -> boolean().
 is_existing_file_or_link( Path ) ->
 
-    case exists( Path ) andalso get_type_of( Path ) of
+    %trace_utils:debug_fmt( "Checking whether path '~ts' is a file or a link.",
+    %                       [ Path ] ),
+
+    case get_type_of_safe( Path ) of
 
         regular ->
+            %trace_utils:debug_fmt( "Path '~ts' is a file or a link.",
+            %                       [ Path ] ),
             true ;
 
         symlink ->
-            try
-                ResPath = resolve_symlink_fully( Path ),
+            ResPath = resolve_symlink_fully_safe( Path ),
 
-                %trace_utils:debug_fmt( "Testing symlink target '~ts'.",
-                %                       [ ResPath ] ),
+            %trace_utils:debug_fmt( "Testing symlink target '~ts'.",
+            %                       [ ResPath ] ),
 
-                is_existing_file( ResPath )
-
-            catch throw:Any ->
-                trace_utils:warning_fmt( "Exception when resolving path "
-                                         "'~ts':~n ~p", [ Path, Any ] ),
-                false
-
-           end;
+            % Cannot be a symlink anymore; not throwing either:
+            is_existing_file( ResPath );
 
         _ ->
+            %trace_utils:debug_fmt( "Path '~ts' is not a file or a link.",
+            %                       [ Path ] ),
             false
 
     end.
+
+
+%% -spec is_existing_file_or_link_verbose( any_path() ) -> boolean().
+%% is_existing_file_or_link_verbose( Path ) ->
+
+%%     trace_utils:debug_fmt( "Checking whether path '~ts' is a file or a link.",
+%%                            [ Path ] ),
+
+%%     monitor_utils:monitor_self(),
+
+%%     case exists( Path ) andalso get_type_of( Path ) of
+
+%%         regular ->
+%%             trace_utils:debug_fmt( "Path '~ts' is a file or a link.",
+%%                                    [ Path ] ),
+%%             true ;
+
+%%         symlink ->
+%%             trace_utils:debug_fmt( "Path '~ts' is a symlink.", [ Path ] ),
+%%             try
+%%                 ResPath = resolve_symlink_fully( Path ),
+
+%%                 trace_utils:debug_fmt( "Testing resolved symlink target '~ts'.",
+%%                                        [ ResPath ] ),
+
+%%                 Res = is_existing_file( ResPath ),
+%%                 trace_utils:debug_fmt(
+%%                     "Resolved symlink target '~ts' exists: ~ts",
+%%                     [ ResPath, Res ] ),
+%%                 Res
+
+%%             catch throw:Any ->
+%%                 trace_utils:warning_fmt( "Exception when resolving path "
+%%                                          "'~ts':~n ~p", [ Path, Any ] ),
+%%                 false
+
+%%            end;
+
+%%         _ ->
+%%             trace_utils:debug_fmt( "Path '~ts' is not a file or a link.",
+%%                                    [ Path ] ),
+%%             false
+
+%%     end.
 
 
 
@@ -2064,42 +2287,75 @@ is_user_executable( Path ) ->
 -doc """
 Returns whether the specified path entry, supposedly existing, is a directory.
 
-If the specified entry happens not to exist, a `{non_existing_entry, Path}`
-exception will be thrown.
+May throw exceptions; notably, if the specified entry happens not to exist, a
+`{non_existing_entry, Path}` exception will be thrown.
+
+If the type of this specified entry cannot be determined, throws an exception.
+
+Does not trigger any extensive (possibly recursive) diagnosis.
 """.
 -spec is_directory( any_path() ) -> boolean().
 is_directory( Path ) ->
-    get_type_of( Path ) =:= directory.
+    case get_access_status( Path ) of
+
+        non_existing ->
+            throw( { non_existing_entry, Path } );
+
+        % Accessible or not:
+        _ ->
+            case get_type_of( Path ) of
+
+                directory ->
+                    true;
+
+                _Other ->
+                    false
+
+            end
+
+    end.
 
 
 
 -doc """
 Returns whether the specified path entry exists and is a directory.
 
-Returns `true` or `false`, and cannot trigger an exception.
+Returns `true` if it is exists and is a directory, or `false` in all other cases
+(thus never throws an exception or triggers any diagnosis).
 """.
 -spec is_existing_directory( any_path() ) -> boolean().
 is_existing_directory( Path ) ->
-    exists( Path ) andalso get_type_of( Path ) =:= directory.
+    % Avoiding exists/1 to prevent any diagnosis-related infinite recursion:
+    % (so either accessible or not_accessible)
+    %
+    get_type_of_safe( Path ) =:= directory.
 
 
 
 -doc """
-Returns whether the specified path entry exists and is a directory or a symbolic
-link.
+Returns whether the specified path entry exists and is either a directory or a
+symbolic link ultimately pointing to a directory.
 
 Returns `true` or `false`, and cannot trigger an exception.
 """.
 -spec is_existing_directory_or_link( any_path() ) -> boolean().
 is_existing_directory_or_link( Path ) ->
 
-    case exists( Path ) andalso get_type_of( Path ) of
+    case get_type_of_safe( Path ) of
 
         directory ->
             true ;
 
         symlink ->
-            true ;
+            case resolve_symlink_fully_safe( Path ) of
+
+                undefined ->
+                    false;
+
+                AbsDirPath ->
+                    is_existing_directory( AbsDirPath )
+
+            end;
 
         _ ->
             false
@@ -4760,7 +5016,7 @@ get_permissions_of( EntryPath ) ->
 Returns any description of the permissions corresponding to the specified file
 entry.
 
-Never fails.
+Never fails, never throws.
 """.
 -spec describe_permissions_of( any_path() ) -> ustring().
 describe_permissions_of( EntryPath ) ->
@@ -5866,24 +6122,43 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 -doc """
 Returns detailed information relative to an access denied error obtained for the
 specified filesystem element.
+
+Returns a terms typically meant to be included in an exception.
+
+Does not throw.
 """.
 -spec get_element_access_denied_info( any_path() ) -> term().
 get_element_access_denied_info( AnyElemPath ) ->
 
     ParentDir = filename:dirname( AnyElemPath ),
 
+    % The goal is never to enter any test or diagnosis function that could throw
+    % or recurse indefinitively:
+
     case is_existing_directory( ParentDir ) of
 
         true ->
-            ElemInfo = case exists( AnyElemPath ) of
+            ElemInfo = case get_access_status( AnyElemPath ) of
 
-                true ->
-                    { target_element_exists,
+                % Quite surprising:
+                accessible ->
+                    trace_utils:warning_fmt( "Element '~ts' has been found "
+                        "accessible, whereas was not supposed to.",
+                        [ AnyElemPath ] ),
+
+                    % Extra information kept, to investigate:
+                    { target_element_actually_accessible,
                       { owner, describe_owner_of( AnyElemPath ) },
                       { group, describe_group_of( AnyElemPath ) },
                       { permissions, describe_permissions_of( AnyElemPath ) } };
 
-                false ->
+                not_accessible ->
+                    { target_element_exist_yet_inaccessible,
+                      { owner, describe_owner_of( AnyElemPath ) },
+                      { group, describe_group_of( AnyElemPath ) },
+                      { permissions, describe_permissions_of( AnyElemPath ) } };
+
+                non_existing ->
                     target_element_does_not_exist
 
             end,
@@ -5996,13 +6271,15 @@ get_directory_access_denied_info( AnyDirPath ) ->
 
 
 
+% Never throws.
 % (helper)
+-spec get_runtime_user_info() -> [ tuple() ].
 get_runtime_user_info() ->
-    [ { actual_runtime_user, system_utils:get_user_name_safe(),
-        { user_id, system_utils:get_user_id() } },
+    [ { actual_runtime_user, system_utils:describe_user_name(),
+        { user_id, system_utils:describe_user_id() } },
       { actual_runtime_group,
-        system_utils:get_group_name_safe(),
-        { group_id, system_utils:get_group_id() } } ].
+        system_utils:describe_group_name(),
+        { group_id, system_utils:describe_group_id() } } ].
 
 
 
