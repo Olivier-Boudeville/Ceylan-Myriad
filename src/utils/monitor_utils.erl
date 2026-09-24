@@ -29,12 +29,12 @@
 
 -moduledoc """
 Gathering of various facilities related to the **monitoring of processes, ports,
-time changes or nodes**.
+time changes or nodes**, based on **Erlang monitors**.
 
 See `monitor_utils_test.erl` for the corresponding test.
 
-See also the `process_utils` module, for example the
-`spawn_message_queue_monitor/*` functions.
+See also the `process_utils` module for more process-level monotoring (not based
+on Erlang monitors), for example the `spawn_message_queue_monitor/*` functions.
 """.
 
 
