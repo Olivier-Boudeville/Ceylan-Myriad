@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **management of identifiers**.
 
-See the id_utils.erl tested module.
+See the `id_utils` tested module.
 """.
 
 
