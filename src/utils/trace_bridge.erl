@@ -30,15 +30,15 @@
 -moduledoc """
 The **trace bridge** allows modules to depend only on the Ceylan-Myriad layer,
 yet to rely optionally on a non-Myriad code for traces/logs (possibly the
-Ceylan-Traces layer, refer to [http://traces.esperide.org/]) at runtime for
+Ceylan-Traces layer, refer to <http://traces.esperide.org/>) at runtime for
 **its logging**, so that in all cases exactly one (and the most appropriate)
 logging system is used, even when lower-level libraries are involved (they have
 to be designed to operate with or without an advanced trace system), and with no
 change in the source code of these user modules to be operated.
 
 It is useful to provide native, integrated, higher-level logging to basic
-libraries (e.g. Ceylan-LEEC, see [http://leec.esperide.org] or Ceylan-Oceanic,
-see [http://oceanic.esperide.org]), should their user require it - while being
+libraries (e.g. Ceylan-LEEC, see <http://leec.esperide.org> or Ceylan-Oceanic,
+see <http://oceanic.esperide.org>), should their user require it - while being
 able to remain lean and mean if wanted (e.g while keeping the dependency to
 Ceylan-Traces optional).
 
@@ -692,22 +692,19 @@ emergency_fmt_echoed( MessageFormat, MessageValues ) ->
 
 
 -doc """
-"Outputs" the specified void message, at least (once) on the console.
+"Outputs" the specified void message (nothing done here).
 """.
 -spec void_echoed( trace_message() ) -> void().
-void_echoed( Message ) ->
-    send( void, Message ) =:= ok orelse
-        trace_utils:void( Message ).
+void_echoed( _Message ) ->
+    ok.
 
 
 -doc """
-"Outputs" the specified void message to format, at least (once) on the console.
+"Outputs" the specified void message to format (nothing done here).
 """.
 -spec void_fmt( format_string(), format_values() ) -> void().
-void_fmt_echoed( MessageFormat, MessageValues ) ->
-    send( void, MessageFormat, MessageValues ) =:= ok orelse
-        trace_utils:void_fmt( MessageFormat, MessageValues ).
-
+void_fmt_echoed( _MessageFormat, _MessageValues ) ->
+    ok.
 
 
 
