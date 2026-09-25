@@ -316,6 +316,10 @@ endif
 
 ERLANG_TARGET_VERSION = $$($(MAKE) -s info-erlang-target-version)
 
+# Add:
+# - '+no_inline' to prevent inlining
+# - '+warn_possibly_unsafe_function' to be notified of some risks
+#
 ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS)             \
 							$(MYRIAD_CHECK_FLAGS)             \
 							$(MYRIAD_UNELLIPSED_TRACES_OPT)
@@ -1299,6 +1303,8 @@ CORE_COUNT := $$(grep -c processor /proc/cpuinfo)
 
 ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/null)
 
+# To run ERTS without JIT, execute 'ERL_FLAGS="+JIT no" erl'.
+
 
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
 # core if wxWindows is to be relied upon:
@@ -1468,12 +1474,15 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # General (base, transverse) compilation options that should be used for all
 # modules (third-party included):
 #
-# -v/+verbose caused inlining to be too verbose, e.g.
+# - "-v" / "+verbose" caused inlining to be too verbose, e.g.
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
-# myriad_debug_info_key is defined, so that the modules that we generate rely on
-# the same key as the ones normally built, in order that the Core Erlang of the
-# whole can be read by tools (e.g. Dialyzer):
+# - "+no_inline" would prevent inlining (considerable compilation acceleration,
+# against in most cases runtime slowdown)
+#
+# - "myriad_debug_info_key" is defined, so that the modules that we generate
+# rely on the same key as the ones normally built, in order that the Core Erlang
+# of the whole can be read by tools (e.g. Dialyzer):
 #
 ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)                 \
 							   -Dmyriad_version=\"$(MYRIAD_VERSION)\"        \
