@@ -1499,6 +1499,9 @@ exists( EntryName ) ->
         { ok, _FileInfo } ->
             true;
 
+        { error, _Reason=enoent } ->
+            false;
+
         { error, _Reason=eacces } ->
             throw( { exists_failed, text_utils:ensure_string( EntryName ),
                      access_denied,
