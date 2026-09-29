@@ -43,12 +43,16 @@ See also the `monitor_utils` module, which relies on Erlang monitors.
 -export([ spawn_reduction_monitor/1, spawn_reduction_monitor/2,
           spawn_reduction_monitor/4 ]).
 
--export([ spawn_overall_monitor/3 ]).
+-export([ get_overall_monitor_default_registration_name/0,
+          spawn_overall_monitor/0, spawn_overall_monitor/3,
+          spawn_overall_monitor/4 ]).
 
 
 
 
--export([ set_label/1, get_label/1, describe/1 ]).
+-export([ set_label/1, get_label/0, get_label/1,
+          get_label_string/0, get_label_string/1,
+          describe/0, describe/1 ]).
 
 
 
@@ -92,10 +96,10 @@ A label set by the user on a given process.
 Helps the debugging of unregistered processes, notably when they are not able to
 process messages anymore.
 
-Many tools (observer, logger, crash reporter, etc.) will use this information
-afterwards.
+Many tools (observer, logger, crash reporter, etc., including ours) will use
+this information afterwards.
 """.
--type process_label() :: term().
+-type process_label() :: term(). % Generally a text_utils:bin_string().
 
 
 
@@ -132,6 +136,7 @@ afterwards.
 
 -type milliseconds() :: time_utils:milliseconds().
 
+-type registration_name() :: naming_utils:registration_name().
 
 
 
@@ -395,6 +400,33 @@ reduction_monitor_main_loop( MonitoredPid, BinProcDesc, CurrentReducs,
 % (all processes) monitoring.
 
 
+-doc "Returns the default (local) registration name of the overall monitor.".
+-spec get_overall_monitor_default_registration_name() -> registration_name().
+get_overall_monitor_default_registration_name() ->
+    myriad_overall_process_monitor.
+
+
+
+-doc """
+Spawns a process monitoring with reasonable defaults the length of the message
+queues and the instantaneous consumption of reductions of all processes running
+on the current node: returns the PID of an helper process that displays a
+warning message (with any description thereof supplied) if, in the course of the
+specified periodic sampling, the metrics of some processes exceed limits:
+- message queue exceeding specified threshold
+- reduction count increased of at least the specified threshold
+
+The `terminate` atom shall be sent to the returned PID in order to terminate the
+corresponding monitoring process.
+""".
+-spec spawn_overall_monitor() -> no_return().
+spawn_overall_monitor() ->
+    spawn_overall_monitor( _MsgThreshold=200, _ReducThreshold=10_000,
+        _SamplingPeriodMs=2_000,
+        _LocalRegName=get_overall_monitor_default_registration_name() ).
+
+
+
 -doc """
 Spawns a process monitoring the length of the message queues and the
 instantaneous consumption of reductions of all processes running on the current
@@ -410,9 +442,39 @@ corresponding monitoring process.
 -spec spawn_overall_monitor( message_count(), reduction_count(),
                              milliseconds() ) -> no_return().
 spawn_overall_monitor( MsgThreshold, ReducThreshold, SamplingPeriodMs ) ->
+    spawn_overall_monitor( MsgThreshold, ReducThreshold, SamplingPeriodMs,
+                           _MaybeLocalRegName=undefined ).
+
+
+
+-doc """
+Spawns a process monitoring the length of the message queues and the
+instantaneous consumption of reductions of all processes running on the current
+node: returns the PID of an helper process that displays a warning message (with
+any description thereof supplied) if, in the course of the specified periodic
+sampling, the metrics of some processes exceed limits:
+- message queue exceeding specified threshold
+- reduction count increased of at least the specified threshold
+
+If a non-undefined registration name is specified, this monitor will be locally
+registered according to this name.
+
+The `terminate` atom shall be sent to the returned PID in order to terminate the
+corresponding monitoring process.
+""".
+-spec spawn_overall_monitor( message_count(), reduction_count(),
+    milliseconds(), option( registration_name() ) ) -> no_return().
+spawn_overall_monitor( MsgThreshold, ReducThreshold, SamplingPeriodMs,
+                       MaybeLocalRegName ) ->
 
     MonitorPid = ?myriad_spawn_link(
         fun() ->
+
+            % Not registered globally, as each node may want its own monitor:
+            MaybeLocalRegName =:= undefined orelse
+                naming_utils:register_as( MaybeLocalRegName,
+                                          _RegScope=local_only ),
+
             overall_monitor_main_loop( MsgThreshold, ReducThreshold,
                 SamplingPeriodMs, _ProcTable=table:new() )
         end ),
@@ -490,7 +552,15 @@ scan_all_processes( ProcTable, MsgThreshold, ReducThreshold ) ->
 % (helper)
 scan_all_processes( ProcIter, ProcTable, MsgThreshold, ReducThreshold,
                     AccProcInfos ) ->
+
+    Self = self(),
+
     case erlang:processes_next( ProcIter ) of
+
+        % Not scanning ourself:
+        { Self, NewProcIter } ->
+            scan_all_processes( NewProcIter, ProcTable, MsgThreshold,
+                                ReducThreshold, AccProcInfos );
 
         { Pid, NewProcIter } ->
 
@@ -598,10 +668,47 @@ set_label( ProcessLabel ) ->
 
 
 
+-doc "Gets the label (if any) of the current process.".
+-spec get_label() -> option( process_label() ).
+get_label() ->
+    get_label( self() ).
+
+
 -doc "Gets the label (if any) of the specified process.".
 -spec get_label( pid() ) -> option( process_label() ).
 get_label( Pid ) ->
     proc_lib:get_label( Pid ).
+
+
+
+-doc "Gets a (possibly empty) label string for the current process.".
+-spec get_label_string() -> ustring().
+get_label_string() ->
+    get_label_string( self() ).
+
+
+-doc "Gets a (possibly empty) label string for the specified process.".
+-spec get_label_string( pid() ) -> ustring().
+get_label_string( Pid ) ->
+    case get_label( Pid ) of
+
+        undefined ->
+            "";
+
+        Label ->
+            text_utils:format( " (labelled '~p')", [ Label ] )
+
+    end.
+
+
+
+-doc """
+Returns a description of the current process, taking into account any associated
+label.
+""".
+-spec describe() -> ustring().
+describe() ->
+    describe( self() ).
 
 
 -doc """
@@ -616,6 +723,6 @@ describe( Pid ) ->
             text_utils:format( "~w", [ Pid ] );
 
         Label ->
-            text_utils:format( "process ~p (~w)", [ Label, Pid ] )
+            text_utils:format( "process '~p' (~w)", [ Label, Pid ] )
 
     end.
