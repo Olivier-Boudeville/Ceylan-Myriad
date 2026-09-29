@@ -28,9 +28,10 @@
 -module(basic_utils).
 
 -moduledoc """
-Gathering of various **convenient facilities of all sorts**.
+Gathering of various **basic, convenient facilities of all sorts**, as a modest
+low-level toolbox.
 
-See `basic_utils_test.erl` module for the corresponding test.
+See `basic_utils_test.erl` for the corresponding test.
 """.
 
 

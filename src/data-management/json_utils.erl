@@ -30,9 +30,9 @@
 -moduledoc """
 Gathering of management facilities for **JSON** processing.
 
-See json_utils_test.erl for the corresponding test.
+See `json_utils_test.erl` for the corresponding test.
 
-Refer to http://myriad.esperide.org/#json-use for more details.
+Refer to <http://myriad.esperide.org/#json-use for more details>.
 
 Note that, since Erlang 27.0, a built-in JSON parser is available, see the
 `json` module; we now rely on it by default (`jsx` or `jiffy` were used

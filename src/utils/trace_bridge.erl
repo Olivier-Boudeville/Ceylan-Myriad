@@ -696,6 +696,7 @@ emergency_fmt_echoed( MessageFormat, MessageValues ) ->
 """.
 -spec void_echoed( trace_message() ) -> void().
 void_echoed( _Message ) ->
+    % Nothing to output in this case:
     ok.
 
 
@@ -704,6 +705,7 @@ void_echoed( _Message ) ->
 """.
 -spec void_fmt( format_string(), format_values() ) -> void().
 void_fmt_echoed( _MessageFormat, _MessageValues ) ->
+    % Nothing to output in this case:
     ok.
 
 

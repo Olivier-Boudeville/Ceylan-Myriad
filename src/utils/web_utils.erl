@@ -490,7 +490,7 @@ For example `<<"francecentral">>`.
 
 
 -doc """
-Encodes the specified list of {Key, Value} pairs so that it can used into an
+Encodes the specified list of `{Key, Value}` pairs so that it can used into an
 URL.
 
 Full example:
@@ -502,7 +502,7 @@ httpc:request(post, {"http://localhost:3000/foo", [],
 ```
 
 Directly inspired from
-[http://stackoverflow.com/questions/114196/url-encode-in-erlang>]
+<http://stackoverflow.com/questions/114196/url-encode-in-erlang>.
 
 See also `escape_as_url/1` for some more specific uses.
 """.
@@ -1643,7 +1643,7 @@ start_server( SrvOpts ) ->
                 { value, SrvProfile } ->
 
                     BindIPAddress = case list_table:lookup_entry( bind_address,
-                                                                SrvOpts ) of
+                                                                  SrvOpts ) of
                         key_not_found ->
                             any; % httpd default
 
@@ -1666,6 +1666,25 @@ start_server( SrvOpts ) ->
                     { BindIPAddress, TCPPort, SrvProfile }
 
             end;
+
+
+        % Intercept "address already in use":
+         { error, _SupReason={ { shutdown, { failed_to_start_child,
+             { httpd_acceptor_sup, _BindIPAddress, TCPPort, _SrvProfile },
+             { shutdown,
+                 { failed_to_start_child, _SameQuadruplet,
+                   { listen, eaddrinuse } } } } }, _ChildInfo } } ->
+
+            trace_bridge:error_fmt( "Failed to start webserver, "
+                "as the TCP port ~B is already in use; "
+                "possibly a lingering instance. Hint: investigate the "
+                "blocking process thanks to "
+                "'ss --inet --listening -np | grep :~B'.",
+                [ TCPPort, TCPPort ] ),
+
+            throw( { webserver_start_failed,
+                     _Reason={ tcp_port_already_in_use, TCPPort }, SrvOpts } );
+
 
         { error, Reason } ->
             throw( { webserver_start_failed, Reason, SrvOpts } )
@@ -1755,7 +1774,12 @@ start_server( SrvName, BindIPAddressSpec, TCPPort,
     MimeMappings = get_mime_mappings( base ),
 
     % To avoid an eaddrinuse error, triggered even if a previous server on that
-    % port is already dead (the kernel releasing ports asynchronously):
+    % port is already dead (the kernel releasing ports asynchronously, sockets
+    % being in TIME_WAIT state):
+    %
+    % (if still getting repeatedly a {listen,eaddrinuse} error, then most
+    % probably that another server lingers for real; use for example 'ss --inet
+    % --listening -np | grep :8080' to investigate)
     %
     SocketOpts = [ { reuseaddr, true } ],
 

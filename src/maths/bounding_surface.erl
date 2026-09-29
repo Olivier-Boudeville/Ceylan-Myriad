@@ -33,7 +33,7 @@ Gathering of various facilities for (2D) **bounding surface** management.
 Currently the types of supported bounding surfaces are:
 - bounding rectangles, which can be quickly determined
 - "lazy" circles, directly deriving from the previous rectangle
-- MEC (Minimal Enclosing Circles), whose processing, based on convex hull, is
+- MEC (*Minimal Enclosing Circles*), whose processing, based on convex hull, is
 more demanding
 
 With the lazy algorithm, circle parameters are simply deduced from the smallest
@@ -75,6 +75,13 @@ different types).
 -type rectangle() :: #rectangle{}.
 
 
+-doc """
+A specific kind of rectangle-based bounding surface, typically used by some
+GIS-related APIs, corresponding exactly to `[ MinX, MinY, MaxX, MaxY ]`.
+""".
+-type rect_coords() :: [ any_coordinate() ].
+
+
 
 -doc """
 A bounding surface defined based on any circle (e.g. lazy or MEC).
@@ -88,7 +95,7 @@ A bounding surface defined based on any circle (e.g. lazy or MEC).
 
 
 -export_type([ bounding_algorithm/0,
-               rectangle/0, circle/0, bounding_surface/0 ]).
+               rectangle/0, rect_coords/0, circle/0, bounding_surface/0 ]).
 
 
 % Design notes:
@@ -133,6 +140,7 @@ A bounding surface defined based on any circle (e.g. lazy or MEC).
 
 -type int_degrees() :: unit_utils:int_degrees().
 
+-type any_coordinate() :: linear:any_coordinate().
 -type square_distance() :: linear:square_distance().
 
 -type any_point2() :: point2:any_point2().

@@ -77,6 +77,7 @@ See `net_utils_test.erl` for the corresponding test.
 
 % Server-related functions:
 -export([ is_local_service_running_at/1, is_local_service_running_at/2,
+          find_first_unused_tcp_port_from/1,
           is_service_running_at/2, is_service_running_at/3 ]).
 
 
@@ -2303,13 +2304,15 @@ receive_file_chunk( DataSocket, OutputFile ) ->
 Tells whether the specified TCP port of the local host is considered free for
 use.
 
-Note that at least the Linux kernel releases (TCP) ports asynchronously, so the
-port may be considered as in use (`eaddrinuse`) whereas the process that was
-using it has already terminated; then the port will be considered free again
-only after a few seconds.
+Note that, for good reasons, at least the Linux kernel releases (TCP) ports
+asynchronously, so the port may be considered as in use (`eaddrinuse`) whereas
+the process that was using it has already terminated; then the port will be
+considered free again only after a few seconds.
 
-There is no way to easily discriminate between such asynchronous termination and
-an actual server running currently on that port.
+There is no way to easily discriminate between such an asynchronous termination
+and an actual server being still running currently on that port. In some use
+cases, it is known for sure that a port can be reused, otherwise relying on the
+`find_first_unused_tcp_port_from/1` function could be preferred.
 """.
 -spec is_local_service_running_at( tcp_port() ) -> boolean().
 is_local_service_running_at( TCPPort ) ->
@@ -2321,14 +2324,17 @@ is_local_service_running_at( TCPPort ) ->
 Tells whether a server can be launched on the specified TCP port of the local
 host, based on this server requesting to reuse that port or not.
 
-Note that at least the Linux kernel releases (TCP) ports asynchronously, so the
-port may be considered as in use (`eaddrinuse`) whereas the process that was
-using it has already terminated, and the port will be considered free only after
-a few seconds.
+Note that, for good reasons, at least the Linux kernel releases (TCP) ports
+asynchronously, so the port may be considered as in use (`eaddrinuse`) whereas
+the process that was using it has already terminated; then the port will be
+considered free again only after a few seconds.
 
-There is no way to easily discriminate between such asynchronous termination and
-a server running actually on that port.
+There is no way to easily discriminate between such an asynchronous termination
+and an actual server being still running currently on that port. In some use
+cases, it is known for sure that a port can be reused, otherwise relying on the
+`find_first_unused_tcp_port_from/1` function could be preferred.
 """.
+-spec is_local_service_running_at( tcp_port(), boolean() ) -> boolean().
 is_local_service_running_at( TCPPort, DoReuseAddr ) ->
 
     %trace_utils:debug_fmt( "Testing local service availability at port #~B "
@@ -2362,6 +2368,30 @@ is_local_service_running_at( TCPPort, DoReuseAddr ) ->
                 "at local TCP port #~B (reuse address: ~ts: ~p",
                 [ TCPPort, Error, DoReuseAddr ] ),
             throw( { unexpected_error, Error, TCPPort, DoReuseAddr } )
+
+    end.
+
+
+
+-doc """
+Determines the first free, unused TCP port found from the specified one.
+""".
+-spec find_first_unused_tcp_port_from( tcp_port() ) -> tcp_port().
+find_first_unused_tcp_port_from( _TCPPort=65536 ) ->
+    throw( no_unused_tcp_port_found );
+
+find_first_unused_tcp_port_from( TCPPort ) ->
+    case is_local_service_running_at( TCPPort, _DoReuseAddr=false ) of
+
+        true ->
+            find_first_unused_tcp_port_from( TCPPort+1 );
+
+        false ->
+            cond_utils:if_defined( myriad_debug_network,
+                trace_utils:debug_fmt( "First unused TCP port found: #~B.",
+                                       [ TCPPort ] ) ),
+
+            TCPPort
 
     end.
 

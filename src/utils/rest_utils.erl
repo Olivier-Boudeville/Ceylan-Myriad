@@ -35,7 +35,7 @@ State Transfer*).
 
 See `rest_utils_test.erl` for the corresponding test.
 
-See also: `web_utils.erl`.
+See also the `web_utils` module.
 """.
 
 
@@ -91,13 +91,13 @@ Content type (e.g. `"text/html;charset=utf-8"`, `"application/json"`).
 
 -type status_code() :: pos_integer().
 
--type status_line() :: { ustring(), status_code(), ustring() }.
+-type status_line() :: { HttpVersion :: ustring(), status_code(), ustring() }.
 
 
 
 -doc """
 Type of a request for `httpc:request*`, see
-[http://erlang.org/doc/man/httpc.html].
+<http://erlang.org/doc/man/httpc.html>.
 """.
 -type request() :: { url(), headers(), content_type(), body() }
                  | { url(), headers() }.
@@ -113,13 +113,14 @@ Type of a request for `httpc:request*`, see
 
 -doc """
 Type of a result extended from `httpc:request*`, see
-[http://erlang.org/doc/man/httpc.html].
+<http://erlang.org/doc/man/httpc.html>.
 """.
 -type result() ::
     { status_line(), headers(), body() }
   | { status_code(), body() }
   | { status_code(), { 'reason_phrased_body', ustring(), body() } }
   | reference().
+
 
 
 -doc "Context of a REST exchange.".
@@ -140,6 +141,7 @@ Type of a result extended from `httpc:request*`, see
 -type ssl_opt() :: web_utils:ssl_opt().
 
 -type url() :: web_utils:url().
+
 
 
 
@@ -204,14 +206,14 @@ get_body_allowing_http_methods() ->
 
 
 -doc "Sends a HTTP GET request.".
--spec http_get( request() ) -> { status_code(), term() }.
+-spec http_get( request() ) -> { status_code(), body() }.
 http_get( Request ) ->
     http_get( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
 
 
 -doc "Sends a HTTP GET request, with the specified number of retries.".
--spec http_get( request(), retries_count() ) -> { status_code(), term() }.
+-spec http_get( request(), retries_count() ) -> { status_code(), body() }.
 http_get( Request, Retries ) ->
     http_get( Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -222,14 +224,14 @@ Sends a HTTP GET request, with the specified number of retries and (HTTP or not)
 options.
 """.
 -spec http_get( request(), http_options(), options(), retries_count() ) ->
-                        term().
+                        { status_code(), body() }.
 http_get( Request, HTTPOptions, Options, Retries ) ->
     http_request( get, Request, HTTPOptions, Options, Retries ).
 
 
 
 -doc "Sends a HTTP POST request.".
--spec http_post( request() ) -> { status_code(), term() }.
+-spec http_post( request() ) -> { status_code(), body() }.
 http_post( Request ) ->
     http_post( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
@@ -238,7 +240,7 @@ http_post( Request ) ->
 -doc """
 Sends a HTTP POST request, with the specified number of retries.
 """.
--spec http_post( request(), retries_count() ) -> { status_code(), term() }.
+-spec http_post( request(), retries_count() ) -> { status_code(), body() }.
 http_post( Request, Retries ) ->
     http_post( Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -249,21 +251,21 @@ Sends a HTTP POST request, with the specified number of retries and (HTTP or
 not) options.
 """.
 -spec http_post( request(), http_options(), options(), retries_count() ) ->
-                        term().
+                                        { status_code(), body() }.
 http_post( Request, HTTPOptions, Options, Retries ) ->
     http_request( post, Request, HTTPOptions, Options, Retries ).
 
 
 
 -doc "Sends a HTTP PUT request.".
--spec http_put( request() ) -> { status_code(), term() }.
+-spec http_put( request() ) -> { status_code(), body() }.
 http_put( Request ) ->
     http_put( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
 
 
 -doc "Sends a HTTP PUT request, with the specified number of retries.".
--spec http_put( request(), retries_count() ) -> { status_code(), term() }.
+-spec http_put( request(), retries_count() ) -> { status_code(), body() }.
 http_put( Request, Retries ) ->
     http_put( Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -274,14 +276,14 @@ Sends a HTTP PUT request, with the specified number of retries and (HTTP or not)
 options.
 """.
 -spec http_put( request(), http_options(), options(), retries_count() ) ->
-                        term().
+                                        { status_code(), body() }.
 http_put( Request, HTTPOptions, Options, Retries ) ->
     http_request( put, Request, HTTPOptions, Options, Retries ).
 
 
 
 -doc "Sends a HTTP PUT request.".
--spec http_delete( request() ) -> { status_code(), term() }.
+-spec http_delete( request() ) -> { status_code(), body() }.
 http_delete( Request ) ->
     http_delete( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
@@ -290,7 +292,7 @@ http_delete( Request ) ->
 -doc """
 Sends a HTTP PUT request, with the specified number of retries.
 """.
--spec http_delete( request(), retries_count() ) -> { status_code(), term() }.
+-spec http_delete( request(), retries_count() ) -> { status_code(), body() }.
 http_delete( Request, Retries ) ->
     http_delete( Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -301,7 +303,7 @@ Sends a HTTP PUT request, with the specified number of retries and (HTTP or not)
 options.
 """.
 -spec http_delete( request(), http_options(), options(), retries_count() ) ->
-                            term().
+                                        { status_code(), body() }.
 http_delete( Request, HTTPOptions, Options, Retries ) ->
     http_request( delete, Request, HTTPOptions, Options, Retries ).
 
@@ -309,9 +311,9 @@ http_delete( Request, HTTPOptions, Options, Retries ) ->
 
 -doc """
 Sends a HTTP GET requests, as an alternate solution as suggested by the standard
-'httpc' module of Erlang.
+`httpc` module of Erlang.
 """.
--spec http_request( url() ) -> { status_code(), term() }.
+-spec http_request( url() ) -> { status_code(), body() }.
 http_request( URL ) ->
     http_request( get, { URL, [] }, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
@@ -323,7 +325,7 @@ standard `httpc` module of Erlang.
 
 (basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
--spec http_request( method(), request() ) -> { status_code(), term() }.
+-spec http_request( method(), request() ) -> { status_code(), body() }.
 http_request( Method, Request ) ->
     http_request( Method, Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
@@ -335,7 +337,7 @@ Sends a generic HTTP request, with the specified number of retries.
 (basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
 -spec http_request( method(), request(), retries_count() ) ->
-                            { status_code(), term() }.
+                                        { status_code(), body() }.
 http_request( Method, Request, Retries ) ->
     http_request( Method, Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -348,7 +350,7 @@ not) options.
 (basically just a call to `httpc:request/4` surrounded by checking steps)
 """.
 -spec http_request( method(), request(), http_options(), options(),
-                    retries_count() ) -> term().
+                    retries_count() ) -> body().
 http_request( Method, Request, HTTPOptions, Options, Retries ) ->
 
     % Note: a null number of retries is managed inside this clause.
@@ -385,9 +387,11 @@ http_request( Method, Request, HTTPOptions, Options, Retries ) ->
             return_checked_result( Result );
 
         { { error, Reason }, _NoMoreRetries=0 } ->
+
             trace_utils:error_fmt( "Retries exhausted, HTTP ~p request ~p "
                 "(HTTP options: ~p, options: ~p) failed, reason being: ~p.",
                 [ Method, Request, HTTPOptions, Options, Reason ] ),
+
             throw( { http_request_failed, Method, Request, Reason } );
 
         { { error, Reason }, _StillRetries } ->
@@ -436,7 +440,7 @@ format_body_error( ContentBody ) ->
 -doc """
 Checks and returns the result of an HTTP request (or throws an exception).
 """.
--spec return_checked_result( result() ) -> { status_code(), term() }.
+-spec return_checked_result( result() ) -> { status_code(), body() }.
 return_checked_result( _Result={ StatusLine, _Headers, Body } ) ->
 
     { "HTTP/1.1", StatusCode, ReasonPhraseStr } = StatusLine,
@@ -489,7 +493,7 @@ return_checked_result( Result ) ->
 
 
 
--doc "Checks the basic structure of an HTTP request, as needed by httpc.".
+-doc "Checks the basic structure of an HTTP request, as needed by `httpc`.".
 -spec check_http_request( method(), request() ) -> void().
 check_http_request( Method, _Request={ URL, Headers } )
                                 when is_list( Headers ) ->

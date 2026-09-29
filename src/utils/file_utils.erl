@@ -1541,9 +1541,11 @@ get_access_status( EntryName ) ->
             not_accessible;
 
         { error, AnyOtherReason } ->
+
             % If wanting to investigate:
             trace_utils:warning_fmt( "Failed to get the access status "
                 "of '~ts': ~p.",  [ EntryName, AnyOtherReason ] ),
+
             not_accessible
 
     end.
@@ -1562,7 +1564,7 @@ Throws an exception with a detailed diagnosis if an error is reported.
 -spec get_type_of( any_path() ) -> entry_type().
 get_type_of( Path ) ->
 
-    trace_utils:debug_fmt( "Getting type of path '~ts'.", [ Path ] ),
+    %trace_utils:debug_fmt( "Getting type of path '~ts'.", [ Path ] ),
 
     % If ever needing to investigate:
     %text_utils:ensure_string( Path ) =:= "/some/path"
@@ -1627,7 +1629,9 @@ get_type_of_safe( Path ) ->
 
 -doc """
 Returns the actual, ultimate type of the specified file entry (hence may not
-return `symlink`). Throws an exception on failure.
+return `symlink`).
+
+Throws an exception on failure.
 
 Refer to `get_type_of*/1` to return the type into which the specified entry
 resolves first (thus possibly resolving in a symbolic link).
@@ -1668,13 +1672,13 @@ Throws an exception on failure.
 -spec resolve_symlink_once( any_path() ) -> any_path().
 resolve_symlink_once( SymlinkPath ) ->
 
-    trace_utils:debug_fmt( "Resolving once symlink '~ts'.", [ SymlinkPath ] ),
+    %trace_utils:debug_fmt( "Resolving once symlink '~ts'.", [ SymlinkPath ] ),
 
     case file:read_link_all( SymlinkPath ) of
 
         { ok, TargetPath } ->
-            trace_utils:debug_fmt( "Symlink resolved as '~ts'.",
-                                   [ TargetPath ] ),
+            %trace_utils:debug_fmt( "Symlink resolved as '~ts'.",
+            %                       [ TargetPath ] ),
             TargetPath;
 
         { error, eacces } ->
@@ -1707,7 +1711,7 @@ avoid this contextual dependency.
 -spec resolve_symlink_fully( any_path() ) -> abs_directory_path().
 resolve_symlink_fully( SymlinkPath ) ->
 
-    trace_utils:debug_fmt( "Resolving fully symlink '~ts'.", [ SymlinkPath ] ),
+    %trace_utils:debug_fmt( "Resolving fully symlink '~ts'.", [ SymlinkPath ] ),
 
     resolve_symlink_fully( SymlinkPath, SymlinkPath, _MaxDepth=50 ).
 
@@ -1723,8 +1727,8 @@ resolve_symlink_fully( _SymlinkPath, OrigSymlinkPath, _Depth=0 ) ->
 
 resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
 
-    trace_utils:debug_fmt( "Resolving fully symlink '~ts' with depth: ~B.",
-                           [ SymlinkPath, Depth ] ),
+    %trace_utils:debug_fmt( "Resolving fully symlink '~ts' with depth: ~B.",
+    %                       [ SymlinkPath, Depth ] ),
 
     case file:read_link_all( SymlinkPath ) of
 
@@ -1733,9 +1737,9 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
             RetargetedPath = case is_absolute_path( TargetPath ) of
 
                 true ->
-                    trace_utils:debug_fmt(
-                      "Symlink resolved as direct absolute path '~ts'.",
-                      [ TargetPath ] ),
+                    %trace_utils:debug_fmt(
+                    %    "Symlink resolved as direct absolute path '~ts'.",
+                    %    [ TargetPath ] ),
                     TargetPath;
 
                 false ->
@@ -1744,29 +1748,35 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
 
                     % No need to normalise:
                     Res = any_join( BaseDir, TargetPath ),
-                    trace_utils:debug_fmt(
-                        "Symlink resolved as absolute path '~ts'.",
-                        [ Res ] ),
+
+                    %trace_utils:debug_fmt(
+                    %    "Symlink resolved as absolute path '~ts'.",
+                    %    [ Res ] ),
+
                     Res
 
             end,
 
-            trace_utils:debug_fmt( "Retargeted symlink is '~ts'.",
-                                   [ RetargetedPath ] ),
+            %trace_utils:debug_fmt( "Retargeted symlink is '~ts'.",
+            %                       [ RetargetedPath ] ),
 
             case is_link( RetargetedPath ) of
 
                 true ->
-                    trace_utils:debug_fmt(
-                        "Symlink resolved as another symlink, '~ts'.",
-                        [ RetargetedPath ] ),
+
+                    %trace_utils:debug_fmt(
+                    %    "Symlink resolved as another symlink, '~ts'.",
+                    %    [ RetargetedPath ] ),
+
                     % Then we consider the actual target of that symlink:
                     resolve_symlink_fully( RetargetedPath, OrigSymlinkPath,
                                            Depth-1 );
 
                 false ->
-                    trace_utils:debug_fmt( "Symlink fully resolved as '~ts'.",
-                                           [ RetargetedPath ] ),
+
+                    %trace_utils:debug_fmt( "Symlink fully resolved as '~ts'.",
+                    %                       [ RetargetedPath ] ),
+
                     % Better kept as a potentially relative path:
                     RetargetedPath
 
@@ -1940,6 +1950,7 @@ devices.
 """.
 -spec is_file( any_path() ) -> boolean().
 is_file( Path ) ->
+    % Intentionally not get_type_of_safe/1 here:
     get_type_of( Path ) =:= regular.
 
 
@@ -1965,13 +1976,11 @@ file.
 
 May throw exceptions; notably, if the specified entry happens not to exist, a
 `{non_existing_entry, EntryName}` exception will be thrown.
-
-Returns `true` or `false`, and cannot trigger an exception.
 """.
 -spec is_link( any_path() ) -> boolean().
 is_link( Path ) ->
     Res = get_type_of( Path ) =:= symlink,
-    trace_utils:debug_fmt( "Is '~ts' a symlink? ~p.", [ Path, Res ] ),
+    %trace_utils:debug_fmt( "Is '~ts' a symlink? ~p.", [ Path, Res ] ),
     Res.
 
 
@@ -2031,50 +2040,6 @@ is_existing_file_or_link( Path ) ->
             false
 
     end.
-
-
-%% -spec is_existing_file_or_link_verbose( any_path() ) -> boolean().
-%% is_existing_file_or_link_verbose( Path ) ->
-
-%%     trace_utils:debug_fmt( "Checking whether path '~ts' is a file or a link.",
-%%                            [ Path ] ),
-
-%%     monitor_utils:monitor_self(),
-
-%%     case exists( Path ) andalso get_type_of( Path ) of
-
-%%         regular ->
-%%             trace_utils:debug_fmt( "Path '~ts' is a file or a link.",
-%%                                    [ Path ] ),
-%%             true ;
-
-%%         symlink ->
-%%             trace_utils:debug_fmt( "Path '~ts' is a symlink.", [ Path ] ),
-%%             try
-%%                 ResPath = resolve_symlink_fully( Path ),
-
-%%                 trace_utils:debug_fmt( "Testing resolved symlink target '~ts'.",
-%%                                        [ ResPath ] ),
-
-%%                 Res = is_existing_file( ResPath ),
-%%                 trace_utils:debug_fmt(
-%%                     "Resolved symlink target '~ts' exists: ~ts",
-%%                     [ ResPath, Res ] ),
-%%                 Res
-
-%%             catch throw:Any ->
-%%                 trace_utils:warning_fmt( "Exception when resolving path "
-%%                                          "'~ts':~n ~p", [ Path, Any ] ),
-%%                 false
-
-%%            end;
-
-%%         _ ->
-%%             trace_utils:debug_fmt( "Path '~ts' is not a file or a link.",
-%%                                    [ Path ] ),
-%%             false
-
-%%     end.
 
 
 
