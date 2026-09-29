@@ -1308,7 +1308,7 @@ listing just the filename of the corresponding source files (no full path
 wanted).
 """.
 -spec interpret_stacktrace( stack_trace(), option( error_term() ) ) ->
-                                        ustring().
+                                            ustring().
 interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
     interpret_stacktrace( Stacktrace, MaybeErrorTerm, _FullPathsWanted=false,
                           _MaybeAtEllipseLen=1000 ).
