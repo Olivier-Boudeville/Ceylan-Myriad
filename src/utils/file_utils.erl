@@ -64,8 +64,9 @@ See `file_utils_test.erl` for the corresponding test.
           split_extension/1, add_extension/2,
           remove_extension/1, remove_extension/2, replace_extension/3,
 
-          exists/1, get_type_of/1, resolve_type_of/1,
+          exists/1, get_type_of/1, get_type_of_safe/1, resolve_type_of/1,
           resolve_symlink_once/1, resolve_symlink_fully/1,
+          resolve_symlink_fully_safe/1,
 
           get_owner_of/1, describe_owner_of/1,
           get_group_of/1, describe_group_of/1,
@@ -84,7 +85,9 @@ See `file_utils_test.erl` for the corresponding test.
           check_existing_directory/1,
 
           get_element_access_denied_info/1, get_file_access_denied_info/1,
-          get_directory_access_denied_info/1,
+          get_directory_access_denied_info/1, get_runtime_user_info/0,
+
+          determine_longest_accessible_root/1,
 
           get_size/1, get_last_modification_time/1, touch/1,
           create_empty_file/1, create_non_clashing_file/0,
@@ -1013,7 +1016,14 @@ any_join( FirstPath, SecondPath )  ->
 
 
 
--doc "Splits the specified path in elements, returned as a list.".
+-doc """
+Splits the specified path in elements, returned as a list.
+
+Returns a list of strings of the same type as the specified path.
+
+For example: `[<<"/">>, <<"aa">>, <<"bb">>, <<"cc">>] =
+  file_utils:split(<<"/aa/bb/cc">>)`.
+""".
 -spec split( any_path() ) -> [ any_path_element() ].
 % Defined for completeness/consistency with join counterparts:
 split( Path ) ->
@@ -1822,7 +1832,7 @@ resolve_symlink_fully_safe( SymlinkPath ) ->
      catch throw:E ->
 
         trace_utils:error_fmt(
-            "Failed to fully resolve the symbolic link '~ts': ~p",
+            "Failed to fully resolve the symbolic link '~ts':~n ~p",
             [ SymlinkPath, E ] ),
 
         undefined
@@ -2253,7 +2263,8 @@ is_user_executable( Path ) ->
 
 
 -doc """
-Returns whether the specified path entry, supposedly existing, is a directory.
+Returns whether the specified path entry, supposedly existing from the point of
+view of the current user, is a directory.
 
 May throw exceptions; notably, if the specified entry happens not to exist, a
 `{non_existing_entry, Path}` exception will be thrown.
@@ -2289,7 +2300,10 @@ is_directory( Path ) ->
 Returns whether the specified path entry exists and is a directory.
 
 Returns `true` if it is exists and is a directory, or `false` in all other cases
-(thus never throws an exception or triggers any diagnosis).
+(including if the directory actually exists yet cannot be listed from its parent
+by the current user).
+
+Thus never throws an exception or triggers any diagnosis.
 """.
 -spec is_existing_directory( any_path() ) -> boolean().
 is_existing_directory( Path ) ->
@@ -2301,8 +2315,9 @@ is_existing_directory( Path ) ->
 
 
 -doc """
-Returns whether the specified path entry exists and is either a directory or a
-symbolic link ultimately pointing to a directory.
+Returns whether the specified path entry exists (from the point of view of the
+current user) and is either a directory or a symbolic link ultimately pointing
+to a directory.
 
 Returns `true` or `false`, and cannot trigger an exception.
 """.
@@ -4360,7 +4375,7 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
                             throw( { copy_file_failed,
                                 { non_existing_destination_directory, DestDir },
                                 { longest_existing_path_prefix,
-                                  file_utils:find_longest_existing_path_prefix(
+                                  find_longest_existing_path_prefix(
                                     DestDir ) },
                                 { source,
                                   text_utils:ensure_string( SourceFilePath ) },
@@ -5791,7 +5806,7 @@ get_most_suitable_configuration_directory(
     FirstCandidateDir =
         filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ),
 
-    case file_utils:is_existing_directory_or_link( FirstCandidateDir ) of
+    case is_existing_directory_or_link( FirstCandidateDir ) of
 
         true ->
             FirstCandidateDir;
@@ -5808,7 +5823,7 @@ get_most_suitable_configuration_directory(
     CandidateDir =
         filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ),
 
-    case file_utils:is_existing_directory_or_link( CandidateDir ) of
+    case is_existing_directory_or_link( CandidateDir ) of
 
         true ->
             CandidateDir;
@@ -6100,9 +6115,13 @@ get_element_access_denied_info( AnyElemPath ) ->
 
     ParentDir = filename:dirname( AnyElemPath ),
 
-    % The goal is never to enter any test or diagnosis function that could throw
-    % or recurse indefinitively:
+    % One goal is never to enter any test or diagnosis function that could throw
+    % or recurse indefinitively.
 
+    % Note that, if the current user has no adequate permissions,
+    % is_existing_directory/1 will return false despite that directory actually
+    % existing:
+    %
     case is_existing_directory( ParentDir ) of
 
         true ->
@@ -6116,15 +6135,17 @@ get_element_access_denied_info( AnyElemPath ) ->
 
                     % Extra information kept, to investigate:
                     { target_element_actually_accessible,
-                      { owner, describe_owner_of( AnyElemPath ) },
-                      { group, describe_group_of( AnyElemPath ) },
-                      { permissions, describe_permissions_of( AnyElemPath ) } };
+                      { element_owner, describe_owner_of( AnyElemPath ) },
+                      { element_group, describe_group_of( AnyElemPath ) },
+                      { element_permissions,
+                        describe_permissions_of( AnyElemPath ) } };
 
                 not_accessible ->
                     { target_element_exist_yet_inaccessible,
-                      { owner, describe_owner_of( AnyElemPath ) },
-                      { group, describe_group_of( AnyElemPath ) },
-                      { permissions, describe_permissions_of( AnyElemPath ) } };
+                      { element_owner, describe_owner_of( AnyElemPath ) },
+                      { element_group, describe_group_of( AnyElemPath ) },
+                      { element_permissions,
+                        describe_permissions_of( AnyElemPath ) } };
 
                 non_existing ->
                     target_element_does_not_exist
@@ -6132,9 +6153,13 @@ get_element_access_denied_info( AnyElemPath ) ->
             end,
 
             % At least generally, 0 is root:
-            ParentDirOwnerInfo = { owner, describe_owner_of( ParentDir ) },
-            ParentDirGroupInfo = { group, describe_group_of( ParentDir ) },
-            ParentDirPerms = { permissions,
+            ParentDirOwnerInfo =
+                { parent_owner, describe_owner_of( ParentDir ) },
+
+            ParentDirGroupInfo =
+                { parent_group, describe_group_of( ParentDir ) },
+
+            ParentDirPerms = { parent_permissions,
                                describe_permissions_of( ParentDir ) },
 
             ParentDirInfo = { parent_directory_exists,
@@ -6144,10 +6169,18 @@ get_element_access_denied_info( AnyElemPath ) ->
             { ElemInfo, ParentDirInfo, get_runtime_user_info() };
 
         false ->
-            { parent_directory_does_not_exist,
-              text_utils:ensure_string( ParentDir ) }
+            % Perhaps not even existing at all:
+            { cannot_access_parent_directory,
+              text_utils:ensure_string( ParentDir ),
+              { longest_accessible_root,
+                determine_longest_accessible_root( ParentDir ) },
+              { { parent_owner, describe_owner_of( ParentDir ) },
+                { parent_group, describe_group_of( ParentDir ) },
+                { parent_permissions, describe_permissions_of( ParentDir ) } },
+              get_runtime_user_info() }
 
     end.
+
 
 
 -doc """
@@ -6241,14 +6274,66 @@ get_directory_access_denied_info( AnyDirPath ) ->
 
 % Never throws.
 % (helper)
--spec get_runtime_user_info() -> [ tuple() ].
+-spec get_runtime_user_info() -> tuple().
 get_runtime_user_info() ->
-    [ { actual_runtime_user, system_utils:describe_user_name(),
+    { { actual_runtime_user, system_utils:describe_user_name(),
         { user_id, system_utils:describe_user_id() } },
       { actual_runtime_group,
         system_utils:describe_group_name(),
-        { group_id, system_utils:describe_group_id() } } ].
+        { group_id, system_utils:describe_group_id() } } }.
 
+
+
+-doc """
+Returns the longest prefix (if any) of the specified (relative or absolute) path
+that is still accessible by the current user.
+
+Useful to determine the first intermediate directory whose permissions prevent
+an access from the current user.
+""".
+-spec determine_longest_accessible_root( any_path() ) -> path() | 'none'.
+determine_longest_accessible_root( AnyPath ) ->
+    case split( text_utils:ensure_string(
+                  ensure_path_is_absolute( AnyPath ) ) ) of
+
+        [] ->
+            none;
+
+        [ First | NextElems ] ->
+            case get_access_status( First ) of
+
+                accessible ->
+                    examine_path_prefix( _PrefixPath=First, NextElems );
+
+                _ ->
+                    none
+
+            end
+
+    end.
+
+
+
+% (helper)
+-spec examine_path_prefix( path_element(), [ path_element() ] ) ->
+                                        path() | 'none'.
+% PrefixPath has always been validated before:
+examine_path_prefix( PrefixPath, _NextElems=[] ) ->
+    % So the full path is validated here:
+    PrefixPath;
+
+examine_path_prefix( PrefixPath, _NextElems=[ NextPath | T ] ) ->
+    NewPrefixPath = join( PrefixPath, NextPath ),
+    case get_access_status( NewPrefixPath ) of
+
+        accessible ->
+            examine_path_prefix( NewPrefixPath, T );
+
+        _ ->
+            % So this is the last good path:
+            PrefixPath
+
+end.
 
 
 -doc """
