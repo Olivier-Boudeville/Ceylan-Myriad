@@ -268,9 +268,9 @@ Patterns shall be expressed according to the "Perl Compatible Regular
 Expressions" conventions, or PCRE for short.
 
 For more information, see
-[https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions].
+<https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions>.
 
-See also [http://erlang.org/doc/man/re.html].
+See also <http://erlang.org/doc/man/re.html>.
 """.
 -type regex_string() :: ustring().
 
@@ -435,7 +435,7 @@ reference.
 No such type as `iostring()` or `io_string()`.
 
 See
-[https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax]
+<https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax>
 for more details.
 """.
 -type io_list() ::
@@ -6184,7 +6184,7 @@ characters, i.e. `[char()]`.
 """.
 -spec are_chars( term() ) -> boolean().
 are_chars( L ) when is_list( L ) ->
-    lists:all( fun( C ) -> is_char(C) end, L );
+    lists:all( fun is_char/1, L );
 
 are_chars( _Other ) ->
     false.
@@ -6330,6 +6330,8 @@ is_non_empty_string( S ) ->
 
 -doc """
 Returns true iff the parameter is a string-like.
+
+Typically useful to decide whether the `~ts` control sequence can be used.
 """.
 -spec is_string_like( term() ) -> boolean().
 % Possibly to be further refined/fixed:
