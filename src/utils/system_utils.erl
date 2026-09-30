@@ -40,7 +40,7 @@ See `system_utils_test.erl` for the corresponding test.
           get_user_id/0, describe_user_id/0,
           get_user_info/0, describe_user_info/0,
           get_user_home_directory/0, get_user_home_directory/1,
-          get_user_home_directory_string/0 ]).
+          describe_user_home_directory/0 ]).
 
 
 % Group-related functions.
@@ -587,7 +587,11 @@ identifier).
 % User-related subsection.
 
 
--doc "Returns the name of the current user, as a plain string.".
+-doc """
+Returns the name of the current user, as a plain string.
+
+May throw.
+""".
 -spec get_user_name() -> user_name().
 get_user_name() ->
 
@@ -622,7 +626,7 @@ get_user_name() ->
 -doc """
 Returns the name of the current user, as a plain string.
 
-Not expected to fail.
+Not expected to fail/throw.
 """.
 -spec describe_user_name() -> ustring().
 describe_user_name() ->
@@ -645,7 +649,7 @@ Returns a textual description of the name of the current user.
 
 Note: to be flattened caller-side.
 
-Cannot crash.
+Not expected to fail/throw.
 """.
 -spec get_user_name_string() -> user_name().
 get_user_name_string() ->
@@ -664,7 +668,11 @@ get_user_name_string() ->
 
 
 
--doc "Returns the (system) identifier (UID) of the current user.".
+-doc """
+Returns the (system) identifier (UID) of the current user.
+
+May throw.
+""".
 -spec get_user_id() -> user_id().
 get_user_id() ->
 
@@ -683,7 +691,7 @@ get_user_id() ->
 -doc """
 Returns the (system) identifier (UID) of the current user, as a plain string.
 
-Not expected to fail.
+Not expected to fail/throw.
 """.
 -spec describe_user_id() -> ustring().
 describe_user_id() ->
@@ -702,7 +710,11 @@ describe_user_id() ->
 
 
 
--doc "Returns the system information regarding the current user.".
+-doc """
+Returns the system information regarding the current user.
+
+May throw.
+""".
 -spec get_user_info() -> { user_name(), group_name() }.
 get_user_info() ->
     { get_user_name(), get_group_name() }.
@@ -712,7 +724,7 @@ get_user_info() ->
 -doc """
 Returns the system information regarding the current user.
 
-Not expected to fail.
+Not expected to fail/throw.
 """.
 -spec describe_user_info() -> { user_name(), group_name() }.
 describe_user_info() ->
@@ -720,7 +732,11 @@ describe_user_info() ->
 
 
 
--doc "Returns the home directory of the current user, as a plain string.".
+-doc """
+Returns the home directory of the current user, as a plain string.
+
+May throw.
+""".
 -spec get_user_home_directory() -> directory_path() .
 get_user_home_directory() ->
 
@@ -761,10 +777,10 @@ get_user_home_directory( Username ) ->
 -doc """
 Returns a textual description of the home directory of the current user.
 
-Cannot crash.
+Not expected to fail/throw.
 """.
--spec get_user_home_directory_string() -> ustring().
-get_user_home_directory_string() ->
+-spec describe_user_home_directory() -> ustring().
+describe_user_home_directory() ->
 
     try
 
@@ -784,7 +800,11 @@ get_user_home_directory_string() ->
 % Group subsection.
 
 
--doc "Returns the (system) group identifier of the current user.".
+-doc """
+Returns the (system) group identifier of the current user.
+
+May throw.
+""".
 -spec get_group_id() -> group_id().
 get_group_id() ->
 
@@ -803,7 +823,7 @@ get_group_id() ->
 -doc """
 Returns the (system) identifier (GID) of the current group, as a plain string.
 
-Not expected to fail.
+Not expected to fail/throw.
 """.
 -spec describe_group_id() -> ustring().
 describe_group_id() ->
@@ -822,7 +842,11 @@ describe_group_id() ->
 
 
 
--doc "Returns the name of the group of the current user, as a plain string.".
+-doc """
+Returns the name of the group of the current user, as a plain string.
+
+May throw.
+""".
 -spec get_group_name() -> group_name().
 get_group_name() ->
 
@@ -841,7 +865,7 @@ get_group_name() ->
 -doc """
 Returns the name of the group of the current user, as a plain string.
 
-Not expected to fail.
+Not expected to fail/throw.
 """.
 -spec describe_group_name() -> ustring().
 describe_group_name() ->
@@ -3950,7 +3974,7 @@ get_system_description() ->
                  get_ram_status_string(),
                  get_swap_status_string(),
                  get_user_name_string(),
-                 get_user_home_directory_string(),
+                 describe_user_home_directory(),
                  get_current_directory_string(),
                  get_disk_usage_string(),
                  get_resource_limits_string() ],
