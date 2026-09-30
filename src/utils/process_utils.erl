@@ -52,7 +52,7 @@ See also the `monitor_utils` module, which relies on Erlang monitors.
 
 -export([ set_label/1, get_label/0, get_label/1,
           get_label_string/0, get_label_string/1,
-          describe/0, describe/1 ]).
+          describe/0, describe/1, label_to_string/1 ]).
 
 
 
@@ -421,7 +421,7 @@ corresponding monitoring process.
 """.
 -spec spawn_overall_monitor() -> no_return().
 spawn_overall_monitor() ->
-    spawn_overall_monitor( _MsgThreshold=200, _ReducThreshold=10_000,
+    spawn_overall_monitor( _MsgThreshold=200, _ReducThreshold=50_000,
         _SamplingPeriodMs=2_000,
         _LocalRegName=get_overall_monitor_default_registration_name() ).
 
@@ -518,14 +518,27 @@ overall_monitor_main_loop( MsgThreshold, ReducThreshold, SamplingPeriodMs,
             { NewProcTable, ProcInfos } =
                 scan_all_processes( ProcTable, MsgThreshold, ReducThreshold ),
 
-            ProcInfos =:= [] orelse
-                begin
-                    Strs = [ interpret_proc_info( PI, MsgThreshold,
-                        ReducThreshold, SamplingPeriodMs ) || PI <- ProcInfos ],
+            case ProcInfos of
 
-                    trace_utils:warning_fmt(
-                        "~B processes have abnormal metrics: ~ts",
-                        [ length( Strs ),
+                [] ->
+                    ok;
+
+                [ ProcInfo ] ->
+                    trace_utils:warning_fmt( "Abnormal metrics: ~ts "
+                        "(thresholds being up to ~B messages per mailbox, "
+                        "and up to ~B new reductions over ~ts)",
+                        [ interpret_proc_info( ProcInfo ), MsgThreshold,
+                          ReducThreshold, time_utils:duration_to_string(
+                                            SamplingPeriodMs ) ] );
+
+
+                 ProcInfos ->
+                    Strs = [ interpret_proc_info( PI ) || PI <- ProcInfos ],
+                    trace_utils:warning_fmt( "~B processes have abnormal "
+                        "metrics (thresholds being up to ~B messages per "
+                        "mailbox, and up to ~B new reductions over ~ts): ~ts",
+                        [ length( Strs ), MsgThreshold, ReducThreshold,
+                          time_utils:duration_to_string( SamplingPeriodMs ),
                           text_utils:strings_to_string( Strs ) ] )
 
                 end,
@@ -577,16 +590,19 @@ scan_all_processes( ProcIter, ProcTable, MsgThreshold, ReducThreshold,
 
             end,
 
-            MaybeReducCount = case table:lookup_entry( _K=Pid, ProcTable ) of
+            MaybeExtraReducCount = case table:lookup_entry( _K=Pid,
+                                                            ProcTable ) of
 
+                % Process not known yet:
                 key_not_found ->
                     undefined;
 
                { value, PrevReducs } ->
-                    case NewReducs - PrevReducs >= ReducThreshold of
+                    ExtraReducCount = NewReducs - PrevReducs,
+                    case ExtraReducCount >= ReducThreshold of
 
                         true ->
-                            NewReducs;
+                            ExtraReducCount;
 
                         _OtherFalse ->
                             undefined
@@ -595,14 +611,15 @@ scan_all_processes( ProcIter, ProcTable, MsgThreshold, ReducThreshold,
 
             end,
 
-            NewAccProcInfos = case { MaybeMsgCount, MaybeReducCount } of
+            NewAccProcInfos = case { MaybeMsgCount, MaybeExtraReducCount } of
 
                 { undefined, undefined } ->
                     AccProcInfos;
 
                 % At least one problematic metrics:
                 _ ->
-                    [ { Pid, MaybeMsgCount, MaybeReducCount } | AccProcInfos ]
+                    [ { Pid, MaybeMsgCount, MaybeExtraReducCount }
+                        | AccProcInfos ]
 
             end,
 
@@ -620,34 +637,25 @@ scan_all_processes( ProcIter, ProcTable, MsgThreshold, ReducThreshold,
 
 
 
--spec interpret_proc_info( proc_info(), option( message_count() ),
-    option( reduction_count() ), milliseconds() ) -> ustring().
+-spec interpret_proc_info( proc_info() ) -> ustring().
 interpret_proc_info( _ProcInfo={ _Pid, _MaybeMsgCount=undefined,
-                                 _MaybeReducCount=undefined },
-                     _MsgThreshold, _ReducThreshold, _SamplingPeriodMs ) ->
+                                 _MaybeExtraReducCount=undefined } ) ->
     "(no relevant process information - abnormal)";
 
-interpret_proc_info( _ProcInfo={ Pid, MsgCount, _MaybeReducCount=undefined },
-                     MsgThreshold, _ReducThreshold, _SamplingPeriodMs ) ->
-    text_utils:format(
-        "~ts has ~B messages in its mailbox (threshold being ~B)",
-        [ process_utils:describe( Pid ), MsgCount, MsgThreshold ] );
+interpret_proc_info(
+        _ProcInfo={ Pid, MsgCount, _MaybeExtraReducCount=undefined } ) ->
+    text_utils:format( "~ts has ~B messages in its mailbox",
+                       [ describe( Pid ), MsgCount ] );
 
 interpret_proc_info( _ProcInfo={ Pid, _MaybeMsgCount=undefined,
-                                 ReducCount },
-                     _MsgThreshold, ReducThreshold, SamplingPeriodMs ) ->
-    text_utils:format( "~ts exceeds the delta-reduction threshold "
-        "(~B per ~ts), reaching ~B reductions",
-        [ process_utils:describe( Pid ), ReducThreshold,
-          time_utils:duration_to_string( SamplingPeriodMs ), ReducCount ] );
+                                 ExtraReducCount } ) ->
+    text_utils:format( "~ts used ~B extra reductions",
+                       [ describe( Pid ), ExtraReducCount ] );
 
-interpret_proc_info( _ProcInfo={ Pid, MsgCount, ReducCount },
-                     MsgThreshold, ReducThreshold, SamplingPeriodMs ) ->
-    text_utils:format( "~ts has ~B messages in its mailbox "
-        "(threshold being ~B) and also exceeds the delta-reduction "
-        "threshold (~B per ~ts), reaching ~B reductions",
-        [ process_utils:describe( Pid ), MsgCount, MsgThreshold, ReducThreshold,
-          time_utils:duration_to_string( SamplingPeriodMs ), ReducCount ] ).
+interpret_proc_info( _ProcInfo={ Pid, MsgCount, ExtraReducCount } ) ->
+    text_utils:format( "~ts has ~B messages in its mailbox and also "
+        "used ~B extra reductions",
+        [ describe( Pid ), MsgCount, ExtraReducCount ] ).
 
 
 
@@ -696,7 +704,8 @@ get_label_string( Pid ) ->
             "";
 
         Label ->
-            text_utils:format( " (labelled '~p')", [ Label ] )
+            text_utils:format( " (labelled '~ts')",
+                               [ label_to_string( Label ) ] )
 
     end.
 
@@ -723,6 +732,21 @@ describe( Pid ) ->
             text_utils:format( "~w", [ Pid ] );
 
         Label ->
-            text_utils:format( "process '~p' (~w)", [ Label, Pid ] )
+            text_utils:format( "process '~ts' (~w)" ,
+                               [ label_to_string( Label ), Pid ] )
+
+    end.
+
+
+-doc "Returns the most suitable/readable string for the specified label.".
+-spec label_to_string( process_label() ) -> ustring().
+label_to_string( Label ) ->
+    case text_utils:is_string_like( Label ) of
+
+        true ->
+            text_utils:format( "~ts", [ Label ] );
+
+        _False ->
+            text_utils:format( "~p", [ Label ] )
 
     end.
