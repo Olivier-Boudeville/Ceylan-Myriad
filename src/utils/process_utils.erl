@@ -421,7 +421,7 @@ corresponding monitoring process.
 """.
 -spec spawn_overall_monitor() -> no_return().
 spawn_overall_monitor() ->
-    spawn_overall_monitor( _MsgThreshold=200, _ReducThreshold=50_000,
+    spawn_overall_monitor( _MsgThreshold=200, _ReducThreshold=250_000,
         _SamplingPeriodMs=2_000,
         _LocalRegName=get_overall_monitor_default_registration_name() ).
 
