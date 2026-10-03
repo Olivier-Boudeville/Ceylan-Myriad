@@ -577,63 +577,86 @@ scan_all_processes( ProcIter, ProcTable, MsgThreshold, ReducThreshold,
 
         { Pid, NewProcIter } ->
 
-            [ { message_queue_len, QueueLen }, { reductions, NewReducs } ] =
-                erlang:process_info( Pid, [ message_queue_len, reductions ] ),
+            case erlang:process_info( Pid,
+                                      [ message_queue_len, reductions ] ) of
 
-            MaybeMsgCount = case QueueLen >= MsgThreshold of
+                % Process is not alive anymore, i.e. died concurrently, thus to
+                % be ignored:
+                %
+                undefined ->
+                    NewProcTable = table:remove_entry( Pid, ProcTable ),
+                    scan_all_processes( NewProcIter, NewProcTable, MsgThreshold,
+                                        ReducThreshold, AccProcInfos );
 
-                true ->
-                    QueueLen;
+                [ { message_queue_len, QueueLen },
+                  { reductions, NewReducs } ] ->
+                    { NewProcTable, NewAccProcInfos } = integrate_process( Pid,
+                        ProcTable, QueueLen, MsgThreshold, NewReducs,
+                        ReducThreshold, AccProcInfos ),
 
-                _False ->
-                    undefined
+                    scan_all_processes( NewProcIter, NewProcTable, MsgThreshold,
+                                        ReducThreshold, NewAccProcInfos )
 
-            end,
+            end;
 
-            MaybeExtraReducCount = case table:lookup_entry( _K=Pid,
-                                                            ProcTable ) of
-
-                % Process not known yet:
-                key_not_found ->
-                    undefined;
-
-               { value, PrevReducs } ->
-                    ExtraReducCount = NewReducs - PrevReducs,
-                    case ExtraReducCount >= ReducThreshold of
-
-                        true ->
-                            ExtraReducCount;
-
-                        _OtherFalse ->
-                            undefined
-
-                    end
-
-            end,
-
-            NewAccProcInfos = case { MaybeMsgCount, MaybeExtraReducCount } of
-
-                { undefined, undefined } ->
-                    AccProcInfos;
-
-                % At least one problematic metrics:
-                _ ->
-                    [ { Pid, MaybeMsgCount, MaybeExtraReducCount }
-                        | AccProcInfos ]
-
-            end,
-
-            NewProcTable = table:add_entry( Pid, _V=NewReducs, ProcTable ),
-
-            scan_all_processes( NewProcIter, NewProcTable, MsgThreshold,
-                                ReducThreshold, NewAccProcInfos );
-
-
+        % End of iteration:
         none ->
             { ProcTable, AccProcInfos }
 
     end.
 
+
+-doc "Integrates the metrics of the corresponding process.".
+-spec integrate_process( pid(), proc_table(), message_count(), message_count(),
+    reduction_count(), reduction_count(), [ proc_info() ] ) ->
+                                { proc_table(), [ proc_info() ] }.
+integrate_process( Pid, ProcTable, QueueLen, MsgThreshold,
+                   NewReducs, ReducThreshold, AccProcInfos ) ->
+
+    MaybeMsgCount = case QueueLen >= MsgThreshold of
+
+        true ->
+            QueueLen;
+
+        _False ->
+            undefined
+
+    end,
+
+    MaybeExtraReducCount = case table:lookup_entry( _K=Pid, ProcTable ) of
+
+        % Process not known yet:
+        key_not_found ->
+            undefined;
+
+        { value, PrevReducs } ->
+            ExtraReducCount = NewReducs - PrevReducs,
+            case ExtraReducCount >= ReducThreshold of
+
+                true ->
+                    ExtraReducCount;
+
+                _OtherFalse ->
+                    undefined
+
+            end
+
+    end,
+
+    NewProcTable = table:add_entry( Pid, _V=NewReducs, ProcTable ),
+
+    NewAccProcInfos = case { MaybeMsgCount, MaybeExtraReducCount } of
+
+        { undefined, undefined } ->
+            AccProcInfos;
+
+        % At least one problematic metrics, so:
+        _ ->
+            [ { Pid, MaybeMsgCount, MaybeExtraReducCount } | AccProcInfos ]
+
+    end,
+
+    { NewProcTable, NewAccProcInfos }.
 
 
 
