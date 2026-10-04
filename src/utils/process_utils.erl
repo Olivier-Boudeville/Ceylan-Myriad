@@ -256,8 +256,10 @@ message_queue_monitor_main_loop( MonitoredPid, BinProcDesc, MsgThreshold,
 
             QueueLen > MsgThreshold andalso
                 trace_utils:warning_fmt( "The length of the message queue "
-                    "of ~ts is ~B (thus exceeding the ~w threshold).",
-                    [ BinProcDesc, QueueLen, MsgThreshold ] ),
+                    "of ~ts is ~B (thus exceeding the ~w threshold)~ts",
+                    [ BinProcDesc, QueueLen, MsgThreshold,
+                      describe_latest_messages( MonitoredPid, _LastMsgCount=12 )
+                    ] ),
 
             message_queue_monitor_main_loop( MonitoredPid, BinProcDesc,
                                              MsgThreshold, SamplingPeriodMs )
@@ -667,8 +669,9 @@ interpret_proc_info( _ProcInfo={ _Pid, _MaybeMsgCount=undefined,
 
 interpret_proc_info(
         _ProcInfo={ Pid, MsgCount, _MaybeExtraReducCount=undefined } ) ->
-    text_utils:format( "~ts has ~B messages in its mailbox",
-                       [ describe( Pid ), MsgCount ] );
+    text_utils:format( "~ts has ~B messages in its mailbox~ts",
+        [ describe( Pid ), MsgCount,
+          describe_latest_messages( Pid, _LastCount=4 ) ] );
 
 interpret_proc_info( _ProcInfo={ Pid, _MaybeMsgCount=undefined,
                                  ExtraReducCount } ) ->
@@ -676,9 +679,38 @@ interpret_proc_info( _ProcInfo={ Pid, _MaybeMsgCount=undefined,
                        [ describe( Pid ), ExtraReducCount ] );
 
 interpret_proc_info( _ProcInfo={ Pid, MsgCount, ExtraReducCount } ) ->
-    text_utils:format( "~ts has ~B messages in its mailbox and also "
-        "used ~B extra reductions",
-        [ describe( Pid ), MsgCount, ExtraReducCount ] ).
+    text_utils:format( "~ts used ~B extra reductions and "
+        "has ~B messages in its mailbox~ts",
+        [ describe( Pid ), ExtraReducCount, MsgCount,
+          describe_latest_messages( Pid, _LastCount=4 ) ] ).
+
+
+
+-doc """
+Describes the latest messages sitting in the mailbox of the specified process.
+""".
+-spec describe_latest_messages( pid(), count() ) -> ustring().
+describe_latest_messages( TargetPid, LastMsgCount ) ->
+
+    { messages, Msgs } = erlang:process_info( TargetPid, messages ),
+
+    LastMessages = case length( Msgs ) of
+
+        L when L > LastMsgCount ->
+            { Lasts, _Prevs } =
+                list_utils:extract_last_elements( Msgs, LastMsgCount ),
+            Lasts;
+
+        % Return everything possible:
+        _ ->
+            Msgs
+
+    end,
+
+    text_utils:format( ", last ones being: ~ts",
+        [ text_utils:strings_to_string( [ text_utils:term_to_bounded_string(
+            M, _MaxLen=80 ) || M <- LastMessages ], _IndentationLevel=1 ) ] ).
+
 
 
 
