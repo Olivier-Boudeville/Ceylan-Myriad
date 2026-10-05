@@ -1128,7 +1128,11 @@ actual_display( Message ) ->
     %basic_utils:display_timed( RetainedMsg, _MsTimeOut=30000 ).
 
     % If wanting a faster, less safe version (ending newline must be kept):
-    io:format( "~ts~n", [ RetainedMsg ] ).
+    %
+    % (now timestamped, as more useful for example in erlang.log.* files)
+    %
+    io:format( "[~ts]~ts~n",
+               [ time_utils:get_textual_timestamp(), RetainedMsg ] ).
 
 
 
