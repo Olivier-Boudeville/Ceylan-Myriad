@@ -164,7 +164,7 @@ affect the date as well).
 -doc """
 Describes any convention in terms of DST (Daylight Saving Time).
 
-Refer to [https://en.wikipedia.org/wiki/Daylight_saving_time_by_country] for
+Refer to <https://en.wikipedia.org/wiki/Daylight_saving_time_by_country> for
 details.
 """.
 % See also get_dst_conventions/0.
@@ -301,7 +301,7 @@ A (plain) string representing a timestamp according to ISO 8601.
 
 For example `"2022-07-04T14:23:18Z"`.
 
-Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information.
+Refer to <https://en.wikipedia.org/wiki/ISO_8601> for further information.
 """.
 -type iso8601_string() :: ustring().
 
@@ -312,7 +312,7 @@ A binary string representing a timestamp according to ISO 8601.
 
 For example `"2022-07-04T14:23:18Z"`.
 
-Refer to [https://en.wikipedia.org/wiki/ISO_8601] for further information>.
+Refer to <https://en.wikipedia.org/wiki/ISO_8601> for further information>.
 """.
 -type iso8601_bin_string() :: bin_string().
 
@@ -956,7 +956,7 @@ is_bank_holiday( _Date={ Y, M, D }, Country ) ->
 Returns a (non chronologically-ordered) list of the dates of the bank holidays,
 for the specified year and country.
 
-Sources for France: [https://kalendrier.ouest-france.fr/jours-feries/2020.html]
+Sources for France: <https://kalendrier.ouest-france.fr/jours-feries/2020.html>
 ("fixed" days have then been factored).
 """.
 -spec get_bank_holidays_for( year(), country() ) -> [ date_in_year() ].
@@ -2107,8 +2107,8 @@ Returns a string corresponding to the current timestamp expressed as the
 `"2020-01-01 00-01-22"`.
 
 Used by various web-related tools (see
-[https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat] and
-[https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG]).
+<https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat> and
+<https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG>).
 """.
 -spec get_time2_textual_timestamp() -> ustring().
 get_time2_textual_timestamp() ->
@@ -2122,8 +2122,8 @@ Returns a string corresponding to the specified timestamp expressed as the
 `"2020-01-01 00-01-22"`.
 
 Used by various web-related tools (see
-[https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat] and
-[https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG]).
+<https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat> and
+<https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG>).
 """.
 -spec get_time2_textual_timestamp( timestamp() ) -> ustring().
 get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
