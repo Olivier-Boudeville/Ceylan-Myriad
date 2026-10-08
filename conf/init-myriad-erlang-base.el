@@ -104,8 +104,15 @@
 
 
 
-;; Not wanting single '%' to be set at the default column 48:
-(add-hook 'erlang-mode-hook (lambda () (setq-local comment-column 0)))
+;; Wanting a single '%', and not to be set at the default column 48:
+(add-hook 'erlang-mode-hook (lambda ()
+							  (setq-local comment-column 0)
+							  (setq-local comment-start "%")
+							  (setq-local comment-end "")
+							  ;;(setq-local comment-start-skip "%\\s-*")
+							  ;; No extra %:
+							  (setq-local comment-add 0)
+							  (setq-local comment-style 'plain)))
 
 ;; erlang-electric-semicolon removed, as more a nuisance than a help (function
 ;; headers generally pasted from first):
