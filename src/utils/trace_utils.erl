@@ -239,7 +239,11 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 % automatically the trace type (e.g. "[debug] ") at the beginning of the
 % message, finish it with a carriage-return/line-feed, and for the most
 % important trace types, try to ensure that they are synchronous (blocking).
-%
+
+% No space is kept between the brackets of the severity (e.g. "[debug]") and any
+% message starting with "[".
+
+
 % Traces of lesser importance are ellipsed, as the console output does not allow
 % to browse them conveniently.
 %
@@ -256,19 +260,42 @@ Textual timestamps shall better be binaries or atoms rather than plain strings.
 -type any_string() :: text_utils:any_string().
 
 
+% As consoles use fixed-size fonts, all severities are justified to fit in the
+% space of the longest, which is "emergency", so that their messages are then
+% properly aligned.
+
+%% -define( debug_prefix,     "[  debug  ]" ).
+%% -define( info_prefix,      "[  info   ]" ).
+%% -define( notice_prefix,    "[  notice ]" ).
+%% -define( warning_prefix,   "[ warning ]" ).
+%% -define( error_prefix,     "[  error  ]" ).
+%% -define( critical_prefix,  "[ critical]" ).
+%% -define( alert_prefix,     "[  alert  ]" ).
+%% -define( emergency_prefix, "[emergency]" ).
+
+% Finally we prefer this more compact version:
+-define( debug_prefix,     "[debug]" ).
+% Note that not 'info', to avoid a space:
+-define( info_prefix,      "[infor]" ).
+-define( notice_prefix,    "[notic]" ).
+-define( warning_prefix,   "[warni]" ).
+-define( error_prefix,     "[error]" ).
+-define( critical_prefix,  "[criti]" ).
+-define( alert_prefix,     "[alert]" ).
+-define( emergency_prefix, "[emerg]" ).
 
 
 
 -doc "Outputs the specified debug message.".
 -spec debug( trace_any_message() ) -> 'ok'.
 debug( Message ) ->
-    actual_display( "[debug] ~ts", [ Message ] ).
+    actual_display( ?debug_prefix ++ offset( Message ) ).
 
 
 -doc "Outputs the specified formatted debug message.".
 -spec debug_fmt( trace_format(), trace_values() ) -> 'ok'.
 debug_fmt( Format, Values ) ->
-    actual_display( "[debug] " ++ Format, Values ).
+    debug( text_utils:format( Format, Values ) ).
 
 
 
@@ -278,10 +305,11 @@ Outputs the specified debug message, with the specified message categorization.
 -spec debug_categorized( trace_any_message(),
                          trace_message_categorization() ) -> 'ok'.
 debug_categorized( Message, _MessageCategorization=uncategorized ) ->
-    actual_display( "[debug] ~ts", [ Message ] );
+    actual_display( ?debug_prefix ++ offset( Message ) );
 
 debug_categorized( Message, MessageCategorization ) ->
-    actual_display( "[debug][~ts] ~ts", [ MessageCategorization, Message ] ).
+    actual_display( ?debug_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -293,25 +321,27 @@ and time information.
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 debug_categorized_timed( Message, _MessageCategorization=uncategorized,
                          Timestamp ) ->
-    actual_display( "[debug][at ~ts] ~ts", [ Timestamp, Message ] );
+    actual_display( ?debug_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 debug_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    actual_display( "[debug][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    actual_display( ?debug_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
+
 
 
 
 -doc "Outputs the specified info message.".
 -spec info( trace_any_message() ) -> 'ok'.
 info( Message ) ->
-    actual_display( "[info] ~ts", [ Message ] ).
+    actual_display( ?info_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted info message.".
 -spec info_fmt( trace_format(), trace_values() ) -> 'ok'.
 info_fmt( Format, Values ) ->
-    actual_display( "[info] " ++ Format, Values ).
+    info( text_utils:format( Format, Values ) ).
 
 
 
@@ -320,12 +350,12 @@ Outputs the specified info message, with the specified message categorization.
 """.
 -spec info_categorized( trace_any_message(), trace_message_categorization() ) ->
                                             'ok'.
-
 info_categorized( Message, _MessageCategorization=uncategorized ) ->
-    actual_display( "[info] ~ts", [ Message ] );
+    actual_display( ?info_prefix ++ offset( Message ) );
 
 info_categorized( Message, MessageCategorization ) ->
-    actual_display( "[info][~ts] ~ts", [ MessageCategorization, Message ] ).
+    actual_display( ?info_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -337,25 +367,25 @@ and time information.
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 info_categorized_timed( Message, _MessageCategorization=uncategorized,
                         Timestamp ) ->
-    actual_display( "[info][at ~ts] ~ts", [ Timestamp, Message ] );
+    actual_display( ?info_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 info_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    actual_display( "[info][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    actual_display( ?info_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
 
 
 
 -doc "Outputs the specified notice message.".
 -spec notice( trace_any_message() ) -> 'ok'.
 notice( Message ) ->
-    actual_display( "[notice] ~ts", [ Message ] ).
-
+    actual_display( ?notice_prefix ++ offset( Message ) ).
 
 
 -doc "Outputs the specified formatted notice message.".
 -spec notice_fmt( trace_format(), trace_values() ) -> 'ok'.
 notice_fmt( Format, Values ) ->
-    actual_display( "[notice] " ++ Format, Values ).
+    notice( text_utils:format( Format, Values ) ).
 
 
 
@@ -363,13 +393,13 @@ notice_fmt( Format, Values ) ->
 Outputs the specified notice message, with the specified message categorization.
 """.
 -spec notice_categorized( trace_any_message(),
-                          trace_message_categorization() ) -> 'ok'.
+                         trace_message_categorization() ) -> 'ok'.
 notice_categorized( Message, _MessageCategorization=uncategorized ) ->
-    actual_display( "[notice] ~ts", [ Message ] );
+    actual_display( ?notice_prefix ++ offset( Message ) );
 
 notice_categorized( Message, MessageCategorization ) ->
-    actual_display( "[notice][~ts] ~ts", [ MessageCategorization, Message ] ).
-
+    actual_display( ?notice_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 -doc """
@@ -380,27 +410,26 @@ and time information.
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 notice_categorized_timed( Message, _MessageCategorization=uncategorized,
                           Timestamp ) ->
-    actual_display( "[notice][at ~ts] ~ts", [ Timestamp, Message ] );
+    actual_display( ?notice_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 notice_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    actual_display( "[notice][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    actual_display( ?notice_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
 
 
 
 -doc "Outputs the specified warning message.".
 -spec warning( trace_any_message() ) -> 'ok'.
 warning( Message ) ->
-    severe_display( "[warning] ~ts", [ Message ] ),
-    system_utils:await_output_completion().
+    severe_display( ?warning_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted warning message.".
 -spec warning_fmt( trace_format(), trace_values() ) -> 'ok'.
 warning_fmt( Format, Values ) ->
-    severe_display( "[warning] " ++ Format, Values ),
-    system_utils:await_output_completion().
+    warning( text_utils:format( Format, Values ) ).
 
 
 
@@ -411,10 +440,11 @@ categorization.
 -spec warning_categorized( trace_any_message(),
                            trace_message_categorization() ) -> 'ok'.
 warning_categorized( Message, _MessageCategorization=uncategorized ) ->
-    severe_display( "[warning] ~ts", [ Message ] );
+    severe_display( ?warning_prefix ++ offset( Message ) );
 
 warning_categorized( Message, MessageCategorization ) ->
-    severe_display( "[warning][~ts] ~ts", [ MessageCategorization, Message ] ).
+    severe_display( ?warning_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -424,42 +454,46 @@ and time information.
 """.
 -spec warning_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 warning_categorized_timed( Message, _MessageCategorization=uncategorized,
                            Timestamp ) ->
-    severe_display( "[warning][at ~ts] ~ts", [ Timestamp, Message ] );
+    severe_display( ?warning_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 warning_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    severe_display( "[warning][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    severe_display( ?warning_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
+
 
 
 
 -doc "Outputs the specified error message.".
 -spec error( trace_any_message() ) -> 'ok'.
 error( Message ) ->
-    severe_display( "[error] ~ts", [ Message ] ),
-    system_utils:await_output_completion().
+    severe_display( ?error_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted error message.".
 -spec error_fmt( trace_format(), trace_values() ) -> 'ok'.
 error_fmt( Format, Values ) ->
-    severe_display( "[error] " ++ Format, Values ),
-    system_utils:await_output_completion().
+    error( text_utils:format( Format, Values ) ).
 
 
 
 -doc """
-Outputs the specified error message, with the specified message categorization.
+Outputs the specified error message, with the specified message
+categorization.
 """.
 -spec error_categorized( trace_any_message(),
-                         trace_message_categorization() ) -> 'ok'.
+                           trace_message_categorization() ) -> 'ok'.
 error_categorized( Message, _MessageCategorization=uncategorized ) ->
-    severe_display( "[error] ~ts", [ Message ] );
+    severe_display( ?error_prefix ++ offset( Message ) );
 
 error_categorized( Message, MessageCategorization ) ->
-    severe_display( "[error][~ts] ~ts", [ MessageCategorization, Message ] ).
+    severe_display( ?error_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -469,29 +503,32 @@ and time information.
 """.
 -spec error_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 error_categorized_timed( Message, _MessageCategorization=uncategorized,
-                         Timestamp ) ->
-    severe_display( "[error][at ~ts] ~ts", [ Timestamp, Message ] );
+                           Timestamp ) ->
+    severe_display( ?error_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 error_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    severe_display( "[error][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    severe_display( ?error_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
+
+
 
 
 
 -doc "Outputs the specified critical message.".
 -spec critical( trace_any_message() ) -> 'ok'.
 critical( Message ) ->
-    severe_display( "[critical] ~ts", [ Message ] ),
-    system_utils:await_output_completion().
+    severe_display( ?critical_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted critical message.".
 -spec critical_fmt( trace_format(), trace_values() ) -> 'ok'.
 critical_fmt( Format, Values ) ->
-    severe_display( "[critical] " ++ Format, Values ),
-    system_utils:await_output_completion().
+    critical( text_utils:format( Format, Values ) ).
 
 
 
@@ -500,12 +537,13 @@ Outputs the specified critical message, with the specified message
 categorization.
 """.
 -spec critical_categorized( trace_any_message(),
-                            trace_message_categorization() ) -> 'ok'.
+                           trace_message_categorization() ) -> 'ok'.
 critical_categorized( Message, _MessageCategorization=uncategorized ) ->
-    severe_display( "[critical] ~ts", [ Message ] );
+    severe_display( ?critical_prefix ++ offset( Message ) );
 
 critical_categorized( Message, MessageCategorization ) ->
-    severe_display( "[critical][~ts] ~ts", [ MessageCategorization, Message ] ).
+    severe_display( ?critical_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -515,42 +553,45 @@ categorization and time information.
 """.
 -spec critical_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 critical_categorized_timed( Message, _MessageCategorization=uncategorized,
-                            Timestamp ) ->
-    severe_display( "[critical][at ~ts] ~ts", [ Timestamp, Message ] );
+                           Timestamp ) ->
+    severe_display( ?critical_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 critical_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    severe_display( "[critical][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    severe_display( ?critical_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
 
 
 
 -doc "Outputs the specified alert message.".
 -spec alert( trace_any_message() ) -> 'ok'.
 alert( Message ) ->
-    severe_display( "[alert] ~ts", [ Message ] ),
-    system_utils:await_output_completion().
+    severe_display( ?alert_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted alert message.".
 -spec alert_fmt( trace_format(), trace_values() ) -> 'ok'.
 alert_fmt( Format, Values ) ->
-    severe_display( "[alert] " ++ Format, Values ),
-    system_utils:await_output_completion().
+    alert( text_utils:format( Format, Values ) ).
 
 
 
 -doc """
-Outputs the specified alert message, with the specified message categorization.
+Outputs the specified alert message, with the specified message
+categorization.
 """.
 -spec alert_categorized( trace_any_message(),
-                         trace_message_categorization() ) -> 'ok'.
+                           trace_message_categorization() ) -> 'ok'.
 alert_categorized( Message, _MessageCategorization=uncategorized ) ->
-    severe_display( "[alert] ~ts", [ Message ] );
+    severe_display( ?alert_prefix ++ offset( Message ) );
 
 alert_categorized( Message, MessageCategorization ) ->
-    severe_display( "[alert][~ts] ~ts", [ MessageCategorization, Message ] ).
+    severe_display( ?alert_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -560,29 +601,32 @@ and time information.
 """.
 -spec alert_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 alert_categorized_timed( Message, _MessageCategorization=uncategorized,
-                         Timestamp ) ->
-    severe_display( "[alert][at ~ts] ~ts", [ Timestamp, Message ] );
+                           Timestamp ) ->
+    severe_display( ?alert_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 alert_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    severe_display( "[alert][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    severe_display( ?alert_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
+
+
 
 
 
 -doc "Outputs the specified emergency message.".
 -spec emergency( trace_any_message() ) -> 'ok'.
 emergency( Message ) ->
-    severe_display( "[emergency] ~ts", [ Message ] ),
-    system_utils:await_output_completion().
+    severe_display( ?emergency_prefix ++ offset( Message ) ).
 
 
 
 -doc "Outputs the specified formatted emergency message.".
 -spec emergency_fmt( trace_format(), trace_values() ) -> 'ok'.
 emergency_fmt( Format, Values ) ->
-    severe_display( "[emergency] " ++ Format, Values ),
-    system_utils:await_output_completion().
+    emergency( text_utils:format( Format, Values ) ).
 
 
 
@@ -591,13 +635,13 @@ Outputs the specified emergency message, with the specified message
 categorization.
 """.
 -spec emergency_categorized( trace_any_message(),
-                             trace_message_categorization() ) -> 'ok'.
+                           trace_message_categorization() ) -> 'ok'.
 emergency_categorized( Message, _MessageCategorization=uncategorized ) ->
-    severe_display( "[emergency] ~ts", [ Message ] );
+    severe_display( ?emergency_prefix ++ offset( Message ) );
 
 emergency_categorized( Message, MessageCategorization ) ->
-    severe_display( "[emergency][~ts] ~ts",
-                    [ MessageCategorization, Message ] ).
+    severe_display( ?emergency_prefix ++ text_utils:format( "[~ts]~ts",
+                    [ MessageCategorization, offset( Message ) ] ) ).
 
 
 
@@ -607,13 +651,16 @@ categorization and time information.
 """.
 -spec emergency_categorized_timed( trace_any_message(),
         trace_message_categorization(), trace_timestamp() ) -> 'ok'.
+-spec debug_categorized_timed( trace_any_message(),
+        trace_message_categorization(), trace_timestamp() ) -> 'ok'.
 emergency_categorized_timed( Message, _MessageCategorization=uncategorized,
-                             Timestamp ) ->
-    severe_display( "[emergency][at ~ts] ~ts", [ Timestamp, Message ] );
+                           Timestamp ) ->
+    severe_display( ?emergency_prefix ++ text_utils:format( "[at ~ts]~ts",
+                    [ Timestamp, offset( Message ) ] ) );
 
 emergency_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-    severe_display( "[emergency][~ts][at ~ts] ~ts",
-                    [ MessageCategorization, Timestamp, Message ] ).
+    severe_display( ?emergency_prefix ++ text_utils:format( "[~ts][at ~ts]~ts",
+        [ MessageCategorization, Timestamp, offset( Message ) ] ) ).
 
 
 
@@ -1069,21 +1116,8 @@ severe_display( Message ) ->
         ++ text_utils:ensure_newline_terminated( Message ) ++ Bar ++ ">",
 
     % Could be also error_logger:info_msg/1 for example:
-    actual_display( Str ).
-
-
-
--doc """
-Displays the specified format-based message.
-
-Note: adds a carriage-return/line-feed at the end of the message.
-
-(helper, to provide a level of indirection)
-""".
--spec severe_display( trace_format(), trace_values() ) -> 'ok'.
-severe_display( Format, Values ) ->
-    Message = text_utils:format( Format, Values ),
-    severe_display( Message ).
+    actual_display( Str ),
+    system_utils:await_output_completion().
 
 
 
@@ -1122,6 +1156,20 @@ actual_display( Message ) ->
 
     end,
 
+
+    % Not wanting a space before any opening bracket, so that "[TIMESTAMP][SEV]
+    % [EMITTER]" becomes "[TIMESTAMP][SEV][EMITTER]":
+    %
+    FinalMsg = case RetainedMsg of
+
+        [ $ , $[ | T ] ->
+            [ $[ | T ];
+
+        _ ->
+            RetainedMsg
+
+    end,
+
     % This default timeout (30 seconds, in milliseconds) may not be sufficient
     % in all cases:
     %
@@ -1132,27 +1180,7 @@ actual_display( Message ) ->
     % (now timestamped, as more useful for example in erlang.log.* files)
     %
     io:format( "[~ts]~ts~n",
-               [ time_utils:get_textual_timestamp(), RetainedMsg ] ).
-
-
-
--doc """
-Displays the specified format-based message.
-
-Note: adds a carriage-return/line-feed at the end of the message.
-
-(helper, to provide a level of indirection)
-""".
--spec actual_display( trace_format(), trace_values() ) -> 'ok'.
-actual_display( Format, Values ) ->
-
-    %basic_utils:display( Format, Values ).
-
-    % If wanting a faster, less safe version:
-    %io:format( Format ++ "~n", Values ).
-
-    % Safest of all, recommended:
-    actual_display( text_utils:format( Format, Values ) ).
+               [ time_utils:get_textual_timestamp(), FinalMsg ] ).
 
 
 
@@ -1181,3 +1209,18 @@ Note: adds a carriage-return/line-feed at the end of the message.
 -spec safer_display( trace_format(), trace_values() ) -> 'ok'.
 safer_display( Format, Values ) ->
     safer_display( text_utils:format( Format, Values ) ).
+
+
+-doc """
+Offsets the specified message: adds a leading space iff its first character is
+not an opening bracket, so that `[TIMESTAMP][SEV] [EMITTER]` becomes
+`[TIMESTAMP][SEV][EMITTER]`.
+""".
+-spec offset( ustring() ) -> ustring().
+% Do nothing if starting with an opening bracket:
+offset( S=[ $[ | _T ] ) ->
+    S;
+
+offset( S ) ->
+    % Otherwise add a leading space:
+    [ $ | S ].
