@@ -411,9 +411,7 @@ get_myriad_ast_transforms_for( #module_info{
 
     % We also manage option/1 here: if used as 'option(T)', translated as
     % 'type_utils:option(T)'; the same applies to safe_option/1,
-    % coarse_fallible/1, fallible/{0..2}, string_fallible/0, successful/{0,1},
-    % failing/{0,1}, tagged_fallible/{0..2}, diagnosed_fallible/{0..2}, and
-    % diagnosed_tagged_fallible/{1,2}`.
+    % coarse_fallible/1, etc. (see get_local_type_transforms/2).
 
     % Determines the target table type that we want to rely on ultimately:
     DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -535,14 +533,13 @@ get_local_type_transforms( DesiredTableType ) ->
     %
     BasicUtilsTypes = [ { coarse_fallible, 1 },
                         { fallible, 0 }, { fallible, 1 }, { fallible, 2 },
-                        { string_fallible, 0 },
+                        { result_fallible, 1 }, { string_fallible, 0 },
                         { successful, 0 }, { successful, 1 },
                         { failing, 0 },    { failing, 1 },
                         { tagged_fallible, 0 }, { tagged_fallible, 1 },
                         { tagged_fallible, 2 },
                         { diagnosed_fallible, 1 }, { diagnosed_fallible, 2 },
-                        { diagnosed_tagged_fallible, 1 },
-                        { diagnosed_tagged_fallible, 2 } ],
+                        { diagnosed_tagged_fallible, 1 } ],
 
     % Same regarding the type_utils module:
     TypeUtilsTypes = [ { void, 0 },

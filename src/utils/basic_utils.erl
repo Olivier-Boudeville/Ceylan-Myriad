@@ -91,7 +91,8 @@ Note: useful to have self-describing types.
 
 
 -doc """
-A synthetic description/identifier of a type of error, as a mere atom.
+A synthetic description/identifier of a type of error, as a mere atom
+(`AtomReason`).
 
 For example `file_not_found`.
 """.
@@ -148,9 +149,12 @@ A textual description associated to an error (typically for richer traces).
 
 
 
--doc "The most classical way of reporting an error.".
--type tagged_error() :: { 'error', error_reason() }.
+-doc "The most classical way of reporting an error: `{error, AtomReason}`.".
+-type tagged_error() :: tagged_error( error_tag() ).
 
+
+-doc "A taggged error, to ease pattern-matching.".
+-type tagged_error( T ) :: { 'error', T }.
 
 
 -doc "A (possibly tagged) error term. For example `badarg`.".
@@ -174,6 +178,14 @@ term).
 """.
 -type base_status() :: 'ok' | error_term().
 
+
+-doc """
+Tells whether an operation succeeded; if not, an error reason is specified, as
+an atom.
+
+Thus corresponds to the very common `ok | {error, AtomReason}`.
+""".
+-type tagged_base_status() :: 'ok' | tagged_error().
 
 
 -doc """
@@ -235,9 +247,21 @@ The corresponding terms are thus of the form ``{ok, AnySuccessValue}`` or
 -type fallible() :: fallible( TSuccess :: any() ).
 
 
+
 -doc """
-Return type for operations that may return `{ok,SuccessStr}` or
-`{error,FailureStr}`.
+Return type for operations that may succeed with a result, or may fail with an
+error atom.
+
+The corresponding terms are thus of the form ``{ok, TSuccessValue}`` or
+``{error, AtomReason}``.
+""".
+-type result_fallible( TSuccess ) ::
+    fallible( TSuccess, TFailure :: error_tag() ).
+
+
+-doc """
+Return type for operations that may return `{ok, SuccessStr}` or
+`{error, FailureStr}`.
 """.
 -type string_fallible() ::
     fallible( TSuccess :: ustring(), TFailure :: ustring() ).
@@ -618,13 +642,13 @@ eliminate afterwards).
                reason/0, exit_reason/0, error_reason/0, error_tag/0,
                error_diagnosis/0, error_bin_diagnosis/0,
                error_type/0, error_tuploid/0, error_message/0,
-               diagnosed_error_reason/0, tagged_error/0,
+               diagnosed_error_reason/0, tagged_error/0, tagged_error/1,
                error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
-               base_status/0, base_outcome/0,
+               base_status/0, tagged_base_status/0, base_outcome/0,
 
                coarse_fallible/1, fallible/0, fallible/1, fallible/2,
-               string_fallible/0, successful/0, successful/1, failing/0,
-               failing/1,
+               result_fallible/1, string_fallible/0,
+               successful/0, successful/1, failing/0, failing/1,
 
                tagged_error_info/0, tagged_error_info/1, error_info_tuploid/0,
                tagged_fallible/0, tagged_fallible/1, tagged_fallible/2,
