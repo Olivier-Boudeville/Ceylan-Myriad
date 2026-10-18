@@ -2503,7 +2503,8 @@ get_size( FilePath ) ->
                      get_file_access_denied_info( FilePath ) } );
 
         { error, Reason } ->
-            throw( { size_inquiry_failed, Reason, FilePath } )
+            throw( { size_inquiry_failed, Reason,
+                     text_utils:ensure_string( FilePath ) } )
 
     end.
 
@@ -6538,7 +6539,8 @@ read_whole( FilePath ) ->
                      get_file_access_denied_info( FilePath ) } );
 
         { error, Error } ->
-            throw( { read_whole_failed, FilePath, Error } )
+            throw( { read_whole_failed, text_utils:ensure_string( FilePath ),
+                     Error } )
 
     end.
 
@@ -6572,7 +6574,8 @@ read_lines( FilePath ) ->
                      get_file_access_denied_info( FilePath ) } );
 
         { error, Error } ->
-            throw( { read_lines_failed, FilePath, opening, Error } )
+            throw( { read_lines_failed, text_utils:ensure_string( FilePath ),
+                     opening, Error } )
 
     end,
 
