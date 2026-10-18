@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **preferences** service.
 
-See the preferences.erl tested module.
+See the `preferences` tested module.
 """.
 
 

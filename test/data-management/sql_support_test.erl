@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **SQL support**, based on available backend(s).
 
-See the sql_support tested module.
+See the `sql_support` tested module.
 """.
 
 
