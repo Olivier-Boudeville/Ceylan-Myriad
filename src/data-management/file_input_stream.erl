@@ -31,7 +31,7 @@
 Utility module for **file-based input data streams**, to read from a (possibly
 read-only) file.
 
-See also the `input_stream` module and implemented behaviour.
+See also the `input_stream` module and its corresponding behaviour.
 """.
 
 
@@ -80,7 +80,7 @@ Possibly designated by FIS.
 
 -doc "A full (complete) data reading done from a file input stream.".
 -type full_data_reading() ::
-    { stream_data(), file_input_stream() } | { 'error', Reason :: any() }.
+    { stream_data(), file_input_stream() } | read_error().
 
 
 % Commented-out, as for some reason reported as a redefinition of the previous
@@ -99,12 +99,13 @@ Possibly designated by FIS.
 
 
 % FIS-specific API:
--export([ open/1, read_all/1, terminate/1 ]).
+-export([ open/1, read_all/1, read_whole_nothrow/1, read_whole/1, close/1 ]).
 
 
 % Implementation of the input_stream behaviour:
 -export([ read_some/1, read_at_least/2, read_at_most/2,
-          read_between/3, read_exactly/2,
+          read_between/3, %read_exactly/2,
+          feed_buffer/1, append_to_buffer/2, flush_buffer/1,
           to_string/1 ]).
 
 
@@ -127,9 +128,13 @@ Possibly designated by FIS.
 -type any_file_path() :: file_utils:any_file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 
+-type tagged_base_status() :: error_utils:tagged_base_status().
+
 -type stream_data() :: stream_utils:stream_data().
+-type buffer() :: stream_utils:buffer().
 
 -type full_data_reading() :: input_stream:full_data_reading().
+-type read_error() :: input_stream:read_error().
 
 
 
@@ -147,64 +152,34 @@ Creates a file-based input stream, by (only) opening the file at the specified
 path.
 
 Only the Erlang process that opened this file stream can use it.
+
+Return `{ok, OpenedFIS}` or `{error, AtomReason}`.
 """.
--spec open( any_file_path() ) -> file_input_stream().
-
-
+-spec open( any_file_path() ) -> result_fallible( file_input_stream() ).
 open( AnyFilePath ) ->
 
     AbsBinPath = text_utils:ensure_binary(
         file_utils:ensure_path_is_absolute( AnyFilePath ) ),
 
-    File = file_utils:open( AbsBinPath,
-        _Opts=[ read, { read_ahead, _Size=2*?default_read_chunk_size },
-                raw, binary ],
-        _AttemptMode=try_once ),
+    case file_utils:open( AbsBinPath,
+            _Opts=[ read, { read_ahead, _Size=2*?default_read_chunk_size },
+                    raw, binary ],
+            _AttemptMode=try_once ) of
 
-    FIS = #file_input_stream{ path=AbsBinPath, file=File, buffer= <<>> },
+        { ok, File } ->
+            FIS = #file_input_stream{ path=AbsBinPath, file=File,
+                                      buffer= <<>> },
 
-    cond_utils:if_defined( myriad_check_streams, check_fis( FIS ) ),
+            cond_utils:if_defined( myriad_check_streams, check_fis( FIS ) ),
 
-    FIS.
-
-
-
--doc """
-Creates a file-based input stream by opening the file at the specified path and
-reading its full content in the internal buffer of that stream (like the
-`sponge` executable).
-""".
--spec read_all( any_file_path() ) -> stream_data().
-read_all( AnyFilePath ) ->
-    % Not relying on file:read_file/2, so that the constructed FIS behaves the
-    % same as others (typically with a file handle):
-    %
-    FIS = open( AnyFilePath ),
-    ReadFIS = bufferize_all( FIS ),
-    cond_utils:if_defined( myriad_check_streams, check_fis( ReadFIS ) ),
-    ReadFIS.
+            { ok, FIS };
 
 
-
--doc """
-Exhausts the specified file input stream by reading its full content and storing
-it in its buffer.
-""".
--spec bufferize_all( file_input_stream() ) -> file_input_stream().
-bufferize_all( FIS=#file_input_stream{ file=File, buffer=Buf } ) ->
-    case file:read( File, ?default_read_chunk_size ) of
-
-        { ok, Data } ->
-            NewBuf = << Buf/binary, Data/binary >>,
-            bufferize_all( FIS#file_input_stream{ buffer=NewBuf } );
-
-        eof ->
-            FIS;
-
-        E={ error, _Reason } ->
+        E={ error, _AtomReason } ->
             E
 
     end.
+
 
 
 
@@ -213,33 +188,34 @@ bufferize_all( FIS=#file_input_stream{ file=File, buffer=Buf } ) ->
 
 
 -doc """
-Terminates the specified file input stream.
+Closes the specified file input stream.
 
 Not expected to fail, but may trace errors.
 """.
--spec close( file_input_stream() ) -> void().
+-spec close( file_input_stream() ) -> tagged_base_status().
 % Empty buffer, as usually expected:
-terminate( FIS=#file_input_stream{ file=File, buffer= <<>> } ) ->
+close( FIS=#file_input_stream{ file=File, buffer= <<>> } ) ->
     case file:close( File ) of
 
         ok ->
             ok;
 
-        { error, Reason } ->
+        P={ error, Reason } ->
             trace_utils:error_fmt( "When terminating the file input stream "
                 "corresponding to '~ts', its closing failed with ~p.",
-                [ FIS#file_input_stream.path, Reason ] )
+                [ FIS#file_input_stream.path, Reason ] ),
+          P
 
     end;
 
 % Non-empty buffer:
-terminate( FIS=#file_input_stream{ path=BinPath, buffer=Buf } ) ->
+close( FIS=#file_input_stream{ path=BinPath, buffer=Buf } ) ->
 
-    trace_utils:error_fmt( "When terminating the file input stream "
+    trace_utils:warning_fmt( "When terminating the file input stream "
         "corresponding to file '~ts', a non-empty buffer (of ~B bytes) "
         "was found and has been dropped.", [ BinPath, size( Buf ) ] ),
 
-    terminate( FIS#file_input_stream{ buffer= <<>> } ).
+    close( FIS#file_input_stream{ buffer= <<>> } ).
 
 
 
@@ -499,6 +475,162 @@ to_string( #file_input_stream{ path=AbsBinPath, buffer=Buf } ) ->
 
 
 
+% Section for replicated functions, as they cannot be defined one for all in the
+% behaviour module due to their reliance on callbacks.
+
+
+
+-doc """
+Feeds the internal buffer of this file input stream by filling it (once) from an
+internal reading thereof.
+""".
+-spec feed_buffer( file_input_stream() ) ->
+                        file_input_stream() | 'end_of_stream' | read_error().
+feed_buffer( FIS=#file_input_stream{ file=File } ) ->
+    case file:read( File, ?default_read_chunk_size ) of
+
+        { ok, BinData } ->
+            append_to_buffer( BinData, FIS );
+
+        eof ->
+            end_of_stream;
+
+        E={ error, _Reason } ->
+            E
+
+    end.
+
+
+
+-doc """
+Appends the specified (binary) data to the internal of the specified file input
+stream, returning its updated version.
+""".
+-spec append_to_buffer( binary(), file_input_stream() ) ->
+                                        file_input_stream().
+append_to_buffer( BinData, FIS=#file_input_stream{ buffer=Buf } ) ->
+    NewBuf = << Buf/binary, BinData/binary >>,
+    FIS#file_input_stream{ buffer=NewBuf }.
+
+
+
+-doc """
+Exhausts the specified file input stream by reading its full content and storing
+it in its buffer: reads synchronously all available content from that input
+stream in its internal buffer, until reaching its end-of-stream.
+""".
+-spec bufferize_all( file_input_stream() ) ->
+                        file_input_stream() | read_error().
+bufferize_all( FIS ) ->
+    case feed_buffer( FIS ) of
+
+        end_of_stream ->
+            FIS;
+
+        E={ error, _Reason } ->
+            E;
+
+        ReadIS ->
+            bufferize_all( ReadIS )
+
+    end.
+
+
+
+-doc """
+Returns the current internal buffer of the specified file input stream, flushing
+it (that stream has therefore no more data available internally).
+""".
+-spec flush_buffer( file_input_stream() ) -> { buffer(), file_input_stream() }.
+flush_buffer( FIS=#file_input_stream{ buffer=Buf } ) ->
+    { _StreamData=Buf, FIS#file_input_stream{ buffer= <<>> } }.
+
+
+
+-doc """
+Reads all data from the specified file input stream, and returns them - unless
+an error occurred, which is then returned.
+""".
+-spec read_all( file_input_stream() ) -> full_data_reading().
+read_all( FIS ) ->
+    case bufferize_all( FIS ) of
+
+        E={ error, _Reason } ->
+            E;
+
+        FIS ->
+            flush_buffer( FIS )
+
+    end.
+
+
+
+-doc """
+Returns the whole content of the specified file, by creating a corresponding
+file input stream, reading it fully, closing that stream and returning the data
+obtained (a bit like the `sponge` executable).
+
+Does not throw.
+""".
+-spec read_whole_nothrow( any_file_path() ) -> result_fallible( stream_data() ).
+read_whole_nothrow( AnyFilePath ) ->
+    case open( AnyFilePath ) of
+
+        { ok, FIS } ->
+            case read_all( FIS ) of
+
+                E={ error, _Reason } ->
+                    E;
+
+                { FullData, ExhaustedFIS } ->
+                     case close( ExhaustedFIS ) of
+
+                        ok ->
+                            { ok, FullData };
+
+                        TaggedError ->
+                             TaggedError
+
+                     end
+
+            end;
+
+        TaggedError ->
+            TaggedError
+
+    end.
+
+
+
+-doc """
+Returns the whole content of the specified file, by creating a corresponding
+file input stream, reading it fully, closing that stream and returning the data
+obtained (a bit like the `sponge` executable).
+
+Throws an exception if the operation failed.
+""".
+-spec read_whole( any_file_path() ) -> stream_data().
+read_whole( AnyFilePath ) ->
+    case read_whole_nothrow( AnyFilePath ) of
+
+        { ok, FullData } ->
+            FullData;
+
+        % Quite alike file_utils:read_whole/1:
+
+        { error, eacces } ->
+            throw( { read_whole_failed,
+                     text_utils:ensure_string( AnyFilePath ), access_denied,
+                     file_utils:get_file_access_denied_info( AnyFilePath ) } );
+
+        { error, Error } ->
+            throw( { read_whole_failed, text_utils:ensure_string( AnyFilePath ),
+                     Error } )
+
+    end.
+
+
+
 
 % Helpers
 
@@ -513,7 +645,7 @@ available or not.
 %
 -spec manage_eof( binary(), file_input_stream() ) -> data_reading().
 manage_eof( _Buf= <<>>, FIS ) ->
-    terminate( FIS ),
+    close( FIS ),
     end_of_stream;
 
 manage_eof( Buf, FIS ) ->

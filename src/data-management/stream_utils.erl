@@ -95,9 +95,13 @@ written to, like a file or a socket.
 -type buffer() :: binary().
 
 
+-doc "An error related to stream termination.".
+-type termination_error() :: atom(). % Including error_utils:file_close_error/0.
+
+
 -export_type([ stream_data/0, stream_handler/0, stream/0,
                input_stream/0, output_stream/0, input_output_stream/0,
-               buffer/0 ]).
+               buffer/0, termination_error/0 ]).
 
 -export([ get_handler/1, to_string/1 ]).
 

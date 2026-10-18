@@ -59,7 +59,8 @@ read-only file, the output of a pipe, a socket, an abstract output stream, etc.
 -type stream_data() :: stream_utils:stream_data().
 
 -doc "Term returned in case of read error.".
--type read_error() :: { 'error', Reason :: any() }
+% 'read_error' would be less convenient for matching:
+-type read_error() :: { 'error', Reason :: any() }.
 
 
 -doc "A full (complete) data reading, typically done from an input stream.".
@@ -73,10 +74,6 @@ read-only file, the output of a pipe, a socket, an abstract output stream, etc.
 
 -export_type([ input_stream/0, data_reading/0, full_data_reading/0,
                read_error/0 ]).
-
-
-% Exported helper functions:
--export([ bufferize_all/1, read_all/1 ]).
 
 
 
@@ -153,14 +150,17 @@ then to read and return as many bytes as available, up to `MaxCount` bytes.
                         input_stream() ) -> data_reading().
 
 
--doc """
-Reads synchronously exactly the specified number of bytes from the specified
-input stream.
-
-So will block until exactly `Count` bytes can be read and returned.
-""".
--callback read_exactly( Count :: byte_size(), input_stream() ) ->
-                                        data_reading().
+% There is no read_exactly/*, since end of streams have to be managed anyway:
+% this corresponds to read_at_most/2.
+%
+%-doc """
+%Reads synchronously exactly the specified number of bytes from the specified
+%input stream.
+%
+%So will block until exactly `Count` bytes can be read and returned.
+%""".
+%-callback read_exactly( Count :: byte_size(), input_stream() ) ->
+%                                        data_reading().
 
 
 -doc """
@@ -173,10 +173,10 @@ an error.
 
 
 -doc """
-Appends the specified (binary) data to the internal of the specified stream,
-returning it.
+Appends the specified (binary) data to the internal buffer of the specified
+input stream, returning its updated version.
 """.
--callback append_to_buffer( binary(), input_stream() ) -> input_stream()
+-callback append_to_buffer( binary(), input_stream() ) -> input_stream().
 
 
 -doc """
@@ -234,40 +234,51 @@ Returns the current internal buffer of the specified input stream, flushing it
 % Helper (exported) functions.
 
 
--doc """
-Reads synchronously all available content from that input stream in its internal
-buffer, until reaching its end-of-stream.
-""".
--spec bufferize_all( input_stream() ) -> input_stream() | read_error().
-bufferize_all( IS ) ->
-    case feed_buffer( IS ) of
-
-        end_of_stream ->
-            IS;
-
-        P={ error, Reason } ->
-            P;
-
-        ReadIS ->
-            bufferize_all( ReadIS )
-
-    end.
 
 
+% Functions in this section cannot be implemented here due to their reliance on
+% callbacks; as a consequence they have to be replicated in callback modules
+% (like file_input_stream). Ceylan-WOOPER passive instances could be of use
+% here.
 
 
--doc """
-Reads all data from the underlying source, and returns it, together with a
-flushed input stream.
-""".
--spec read_all( input_stream() ) -> full_data_reading().
-read_all( IS ) ->
-    case bufferize_all( IS ) of
+% -doc """
+% Reads synchronously all available content from that input stream in its
+% internal buffer, until reaching its end-of-stream.
+% """.
+%
+% -spec bufferize_all( input_stream() ) -> input_stream() | read_error().
+% bufferize_all( IS ) ->
+%     case feed_buffer( IS ) of
+%
+%         end_of_stream ->
+%             IS;
+%
+%         P={ error, _Reason } ->
+%             P;
+%
+%         ReadIS ->
+%             bufferize_all( ReadIS )
+%
+%     end.
 
-        P={ error, Reason } ->
-            P;
 
-        IS ->
-            flush_buffer( IS )
 
-    end.
+% Anyway preferring creating it from stream-specific constructor (like a file
+% path):
+%
+% -doc """
+% Reads all data from the underlying source, and returns it, together with a
+% flushed input stream.
+% """.
+% -spec read_all( input_stream() ) -> full_data_reading().
+% read_all( IS ) ->
+%     case bufferize_all( IS ) of
+%
+%         P={ error, _Reason } ->
+%             P;
+%
+%         IS ->
+%             flush_buffer( IS )
+%
+%     end.
