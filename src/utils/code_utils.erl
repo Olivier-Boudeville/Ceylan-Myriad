@@ -1780,12 +1780,12 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
                     % No trailing dot wanted:
                     text_utils:format( "module '~ts' found in code path "
                         "(as '~ts'), yet it does not export a '~ts' function, "
-                        "for any arity",
+                        "for any arity.",
                         [ ModuleName, ModulePath, FunctionName ] );
 
                 Arities ->
                     interpret_arities( ModuleName, FunctionName, Arity,
-                                       Arities, ModulePath )
+                                       Arities, ModulePath ) ++ "."
 
             end
 
