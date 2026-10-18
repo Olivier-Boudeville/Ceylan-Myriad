@@ -6610,7 +6610,7 @@ any kind of string, using a default encoding if a plain string is specified.
 
 Note that specifying a binary allows to avoid any potential unwanted encoding.
 
-Any already-existing file at that path will be silently overwritten.
+Any already-existing file at this path will be silently overwritten.
 
 Throws an exception on failure.
 """.
