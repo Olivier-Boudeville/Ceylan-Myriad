@@ -69,11 +69,13 @@ Returns the short and long descriptions associated to the specified POSIX error.
                                 { short_description(), long_description() }.
 get_descriptions( _PosixError=eacces ) ->
     { "Permission denied",
-      "The process does not have the required rights to read the file or one of its parent directories" };
+      "The process does not have the required rights to read the file or one of
+      its parent directories" };
 
 get_descriptions( _PosixError=eagain ) ->
     { "Resource temporarily unavailable",
-      "The filesystem or underlying resource cannot serve the request at the moment" };
+      "The filesystem or underlying resource cannot serve the request at the
+      moment" };
 
 get_descriptions( _PosixError=ebadf ) ->
     { "Bad file descriptor",
