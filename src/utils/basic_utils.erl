@@ -174,25 +174,18 @@ A textual description associated to an error (typically for richer traces).
 
 -doc """
 Tells whether an operation succeeded; if not, an error reason is specified (as a
-term).
+term - not necessarily an atom).
 """.
 -type base_status() :: 'ok' | error_term().
 
 
 -doc """
-Tells whether an operation succeeded; if not, an error reason is specified, as
-an atom.
-
-Thus corresponds to the very common `ok | {error, AtomReason}`.
-""".
--type tagged_base_status() :: 'ok' | tagged_error().
-
-
--doc """
 Tells whether an operation succeeded; if not, an error reason is specified (as a
 pair).
+
+So is either `ok` or `{error, AtomReason}`.
 """.
--type base_outcome() :: 'ok' | error_term().
+-type base_outcome() :: 'ok' | tagged_error().
 
 
 
@@ -644,7 +637,7 @@ eliminate afterwards).
                error_type/0, error_tuploid/0, error_message/0,
                diagnosed_error_reason/0, tagged_error/0, tagged_error/1,
                error_term/0, diagnosed_error_term/0, diagnosed_error_term/1,
-               base_status/0, tagged_base_status/0, base_outcome/0,
+               base_status/0, base_outcome/0,
 
                coarse_fallible/1, fallible/0, fallible/1, fallible/2,
                result_fallible/1, string_fallible/0,
@@ -1879,8 +1872,7 @@ run( ModIOList, FunctionName, Args ) ->
 
                 end,
                 { get_hint( code_utils:interpret_undef_exception( Mod, Fun,
-                                                                  Arity ) )
-                  ++ ".",
+                                                                  Arity ) ),
                   true };
 
 
