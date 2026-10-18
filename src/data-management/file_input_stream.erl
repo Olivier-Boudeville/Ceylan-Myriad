@@ -35,6 +35,7 @@ See also the `input_stream` module and its corresponding behaviour.
 """.
 
 
+% Implementing it here:
 -behaviour(input_stream).
 
 
@@ -62,11 +63,13 @@ See also the `input_stream` module and its corresponding behaviour.
 
 }.
 
+-export_record([ file_input_stream ]).
 
 
 
 -doc """
-A file-based input data streams, to read from a (possibly read-only file).
+A file-based input data stream, in order to read from a (possibly read-only)
+file.
 
 Possibly designated by FIS.
 """.
@@ -91,11 +94,9 @@ Possibly designated by FIS.
                       | 'end_of_stream'. % Corresponds to eof
 
 
-
--export_record([ file_input_stream ]).
-
 -export_type([ file_input_stream/0, fis/0,
                data_reading/0, full_data_reading/0 ]).
+
 
 
 % FIS-specific API:
@@ -128,7 +129,7 @@ Possibly designated by FIS.
 -type any_file_path() :: file_utils:any_file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 
--type tagged_base_status() :: error_utils:tagged_base_status().
+-type base_outcome() :: basic_utils:base_outcome().
 
 -type stream_data() :: stream_utils:stream_data().
 -type buffer() :: stream_utils:buffer().
@@ -161,10 +162,10 @@ open( AnyFilePath ) ->
     AbsBinPath = text_utils:ensure_binary(
         file_utils:ensure_path_is_absolute( AnyFilePath ) ),
 
-    case file_utils:open( AbsBinPath,
+    % More direct control than with file_utils:open/2:
+    case file:open( AbsBinPath,
             _Opts=[ read, { read_ahead, _Size=2*?default_read_chunk_size },
-                    raw, binary ],
-            _AttemptMode=try_once ) of
+                    raw, binary ] ) of
 
         { ok, File } ->
             FIS = #file_input_stream{ path=AbsBinPath, file=File,
@@ -187,26 +188,28 @@ open( AnyFilePath ) ->
 % File Input stream "destructor".
 
 
--doc """
-Closes the specified file input stream.
-
-Not expected to fail, but may trace errors.
-""".
--spec close( file_input_stream() ) -> tagged_base_status().
+-doc "Closes the specified file input stream.".
+-spec close( file_input_stream() ) -> base_outcome().
 % Empty buffer, as usually expected:
-close( FIS=#file_input_stream{ file=File, buffer= <<>> } ) ->
-    case file:close( File ) of
+close( _FIS=#file_input_stream{ file=File, buffer= <<>> } ) ->
 
-        ok ->
-            ok;
+    %trace_utils:debug_fmt( "Closing ~p", [ FIS ] ),
 
-        P={ error, Reason } ->
-            trace_utils:error_fmt( "When terminating the file input stream "
-                "corresponding to '~ts', its closing failed with ~p.",
-                [ FIS#file_input_stream.path, Reason ] ),
-          P
+    % Sufficient:
+    file:close( File );
 
-    end;
+%     case file:close( File ) of
+%
+%         ok ->
+%             ok;
+%
+%         P={ error, Reason } ->
+%             trace_utils:error_fmt( "When terminating the file input stream "
+%                 "corresponding to '~ts', its closing failed with ~p.",
+%                 [ FIS#_.path, Reason ] ),
+%           P
+%
+%     end;
 
 % Non-empty buffer:
 close( FIS=#file_input_stream{ path=BinPath, buffer=Buf } ) ->
@@ -215,7 +218,7 @@ close( FIS=#file_input_stream{ path=BinPath, buffer=Buf } ) ->
         "corresponding to file '~ts', a non-empty buffer (of ~B bytes) "
         "was found and has been dropped.", [ BinPath, size( Buf ) ] ),
 
-    close( FIS#file_input_stream{ buffer= <<>> } ).
+    close( FIS#_{ buffer= <<>> } ).
 
 
 
@@ -230,6 +233,9 @@ close( FIS=#file_input_stream{ path=BinPath, buffer=Buf } ) ->
 -doc """
 Reads synchronously some (reasonable, bounded) number of bytes from the
 specified file input stream.
+
+If returning `end_of_stream`, closes automatically the specified file input
+stream.
 """.
 -spec read_some( file_input_stream() ) -> data_reading().
 read_some( FIS=#file_input_stream{ file=File, buffer=Buf } ) ->
@@ -263,6 +269,9 @@ read_some( FIS=#file_input_stream{ file=File, buffer=Buf } ) ->
 -doc """
 Reads synchronously at least the specified number of bytes from the specified
 file input stream (minimum included).
+
+If returning `end_of_stream`, closes automatically the specified file input
+stream.
 
 Typically useful if needing a full chunk of data whose size is already known of
 the caller.
@@ -316,6 +325,9 @@ read_at_least( MinCount, FIS=#file_input_stream{ file=File,
 Reads synchronously at most the specified number of bytes from the specified
 file input stream (maximum included).
 
+If returning `end_of_stream`, closes automatically the specified file input
+stream.
+
 Useful if a maximum bound on read data applies (e.g. maximum packet size),
 typically to avoid being overwhelmed by larger, forged entries.
 """.
@@ -366,6 +378,9 @@ read_at_most( MaxCount, FIS=#file_input_stream{ file=File, buffer=Buf } ) ->
 -doc """
 Reads synchronously a number of bytes in the specified range (bounds included)
 from the specified input stream.
+
+If returning `end_of_stream`, closes automatically the specified file input
+stream.
 
 Allows to secure a minimum size yet to limit the overall one.
 """.
@@ -495,7 +510,8 @@ feed_buffer( FIS=#file_input_stream{ file=File } ) ->
         eof ->
             end_of_stream;
 
-        E={ error, _Reason } ->
+        % E={error, _Reason}:
+        E ->
             E
 
     end.
@@ -530,8 +546,8 @@ bufferize_all( FIS ) ->
         E={ error, _Reason } ->
             E;
 
-        ReadIS ->
-            bufferize_all( ReadIS )
+        ReadFIS ->
+            bufferize_all( ReadFIS )
 
     end.
 
@@ -558,8 +574,8 @@ read_all( FIS ) ->
         E={ error, _Reason } ->
             E;
 
-        FIS ->
-            flush_buffer( FIS )
+        ReadFIS ->
+            flush_buffer( ReadFIS )
 
     end.
 
@@ -643,19 +659,19 @@ available or not.
 % take into account a case where it would be equal to 'undefined' (whereas some
 % I/O stream may want to append content).
 %
--spec manage_eof( binary(), file_input_stream() ) -> data_reading().
+-spec manage_eof( buffer(), file_input_stream() ) -> data_reading().
 manage_eof( _Buf= <<>>, FIS ) ->
     close( FIS ),
     end_of_stream;
 
 manage_eof( Buf, FIS ) ->
 
-    RetFIS = FIS#_{ buffer= <<>> },
+    ReturnedFIS = FIS#_{ buffer= <<>> },
 
-    cond_utils:if_defined( myriad_check_streams, check_fis( RetFIS ) ),
+    cond_utils:if_defined( myriad_check_streams, check_fis( ReturnedFIS ) ),
 
     % Next time, will be end_of_stream:
-    { Buf, RetFIS }.
+    { Buf, ReturnedFIS }.
 
 
 

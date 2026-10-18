@@ -35,12 +35,14 @@ output of a pipe, a socket, an abstract output stream, etc.
 An *input stream* corresponds to an instance created from a module that
 implements the ``input_stream`` behaviour specified here.
 
-This behaviour exposes functions that are synchronous (blocking), like `read/1`,
-and their asynchronous (non-blocking) counterparts, whose name is postfixed with
-``_async``, like ``read_async/1``.
+This behaviour exposes functions that are synchronous (blocking), like
+`read_some/1`.
 
 See also the `output_stream`, `input_output_stream` and `stream_utils` modules.
 """.
+
+% In the future asynchronous (non-blocking) counterparts, whose name is
+% postfixed with ``_async``, like ``read_async/1``, could be considered.
 
 
 
@@ -54,9 +56,6 @@ read-only file, the output of a pipe, a socket, an abstract output stream, etc.
 %-export_record([ input_stream ]).
 
 
-% Type shorthands:
-
--type stream_data() :: stream_utils:stream_data().
 
 -doc "Term returned in case of read error.".
 % 'read_error' would be less convenient for matching:
@@ -83,6 +82,7 @@ read-only file, the output of a pipe, a socket, an abstract output stream, etc.
 
 -type ustring() :: text_utils:ustring().
 
+-type stream_data() :: stream_utils:stream_data().
 -type buffer() :: stream_utils:buffer().
 
 
@@ -106,10 +106,13 @@ read-only file, the output of a pipe, a socket, an abstract output stream, etc.
 
 
 % We start here with the synchronous (blocking) interface:
+% (as we are in a behaviour module, these are callback specifications)
 
 
 -doc """
 Reads synchronously any number of bytes from the specified input stream.
+
+If returning `end_of_stream`, closes automatically the specified input stream.
 
 So will block until at least one byte can be read - yet will attempt then to
 read and return as many bytes as available.
@@ -120,6 +123,8 @@ read and return as many bytes as available.
 -doc """
 Reads synchronously at least the specified number of bytes from the specified
 input stream (minimum included).
+
+If returning `end_of_stream`, closes automatically the specified input stream.
 
 So will block until at least `MinCount` bytes can be read - yet will attempt
 then to read and return as many bytes as available.
@@ -132,6 +137,8 @@ then to read and return as many bytes as available.
 Reads synchronously at most the specified number of bytes from the specified
 input stream (maximum included).
 
+If returning `end_of_stream`, closes automatically the specified input stream.
+
 So will block until at least one byte can be read - yet will attempt
 then to read and return as many bytes as available, up to `MaxCount` bytes.
 """.
@@ -142,6 +149,8 @@ then to read and return as many bytes as available, up to `MaxCount` bytes.
 -doc """
 Reads synchronously a number of bytes in the specified range (bounds included)
 from the specified input stream.
+
+If returning `end_of_stream`, closes automatically the specified input stream.
 
 So will block until at least `MinCount` bytes can be read - yet will attempt
 then to read and return as many bytes as available, up to `MaxCount` bytes.
@@ -157,10 +166,13 @@ then to read and return as many bytes as available, up to `MaxCount` bytes.
 %Reads synchronously exactly the specified number of bytes from the specified
 %input stream.
 %
+%If returning `end_of_stream`, closes automatically the specified input stream.
+%
 %So will block until exactly `Count` bytes can be read and returned.
 %""".
 %-callback read_exactly( Count :: byte_size(), input_stream() ) ->
 %                                        data_reading().
+
 
 
 -doc """
