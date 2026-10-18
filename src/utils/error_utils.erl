@@ -40,6 +40,10 @@ Services regarding error management.
     | 'eperm' | 'erofs' | 'espipe' | 'esrch' | 'exdev'.
 
 
+-doc "The various errors that may be reported when closing a file.".
+-type file_close_error() :: posix_error() | 'badarg' | 'terminated'.
+
+
 -doc "A (generic) short description of an error.".
 -type short_description() :: ustring().
 
@@ -47,7 +51,8 @@ Services regarding error management.
 -type long_description() :: ustring().
 
 
--export_type([ posix_error/0, short_description/0, long_description/0 ]).
+-export_type([ posix_error/0, file_close_error/0,
+               short_description/0, long_description/0 ]).
 
 
 -export([ get_descriptions/1 ]).
@@ -166,4 +171,3 @@ get_descriptions( _PosixError=esrch ) ->
 get_descriptions( _PosixError=exdev ) ->
     { "Cross-device link",
       "The operation is not allowed across different filesystems" }.
-
