@@ -100,7 +100,10 @@ Possibly designated by FIS.
 
 
 % FIS-specific API:
--export([ open/1, read_all/1, read_whole_nothrow/1, read_whole/1, close/1 ]).
+-export([ open/1, open_nothrow/1,
+          read_all/1,
+          read_whole/1, read_whole_nothrow/1,
+          close/1 ]).
 
 
 % Implementation of the input_stream behaviour:
@@ -155,9 +158,11 @@ path.
 Only the Erlang process that opened this file stream can use it.
 
 Return `{ok, OpenedFIS}` or `{error, AtomReason}`.
+
+Not expected to throw under normal circumstances.
 """.
--spec open( any_file_path() ) -> result_fallible( file_input_stream() ).
-open( AnyFilePath ) ->
+-spec open_nothrow( any_file_path() ) -> result_fallible( file_input_stream() ).
+open_nothrow( AnyFilePath ) ->
 
     AbsBinPath = text_utils:ensure_binary(
         file_utils:ensure_path_is_absolute( AnyFilePath ) ),
@@ -182,6 +187,27 @@ open( AnyFilePath ) ->
     end.
 
 
+
+-doc """
+Returns a file-based input stream, created by (only) opening the file at the
+specified path.
+
+Only the Erlang process that opened this file stream can use it.
+
+May throw.
+""".
+-spec open( any_file_path() ) -> result_fallible( file_input_stream() ).
+open( AnyFilePath ) ->
+    case open_nothrow( AnyFilePath ) of
+
+        { ok, FIS } ->
+            FIS;
+
+        { error, AtomReason } ->
+            throw( { file_input_stream_open_failed, AtomReason,
+                     text_utils:ensure_string( AnyFilePath ) } )
+
+    end.
 
 
 

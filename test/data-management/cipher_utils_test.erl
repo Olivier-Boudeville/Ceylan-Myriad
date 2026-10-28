@@ -68,7 +68,7 @@ run() ->
 
     %Transforms = [ { 'xor', _XOR="A string can be used as well" } ],
 
-    _MyMealyTable = cipher_utils:generate_mealy_table( _StateCount=500 ),
+    MyMealyTable = cipher_utils:generate_mealy_table( _StateCount=500 ),
 
     %Transforms = [ { mealy, _InitialState=2, MyMealyTable } ],
 
@@ -76,24 +76,24 @@ run() ->
 
     % A rather complete key (compression is better be done among the first):
     Transforms = [ delta_combine,
-                      %% { compress, xz },
-                      %% { offset, 41 },
-                      %% { insert_random, _FirstInsertSeed={ 412, 1418, 2565 },
-                      %%   _FirstRange=10 },
-                      { shuffle, _ShuffleSeed={ 140, 98, 250 }, _Length=79 } ], %,
-                      %% { 'xor', "All human beings are born free and equal "
-                      %%   "in dignity and rights." },
-                      %% delta_combine,
-                      %% { mealy, _InitialMealyState=50, MyMealyTable },
-                      %% { insert_random, _SecondInsertSeed={ 432, 4118, 255 },
-                      %%   _SecondRange=11 },
-                      %% delta_combine ],
+                      { compress, xz },
+                      { offset, 41 },
+                      { insert_random, _FirstInsertSeed={ 412, 1418, 2565 },
+                        _FirstRange=10 },
+                      { shuffle, _ShuffleSeed={ 140, 98, 250 }, _Length=79 },
+                      { 'xor', "All human beings are born free and equal "
+                        "in dignity and rights." },
+                      delta_combine,
+                      { mealy, _InitialMealyState=50, MyMealyTable },
+                      { insert_random, _SecondInsertSeed={ 432, 4118, 255 },
+                        _SecondRange=11 },
+                      delta_combine ],
 
     KeyFilename = "my-test-key-file.cipher",
 
 
-    test_facilities:display( "Generating a key from specified transform list, "
-                             "to be stored in file '~ts'.", [ KeyFilename ] ),
+    test_facilities:display( "Generating a key from the specified transform "
+        "list, to be stored in file '~ts'.", [ KeyFilename ] ),
 
     file_utils:is_existing_file( KeyFilename ) andalso
         begin
