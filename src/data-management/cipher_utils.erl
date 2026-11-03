@@ -271,7 +271,6 @@ reverse transformations.
 -type user_specified_transform() :: any().
 
 
-
 -doc "A key is an (ordered) list of (parametrised) cipher transformations.".
 % Not accepting decipher_transform/0, as some of them (e.g. extract_random) are
 % lossy by design:
@@ -279,18 +278,34 @@ reverse transformations.
 -type key() :: [ cipher_transform() ].
 
 
--doc """
-A path designating a key file, whose recommended extension is `cipher`, as a
-plain string.
-
-Example: `"/tmp/my-key.cipher"`.
-""".
--type key_file_path() :: file_path().
 
 
--export_type([ cipher_transform/0, decipher_transform/0,
-               any_transform/0, user_specified_transform/0,
-               key/0, key_file_path/0 ]).
+-export_type([ cipher_transform/0, decipher_transform/0 ]).
+
+
+
+% Transforms can also be used as I/O streams, i.e. Input/Output Stream
+% instances, notably so that they can be chained:
+
+
+% Like a (UNIX) pipe:
+-type id_stream() :: io_stream().
+
+-type offset_stream() :: io_stream().
+
+-type compress_stream() :: io_stream().
+
+-type insert_random_stream() :: io_stream().
+
+-type delta_combine_stream() :: io_stream().
+
+-type shuffle_stream() :: io_stream().
+
+-type xor_stream() :: io_stream().
+
+-type mealy_stream() :: io_stream().
+
+
 
 
 
@@ -315,11 +330,13 @@ Example: `"/tmp/my-key.cipher"`.
 -type compression_format() :: file_utils:compression_format().
 -type file_path() :: file_utils:file_path().
 
+-type io_stream() :: input_output_stream:io_stream().
 
 
 
--doc "Creates a file at the specified path, storing the specified key.".
--spec write_key_file( key_file_path(), key() ) -> void().
+
+-doc "Creates a file storing the specified key.".
+-spec write_key_file( file_path(), key() ) -> void().
 write_key_file( KeyFilePath, Transforms ) ->
 
     file_utils:exists( KeyFilePath ) andalso
@@ -355,11 +372,11 @@ key_to_string( Key ) ->
 
 -doc """
 Encrypts the specified source file using the specified key file, and writes the
-result in the specified target file, expected not to exist already.
+result in the specified target file.
 
 The original file is kept as is.
 """.
--spec encrypt( file_path(), file_path(), key_file_path() ) -> void().
+-spec encrypt( file_path(), file_path(), file_path() ) -> void().
 encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
     file_utils:is_existing_file_or_link( SourceFilePath ) orelse
@@ -378,13 +395,7 @@ encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
     % We may use randomised ciphers:
     random_utils:start_random_source( default_seed ),
 
-    FIS = file_input_stream:open( SourceFilePath ),
-
-    % FIXME compose_key
-    TempFilePath = apply_key( KeyInfos, FIS ),
-
-    %TempFilePath = apply_key( KeyInfos, SourceFilePath ),
-
+    TempFilePath = apply_key( KeyInfos, SourceFilePath ),
 
     file_utils:rename( TempFilePath, TargetFilePath ).
 
@@ -396,7 +407,7 @@ result in the specified target file.
 
 The ciphered file is kept as is.
 """.
--spec decrypt( file_path(), file_path(), key_file_path() ) -> void().
+-spec decrypt( file_path(), file_path(), file_path() ) -> void().
 decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
     file_utils:is_existing_file_or_link( SourceFilePath ) orelse
@@ -430,8 +441,8 @@ decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 % Helper section.
 
 
--doc "Reads a key from the specified file path, and returns it.".
--spec read_key( key_file_path() ) -> [ user_specified_transform() ].
+-doc "Reads a key from the specified filename, and returns it.".
+-spec read_key( file_path() ) -> [ user_specified_transform() ].
 read_key( KeyFilePath ) ->
 
     case file_utils:is_existing_file_or_link( KeyFilePath ) of
@@ -480,14 +491,13 @@ Applies the specified key to the specified file.
 
 Returns the filename of the resulting file.
 """.
--spec apply_key( key(), file_path() ) -> file_path().
 apply_key( KeyInfos, SourceFilePath ) ->
     apply_key( KeyInfos, SourceFilePath, _CipherCount=1 ).
 
 
 % (helper)
-apply_key( _KeyInfos=[], CipheredFilePath, _CipherCount ) ->
-    CipheredFilePath;
+apply_key( _KeyInfos=[], SourceFilePath, _CipherCount ) ->
+    SourceFilePath;
 
 apply_key( _KeyInfos=[ C | T ], SourceFilePath, CipherCount ) ->
 
@@ -567,42 +577,40 @@ transform_to_string( _Transform={ mealy, InitialState, Table } ) ->
 
 
 -doc """
-Applies the specified cipher (transform) to the specified source file, resulting
-in the specfied ciphered file.
+Applies the specified cipher to the specified file.
 
 Some ciphers are better managed if special-cased, whereas others can rely on
 base (yet generic) mechanisms.
 """.
--spec apply_cipher( any_transform(), file_path(), file_path() ) -> void().
-apply_cipher( _AnyTransform=id, SourceFilePath, CipheredFilePath ) ->
+-spec apply_cipher( any(), file_path(), file_path() ) -> void().
+apply_cipher( id, SourceFilePath, CipheredFilePath ) ->
     id_cipher( SourceFilePath, CipheredFilePath );
 
 
-apply_cipher( _AnyTransform={ offset, Offset }, SourceFilePath,
-              CipheredFilePath ) ->
+apply_cipher( { offset, Offset }, SourceFilePath, CipheredFilePath ) ->
 
     % CypherState is simply the constant offset used:
 
     OffsetFun = fun( InputByte, CypherState ) ->
-                    OutputByte = InputByte + Offset,
-                    { OutputByte, CypherState }
+                        OutputByte = InputByte + Offset,
+                        { OutputByte, CypherState }
                 end,
 
     apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
                              _Transform=OffsetFun, _InitialCipherState=Offset );
 
 
-apply_cipher( _AnyTransform={ compress, CompressFormat }, SourceFilePath,
+apply_cipher( { compress, CompressFormat }, SourceFilePath,
               CipheredFilePath ) ->
     compress_cipher( SourceFilePath, CipheredFilePath, CompressFormat );
 
 
-apply_cipher( _AnyTransform={ decompress, CompressFormat }, SourceFilePath,
+apply_cipher( { decompress, CompressFormat }, SourceFilePath,
               CipheredFilePath ) ->
     decompress_cipher( SourceFilePath, CipheredFilePath, CompressFormat );
 
 
-apply_cipher( _AnyTransform={ insert_random, Seed, Range }, SourceFilePath,
+apply_cipher( { insert_random, Seed, Range }, SourceFilePath,
               CipheredFilePath ) ->
 
     random_utils:reset_random_source( Seed ),
@@ -610,7 +618,7 @@ apply_cipher( _AnyTransform={ insert_random, Seed, Range }, SourceFilePath,
     insert_random_cipher( SourceFilePath, CipheredFilePath, Range );
 
 
-apply_cipher( _AnyTransform={ extract_random, Seed, Range }, SourceFilePath,
+apply_cipher( { extract_random, Seed, Range }, SourceFilePath,
               CipheredFilePath ) ->
 
     random_utils:reset_random_source( Seed ),
@@ -618,7 +626,7 @@ apply_cipher( _AnyTransform={ extract_random, Seed, Range }, SourceFilePath,
     extract_random_cipher( SourceFilePath, CipheredFilePath, Range );
 
 
-apply_cipher( _AnyTransform=delta_combine, SourceFilePath, CipheredFilePath ) ->
+apply_cipher( delta_combine, SourceFilePath, CipheredFilePath ) ->
 
     % CypherState is simply the last value read:
 
@@ -631,8 +639,7 @@ apply_cipher( _AnyTransform=delta_combine, SourceFilePath, CipheredFilePath ) ->
                              _Transform=DeltaFun, _InitialCipherState=100 );
 
 
-apply_cipher( _AnyTransform=delta_combine_reverse, SourceFilePath,
-              CipheredFilePath ) ->
+apply_cipher( delta_combine_reverse, SourceFilePath, CipheredFilePath ) ->
 
     % CypherState is simply the last value read:
 
@@ -645,28 +652,26 @@ apply_cipher( _AnyTransform=delta_combine_reverse, SourceFilePath,
         _Transform=ReverseDeltaFun, _InitialCipherState=100 );
 
 
-apply_cipher( _AnyTransform={ _Transform=shuffle, Seed, Length },
-              SourceFilePath, CipheredFilePath ) ->
+apply_cipher( { shuffle, Seed, Length }, SourceFilePath, CipheredFilePath ) ->
 
     shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed,
                     _Dir=direct );
 
 
-apply_cipher( _AnyTransform={ reciprocal_shuffle, Seed, Length },
-              SourceFilePath, CipheredFilePath ) ->
+apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilePath,
+              CipheredFilePath ) ->
 
     shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Seed,
                     _Dir=reciprocal );
 
 
-apply_cipher( _AnyTransform={ 'xor', XORList }, SourceFilePath,
-              CipheredFilePath ) ->
+apply_cipher( { 'xor', XORList }, SourceFilePath, CipheredFilePath ) ->
 
     xor_cipher( SourceFilePath, CipheredFilePath, XORList );
 
 
-apply_cipher( _AnyTransform={ mealy, InitialMealyState, MealyTable },
-              SourceFilePath, CipheredFilePath ) ->
+apply_cipher( { mealy, InitialMealyState, MealyTable }, SourceFilePath,
+              CipheredFilePath ) ->
 
     mealy_cipher( SourceFilePath, CipheredFilePath, InitialMealyState,
                   MealyTable );
@@ -783,6 +788,7 @@ No-op cipher.
 We must though create a new file, as the semantics is to create an additional
 file in all cases.
 """.
+
 id_cipher( SourceFilePath, CipheredFilePath ) ->
     file_utils:copy_file( SourceFilePath, CipheredFilePath ).
 
